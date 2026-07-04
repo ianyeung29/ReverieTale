@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Reverie - AI companions who remember you</title>
+<meta name="description" content="Uncensored AI companions with real memory, built by a community of creators. 18+. Join the waitlist for early access." />
+<style>
+  :root{
+    --bg:#F7EFEA; --bg2:#FBF5F1; --surface:#FFFFFF; --line:#EAD9D0;
+    --ink:#2A1C26; --muted:#7C6672; --faint:#9A8792;
+    --accent:#B0473F; --accent-2:#9C3F6B; --on-accent:#FFF4EE;
+    --glow-a:rgba(176,71,63,.18); --glow-b:rgba(156,63,107,.14);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#150F1A; --bg2:#1C1422; --surface:#231A2B; --line:#3A2E44;
+      --ink:#F4EAF0; --muted:#AC9CB0; --faint:#8A7A90;
+      --accent:#E9A06B; --accent-2:#D46A8B; --on-accent:#1A1220;
+      --glow-a:rgba(233,160,107,.16); --glow-b:rgba(212,106,139,.14);
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#F7EFEA; --bg2:#FBF5F1; --surface:#FFFFFF; --line:#EAD9D0;
+    --ink:#2A1C26; --muted:#7C6672; --faint:#9A8792;
+    --accent:#B0473F; --accent-2:#9C3F6B; --on-accent:#FFF4EE;
+    --glow-a:rgba(176,71,63,.18); --glow-b:rgba(156,63,107,.14);
+  }
+  :root[data-theme="dark"]{
+    --bg:#150F1A; --bg2:#1C1422; --surface:#231A2B; --line:#3A2E44;
+    --ink:#F4EAF0; --muted:#AC9CB0; --faint:#8A7A90;
+    --accent:#E9A06B; --accent-2:#D46A8B; --on-accent:#1A1220;
+    --glow-a:rgba(233,160,107,.16); --glow-b:rgba(212,106,139,.14);
+  }
+
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;
+    font-size:17px; line-height:1.6; -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility; overflow-x:hidden;
+  }
+  .serif{font-family:"Hoefler Text","Baskerville","Palatino Linotype","Book Antiqua",Georgia,serif}
+
+  .glow{position:fixed; inset:0; z-index:0; pointer-events:none;
+    background:
+      radial-gradient(60vw 60vw at 78% -8%, var(--glow-a), transparent 60%),
+      radial-gradient(50vw 50vw at 8% 108%, var(--glow-b), transparent 60%);
+  }
+  @media (prefers-reduced-motion: no-preference){
+    .glow{animation:breathe 14s ease-in-out infinite alternate}
+  }
+  @keyframes breathe{from{opacity:.75}to{opacity:1}}
+
+  .wrap{position:relative; z-index:1; max-width:1040px; margin:0 auto; padding:0 24px}
+
+  header{display:flex; align-items:center; justify-content:space-between; padding:26px 0}
+  .brand{font-weight:600; letter-spacing:.14em; text-transform:uppercase; font-size:14px}
+  .brand b{color:var(--accent); font-weight:700}
+  .chip{font-size:12px; letter-spacing:.12em; font-weight:600; color:var(--muted);
+    border:1px solid var(--line); border-radius:999px; padding:6px 12px}
+
+  .hero{padding:64px 0 40px; max-width:720px}
+  .eyebrow{font-size:12.5px; letter-spacing:.22em; text-transform:uppercase;
+    color:var(--accent); font-weight:700; margin:0 0 22px}
+  h1{font-size:clamp(2.6rem,7vw,4.6rem); line-height:1.02; margin:0 0 22px;
+    font-weight:600; letter-spacing:-.01em; text-wrap:balance}
+  h1 em{font-style:italic; color:transparent; background:linear-gradient(100deg,var(--accent),var(--accent-2));
+    -webkit-background-clip:text; background-clip:text}
+  .sub{font-size:1.18rem; color:var(--muted); margin:0 0 34px; max-width:34em; text-wrap:pretty}
+
+  form{display:flex; flex-direction:column; gap:14px; max-width:460px}
+  .row{display:flex; gap:10px; flex-wrap:wrap}
+  input[type=email]{flex:1 1 240px; min-width:0; background:var(--surface); color:var(--ink);
+    border:1px solid var(--line); border-radius:12px; padding:15px 16px; font-size:16px; font-family:inherit}
+  input[type=email]::placeholder{color:var(--faint)}
+  input[type=email]:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-color:transparent}
+  button.cta{border:0; cursor:pointer; font-family:inherit; font-size:16px; font-weight:650;
+    color:var(--on-accent); background:linear-gradient(100deg,var(--accent),var(--accent-2));
+    border-radius:12px; padding:15px 24px; letter-spacing:.01em; transition:transform .15s ease, filter .15s ease}
+  button.cta:hover{filter:brightness(1.06)}
+  button.cta:active{transform:translateY(1px)}
+  button.cta:focus-visible{outline:2px solid var(--ink); outline-offset:3px}
+  .opt{display:flex; align-items:center; gap:10px; color:var(--muted); font-size:14.5px; cursor:pointer}
+  .opt input{width:17px; height:17px; accent-color:var(--accent)}
+  .fineprint{font-size:13px; color:var(--faint); margin:2px 0 0}
+  .ok{display:none; background:var(--surface); border:1px solid var(--line); border-left:3px solid var(--accent);
+    border-radius:12px; padding:18px 20px; max-width:460px}
+  .ok h3{margin:0 0 4px; font-size:1.05rem}
+  .ok p{margin:0; color:var(--muted); font-size:15px}
+
+  .pillars{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:20px;
+    padding:52px 0; border-top:1px solid var(--line); margin-top:56px}
+  .pillar h2{font-size:1.34rem; margin:0 0 8px; font-weight:600; letter-spacing:-.01em}
+  .pillar .mk{font-size:13px; letter-spacing:.18em; text-transform:uppercase; color:var(--accent);
+    font-weight:700; margin:0 0 14px}
+  .pillar p{margin:0; color:var(--muted); font-size:15.5px}
+
+  .close{padding:20px 0 8px; max-width:640px}
+  .close p{font-size:clamp(1.3rem,3.4vw,1.9rem); line-height:1.25; margin:0; text-wrap:balance}
+
+  footer{border-top:1px solid var(--line); margin-top:56px; padding:30px 0 60px;
+    color:var(--faint); font-size:13.5px; display:flex; gap:8px 22px; flex-wrap:wrap; align-items:center}
+  footer a{color:var(--muted); text-decoration:none}
+  footer a:hover{color:var(--accent)}
+  footer .grow{flex:1}
+
+  /* Age gate */
+  .gate{position:fixed; inset:0; z-index:50; display:grid; place-items:center; padding:24px;
+    background:color-mix(in srgb, var(--bg) 78%, transparent); backdrop-filter:blur(14px)}
+  .gate[hidden]{display:none}
+  .gate .card{background:var(--surface); border:1px solid var(--line); border-radius:18px;
+    padding:34px 30px; max-width:400px; text-align:center; box-shadow:0 30px 80px rgba(0,0,0,.35)}
+  .gate .mk{font-size:12px; letter-spacing:.2em; text-transform:uppercase; color:var(--accent); font-weight:700; margin:0 0 12px}
+  .gate h2{font-size:1.5rem; margin:0 0 10px; font-weight:600}
+  .gate p{margin:0 0 22px; color:var(--muted); font-size:15px}
+  .gate .btns{display:flex; flex-direction:column; gap:10px}
+  .gate .leave{background:transparent; color:var(--muted); border:1px solid var(--line); border-radius:12px;
+    padding:13px; font:inherit; font-size:15px; cursor:pointer}
+  .gate .leave:hover{color:var(--ink)}
+</style>
+</head>
+<body>
+  <div class="glow" aria-hidden="true"></div>
+
+  <!-- Age gate -->
+  <div class="gate" id="gate" role="dialog" aria-modal="true" aria-labelledby="gate-h">
+    <div class="card">
+      <p class="mk">Adults only</p>
+      <h2 class="serif" id="gate-h">Are you 18 or older?</h2>
+      <p>Reverie is an adult platform with mature themes and uncensored AI companions. You must be 18+ to enter.</p>
+      <div class="btns">
+        <button class="cta" id="enter">Yes, I'm 18 or older</button>
+        <button class="leave" id="leave">Leave</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <header>
+      <div class="brand"><b>Reverie</b></div>
+      <div class="chip">18+</div>
+    </header>
+
+    <section class="hero">
+      <p class="eyebrow">Uncensored AI companions with real memory</p>
+      <h1 class="serif" id="headline">She remembers <em>every word.</em></h1>
+      <p class="sub" id="subhead">Not another chatbot that forgets you between visits. Reverie's companions hold onto your history, your story, the way you talk - built by a community of creators, and unfiltered by design.</p>
+
+      <form id="form" novalidate>
+        <div class="row">
+          <input type="email" id="email" name="email" placeholder="you@email.com" autocomplete="email" aria-label="Email address" required />
+          <button type="submit" class="cta">Join the waitlist</button>
+        </div>
+        <label class="opt"><input type="checkbox" id="pay" name="pay" /> I'd pay for early access</label>
+        <p class="fineprint">No spam - just launch news. 18+ only. Unsubscribe anytime.</p>
+      </form>
+
+      <div class="ok" id="ok" role="status" aria-live="polite">
+        <h3 class="serif">You're on the list.</h3>
+        <p>We'll email you the moment early access opens. Welcome to Reverie.</p>
+      </div>
+    </section>
+
+    <section class="pillars" id="pillars">
+      <div class="pillar">
+        <p class="mk">Real memory</p>
+        <h2 class="serif">She never forgets</h2>
+        <p>Your history carries across every conversation. No blank slate, no repeating yourself - a companion who actually knows you.</p>
+      </div>
+      <div class="pillar">
+        <p class="mk">Built by creators</p>
+        <h2 class="serif">Made by people</h2>
+        <p>A marketplace of characters created by a community, not a handful of house bots - and creators earn when you connect.</p>
+      </div>
+      <div class="pillar">
+        <p class="mk">Story to chat</p>
+        <h2 class="serif">Step into the story</h2>
+        <p>Begin with a guided story, then cross over and talk to the character who lived it. The tale becomes a conversation.</p>
+      </div>
+    </section>
+
+    <section class="close">
+      <p class="serif">Early access is limited. Put your name down before the doors open.</p>
+    </section>
+
+    <footer>
+      <span>© 2026 Reverie · 18+ only</span>
+      <span class="grow"></span>
+      <a href="/terms.html">Terms</a>
+      <a href="/privacy.html">Privacy</a>
+    </footer>
+  </div>
+
+<script>
+  // ---- Config (set these before launch) ----
+  var FORM_ENDPOINT = ""; // e.g. a Formspree/Buttondown/ConvertKit URL. Empty = no network (safe for preview).
+
+  // ---- Content-free analytics stub ----
+  window.dataLayer = window.dataLayer || [];
+  function track(event, props){
+    var e = Object.assign({event:event, ts:Date.now()}, props||{});
+    window.dataLayer.push(e);
+    if (window.console) console.log("[track]", e);
+    // Wire your analytics here (self-hosted PostHog/Plausible). Keep it content-free.
+  }
+
+  // ---- Headline A/B by ?v=memory|creators|story ----
+  var VARIANTS = {
+    memory:   {h:'She remembers <em>every word.</em>',
+               s:"Not another chatbot that forgets you between visits. Reverie's companions hold onto your history, your story, the way you talk - built by a community of creators, and unfiltered by design."},
+    creators: {h:'Create her. <em>Others pay to meet her.</em>',
+               s:"Build a companion with a real personality and memory, publish her to the community, and earn every time someone connects. Uncensored by design. 18+."},
+    story:    {h:'Every story becomes <em>a conversation.</em>',
+               s:"Start inside a guided story, then step in and talk to the character who lived it - a companion who remembers all of it. Built by creators, unfiltered by design."}
+  };
+  (function(){
+    var v = new URLSearchParams(location.search).get('v');
+    if (v && VARIANTS[v]){
+      document.getElementById('headline').innerHTML = VARIANTS[v].h;
+      document.getElementById('subhead').textContent = VARIANTS[v].s;
+    }
+    window.__variant = (v && VARIANTS[v]) ? v : 'memory';
+  })();
+
+  // ---- Age gate ----
+  var gate = document.getElementById('gate');
+  function openSite(){ gate.setAttribute('hidden',''); track('age_gate_pass'); track('landing_view',{variant:window.__variant}); }
+  if (localStorage.getItem('age_ok') === '1'){ gate.setAttribute('hidden',''); track('landing_view',{variant:window.__variant}); }
+  document.getElementById('enter').addEventListener('click', function(){ localStorage.setItem('age_ok','1'); openSite(); });
+  document.getElementById('leave').addEventListener('click', function(){ location.href = 'https://www.google.com'; });
+
+  // ---- Wedge section view (fires once) ----
+  var seen=false;
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(en){ if(en.isIntersecting && !seen){ seen=true; track('wedge_section_view'); io.disconnect(); }});
+  },{threshold:.4});
+  io.observe(document.getElementById('pillars'));
+
+  // ---- Waitlist submit ----
+  var form = document.getElementById('form');
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    var email = document.getElementById('email').value.trim();
+    var pay = document.getElementById('pay').checked;
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){
+      document.getElementById('email').focus();
+      document.getElementById('email').style.borderColor = 'var(--accent)';
+      return;
+    }
+    track('waitlist_signup', {variant:window.__variant, intent_to_pay:pay});
+    var done = function(){
+      form.style.display='none';
+      document.getElementById('ok').style.display='block';
+    };
+    if (FORM_ENDPOINT){
+      fetch(FORM_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,intent_to_pay:pay,variant:window.__variant})})
+        .then(done).catch(done);
+    } else { done(); }
+  });
+</script>
+</body>
+</html>
