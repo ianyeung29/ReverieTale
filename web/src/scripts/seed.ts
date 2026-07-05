@@ -1,11 +1,13 @@
 import { config } from "dotenv";
 config({ path: ".env.local" });
 
-import { eq } from "drizzle-orm";
-import { db } from "../db/index";
-import { characters, users } from "../db/schema";
-
+// Import DB modules dynamically INSIDE main(), so dotenv has loaded DATABASE_URL
+// before db/index.ts reads it (static imports would run before the config() above).
 async function main() {
+  const { eq } = await import("drizzle-orm");
+  const { db } = await import("../db/index");
+  const { characters, users } = await import("../db/schema");
+
   const email = "dev@local.test";
   let [u] = await db.select().from(users).where(eq(users.email, email)).limit(1);
   if (!u) {
