@@ -4,7 +4,7 @@ import { desc, eq } from "drizzle-orm";
 import { chat as modelChat, type ChatMessage } from "./model";
 import { screen } from "./moderation";
 import { extractAndStoreMemory, maybeUpdateSummary, retrieveMemory } from "./memory";
-import { rewardCreator, spend, userBalance, type Balance, type SpendResult } from "./ledger";
+import { rewardCreatorShare, spend, userBalance, type Balance, type SpendResult } from "./ledger";
 
 const CHAT_PRICE = Number(process.env.CHAT_PRICE || 1);
 
@@ -104,9 +104,11 @@ export async function finalizeChat(args: {
     charged: charge.charged,
   });
 
-  if (char.creatorId && charge.fromPurchased > 0) {
+  // Creator revenue share: a cut of the reader's PURCHASED spend (not free drip),
+  // and only when someone OTHER than the creator is chatting.
+  if (char.creatorId && char.creatorId !== userId && charge.fromPurchased > 0) {
     try {
-      await rewardCreator(char.creatorId, 1);
+      await rewardCreatorShare(char.creatorId, charge.fromPurchased);
     } catch {
       /* reward failure must not break chat */
     }

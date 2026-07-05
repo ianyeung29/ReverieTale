@@ -1,7 +1,11 @@
 import { randomUUID } from "crypto";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { ledgerAccounts, ledgerEntries, ledgerTransactions } from "@/db/schema";
+import { creatorRewards, ledgerAccounts, ledgerEntries, ledgerTransactions } from "@/db/schema";
+
+// Creator revenue share: fraction of readers' PURCHASED chat spend paid back to
+// the character's creator, as earned (non-cashable) credits. Default 15%.
+export const REWARD_RATE = Math.max(0, Math.min(1, Number(process.env.REWARD_RATE || 0.15)));
 
 /**
  * Double-entry credit ledger (exec-3 sec 4). Balances are DERIVED from immutable
@@ -140,10 +144,11 @@ export async function ensureDailyDrip(userId: string, amount: number): Promise<b
 }
 
 /**
- * Creator reward (+n earned credits). Dormant in Phase 0 (first-party characters
- * have no creator). Only fires for real creator characters, on purchased-credit spend.
+ * Creator reward (+n earned credits, flat). Low-level; prefer rewardCreatorShare
+ * for the percentage revenue-share so fractional accrual is handled correctly.
  */
 export async function rewardCreator(creatorId: string, n = 1, idempotencyKey: string = randomUUID()) {
+  if (n <= 0) return;
   const [c, p] = [await creatorAccount(creatorId), await platformAccount()];
   return db.transaction((tx) =>
     post(tx, "reward", idempotencyKey, [
@@ -151,4 +156,40 @@ export async function rewardCreator(creatorId: string, n = 1, idempotencyKey: st
       { accountId: p, creditClass: "earned", amount: -n },
     ]),
   );
+}
+
+/**
+ * Accrue a creator's revenue share on `purchasedSpent` purchased credits and pay
+ * out any whole earned credits that cross the threshold. Fractional shares (e.g.
+ * 15% of a 1-credit message) accumulate in creator_rewards.basis until they add up
+ * to a full credit, so nothing is lost to rounding. Returns the credits paid now.
+ *
+ * Dormant in Phase 0 (first-party characters have no creator) and skipped when the
+ * chatter is the creator themselves (handled by the caller).
+ */
+export async function rewardCreatorShare(creatorId: string, purchasedSpent: number, rate = REWARD_RATE): Promise<number> {
+  if (purchasedSpent <= 0 || rate <= 0) return 0;
+  const [c, p] = [await creatorAccount(creatorId), await platformAccount()];
+  return db.transaction(async (tx) => {
+    // Atomically bump the accrual basis; the row lock serializes concurrent chats.
+    const [row] = await tx
+      .insert(creatorRewards)
+      .values({ creatorId, basis: purchasedSpent })
+      .onConflictDoUpdate({
+        target: creatorRewards.creatorId,
+        set: { basis: sql`${creatorRewards.basis} + ${purchasedSpent}`, updatedAt: new Date() },
+      })
+      .returning({ basis: creatorRewards.basis });
+
+    const newBasis = row.basis;
+    const oldBasis = newBasis - purchasedSpent;
+    const payout = Math.floor(rate * newBasis) - Math.floor(rate * oldBasis);
+    if (payout > 0) {
+      await post(tx, "reward", randomUUID(), [
+        { accountId: c, creditClass: "earned", amount: payout },
+        { accountId: p, creditClass: "earned", amount: -payout },
+      ], { kind: "revshare", creatorId, purchasedSpent, basis: newBasis, rate });
+    }
+    return payout;
+  });
 }

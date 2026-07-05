@@ -171,3 +171,16 @@ export const ledgerEntries = pgTable(
   },
   (t) => ({ byAccount: index("ledger_entries_account_idx").on(t.accountId, t.creditClass) }),
 );
+
+// ---------------------------------------------------------------------------
+// Creator revenue-share accrual. The reward is a percentage (REWARD_RATE) of the
+// PURCHASED credits readers spend chatting with a creator's characters. At a low
+// per-message price that percentage is fractional, so we accumulate the exact
+// purchased "basis" here and pay out whole earned credits as it crosses each
+// threshold. basis is monotonic; rewardsPaid == floor(rate * basis) is the invariant.
+// ---------------------------------------------------------------------------
+export const creatorRewards = pgTable("creator_rewards", {
+  creatorId: uuid("creator_id").primaryKey(),
+  basis: bigint("basis", { mode: "number" }).notNull().default(0),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
