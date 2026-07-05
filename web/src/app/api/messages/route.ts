@@ -1,19 +1,27 @@
 import { NextResponse } from "next/server";
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { messages } from "@/db/schema";
+import { messages, threads } from "@/db/schema";
+import { getCurrentUserId } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
-// GET /api/messages?threadId=... -> messages for a thread, oldest first (to resume a chat).
+// GET /api/messages?threadId=... -> messages for a thread the user owns (oldest first).
 export async function GET(req: Request) {
+  const userId = await getCurrentUserId();
+  if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
   const threadId = new URL(req.url).searchParams.get("threadId");
   if (!threadId) return NextResponse.json({ error: "threadId required" }, { status: 400 });
+
+  // Ownership check: only return messages for the caller's own thread.
+  const [t] = await db.select({ userId: threads.userId }).from(threads).where(eq(threads.id, threadId)).limit(1);
+  if (!t || t.userId !== userId) return NextResponse.json({ error: "not found" }, { status: 404 });
 
   const rows = await db
     .select({ role: messages.role, content: messages.content })
     .from(messages)
-    .where(eq(messages.threadId, threadId))
+    .where(and(eq(messages.threadId, threadId)))
     .orderBy(asc(messages.createdAt));
 
   return NextResponse.json(rows);

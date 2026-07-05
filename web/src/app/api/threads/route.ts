@@ -1,18 +1,14 @@
 import { NextResponse } from "next/server";
 import { desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { characters, threads, users } from "@/db/schema";
+import { characters, threads } from "@/db/schema";
+import { getCurrentUserId } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
-async function devUserId(): Promise<string | null> {
-  const [u] = await db.select({ id: users.id }).from(users).where(eq(users.email, "dev@local.test")).limit(1);
-  return u?.id ?? null;
-}
-
-// GET /api/threads -> the dev user's recent conversations (for the resume list).
+// GET /api/threads -> the logged-in user's recent conversations (for the resume list).
 export async function GET() {
-  const userId = await devUserId();
+  const userId = await getCurrentUserId();
   if (!userId) return NextResponse.json([]);
 
   const rows = await db

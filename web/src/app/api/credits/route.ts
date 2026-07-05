@@ -1,25 +1,17 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { eq } from "drizzle-orm";
-import { db } from "@/db";
-import { users } from "@/db/schema";
 import { ensureDailyDrip, grantPurchase, userBalance } from "@/lib/ledger";
-
-const DAILY_DRIP = Number(process.env.DAILY_DRIP || 50);
+import { getCurrentUserId } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
-// Resolves the same dev user the chat route uses (no auth yet in Phase 0).
-async function devUserId(): Promise<string | null> {
-  const [u] = await db.select({ id: users.id }).from(users).where(eq(users.email, "dev@local.test")).limit(1);
-  return u?.id ?? null;
-}
+const DAILY_DRIP = Number(process.env.DAILY_DRIP || 50);
 
-// GET /api/credits -> current balance for the dev user.
+// GET /api/credits -> current balance for the logged-in user.
 export async function GET() {
-  const userId = await devUserId();
-  if (!userId) return NextResponse.json({ balance: { purchased: 0, earned: 0, total: 0 } });
-  await ensureDailyDrip(userId, DAILY_DRIP); // reflect today's free drip in the shown balance
+  const userId = await getCurrentUserId();
+  if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  await ensureDailyDrip(userId, DAILY_DRIP);
   return NextResponse.json({ balance: await userBalance(userId) });
 }
 
@@ -28,14 +20,14 @@ export async function GET() {
 const Body = z.object({ credits: z.number().int().positive().max(100000) });
 
 export async function POST(req: Request) {
-  const userId = await devUserId();
-  if (!userId) return NextResponse.json({ error: "no dev user - send a chat message first" }, { status: 400 });
+  const userId = await getCurrentUserId();
+  if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   let body: z.infer<typeof Body>;
   try {
     body = Body.parse(await req.json());
   } catch {
     return NextResponse.json({ error: "invalid body: { credits: number }" }, { status: 400 });
   }
-  await grantPurchase(userId, body.credits, `devtopup:${Date.now()}`);
+  await grantPurchase(userId, body.credits, `devtopup:${userId}:${Date.now()}`);
   return NextResponse.json({ balance: await userBalance(userId) });
 }

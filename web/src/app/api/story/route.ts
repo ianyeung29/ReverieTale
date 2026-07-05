@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { characters, stories, users } from "@/db/schema";
+import { characters, stories } from "@/db/schema";
 import { generateStory } from "@/lib/story";
 import { screen } from "@/lib/moderation";
+import { getCurrentUserId } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -14,11 +15,6 @@ const Body = z.object({
   setting: z.string().max(200).optional(),
   tone: z.string().max(60).optional(),
 });
-
-async function devUserId(): Promise<string | null> {
-  const [u] = await db.select({ id: users.id }).from(users).where(eq(users.email, "dev@local.test")).limit(1);
-  return u?.id ?? null;
-}
 
 export async function POST(req: Request) {
   let body: z.infer<typeof Body>;
@@ -49,7 +45,7 @@ export async function POST(req: Request) {
       .insert(stories)
       .values({
         characterId: char.id,
-        userId: await devUserId(),
+        userId: await getCurrentUserId(), // nullable - story is a public front-door
         title,
         content,
         elements: { setting: body.setting ?? null, tone: body.tone ?? null },
