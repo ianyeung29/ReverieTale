@@ -11,6 +11,10 @@ const SCENARIOS = ["a chance encounter", "reuniting after years apart", "your fi
 const MOODS = ["sweet", "playful", "flirty", "mysterious", "cozy", "adventurous", "bittersweet", "tense"];
 const SETTINGS = ["a rainy rooftop at midnight", "a cozy bookshop at closing time", "a neon-lit arcade", "a quiet night train", "a beach bonfire", "a jazz bar after hours", "a snowed-in cabin"];
 
+function rand<T>(a: T[]): T {
+  return a[Math.floor(Math.random() * a.length)];
+}
+
 export default function StoryPage() {
   const [chars, setChars] = useState<Char[]>([]);
   const [charId, setCharId] = useState("");
@@ -24,6 +28,14 @@ export default function StoryPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
+  function shuffle() {
+    setRelationship(rand(RELATIONSHIPS));
+    setGenre(rand(GENRES));
+    setScenario(rand(SCENARIOS));
+    setTone(rand(MOODS));
+    setSetting(rand(SETTINGS));
+  }
+
   useEffect(() => {
     const urlChar = new URLSearchParams(window.location.search).get("characterId");
     fetch("/api/characters").then((r) => r.json()).then((c: Char[]) => {
@@ -31,11 +43,12 @@ export default function StoryPage() {
       const preferred = urlChar && c.some((x) => x.id === urlChar) ? urlChar : c[0]?.id;
       if (preferred) setCharId(preferred);
     }).catch(() => {});
+    shuffle(); // start with a fresh random combination each visit
   }, []);
 
   async function generate() {
     if (!charId || busy) return;
-    setBusy(true); setError(""); setStory(null);
+    setBusy(true); setError("");
     try {
       const res = await fetch("/api/story", {
         method: "POST",
@@ -68,6 +81,7 @@ export default function StoryPage() {
       <p style={S.eyebrow}>Begin a story</p>
       <h1 style={S.h1}>Meet someone new</h1>
       <p style={S.sub}>Pick who you meet, then shape the moment - use a suggestion or write your own for any of it.</p>
+      <button style={S.shuffle} onClick={shuffle} type="button">🎲 Shuffle elements</button>
 
       <p style={S.section}>Who you meet</p>
       <div style={S.cards}>
@@ -136,11 +150,12 @@ const S: Record<string, React.CSSProperties> = {
   wrap: { maxWidth: 720, margin: "0 auto", padding: "52px 24px 80px", lineHeight: 1.6 },
   eyebrow: { letterSpacing: ".2em", textTransform: "uppercase", fontSize: 12, color: "#E9A06B", fontWeight: 700, margin: 0 },
   h1: { fontFamily: "Georgia, serif", fontSize: 44, margin: "10px 0 12px" },
-  sub: { color: "#AC9CB0", margin: "0 0 12px" },
+  sub: { color: "#AC9CB0", margin: "0 0 16px" },
+  shuffle: { background: "#231A2B", color: "#E9A06B", border: "1px solid #4a3a50", borderRadius: 999, padding: "9px 16px", cursor: "pointer", fontSize: 14, fontWeight: 600 },
   section: { fontSize: 12, letterSpacing: ".14em", textTransform: "uppercase", color: "#8A7A90", fontWeight: 700, margin: "26px 0 12px" },
   cards: { display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))", gap: 12 },
   card: { textAlign: "left", background: "#1C1422", border: "1px solid #3A2E44", borderRadius: 14, padding: "14px 16px", cursor: "pointer", color: "#F4EAF0", display: "flex", flexDirection: "column", gap: 8 },
-  cardOn: { borderColor: "#E9A06B", background: "#241726", boxShadow: "0 0 0 1px #E9A06B inset" },
+  cardOn: { border: "1px solid #E9A06B", background: "#241726", boxShadow: "0 0 0 1px #E9A06B inset" },
   cardHead: { display: "flex", alignItems: "center", gap: 10 },
   cardName: { fontFamily: "Georgia, serif", fontSize: 20 },
   cardPersona: { color: "#AC9CB0", fontSize: 13.5, lineHeight: 1.45 },
