@@ -7,9 +7,11 @@ type Item = { id: string; title: string; name: string; chapters: number };
 
 export default function LibraryPage() {
   const [items, setItems] = useState<Item[] | null>(null);
+  const [earned, setEarned] = useState(0);
 
   useEffect(() => {
     fetch("/api/stories/mine").then((r) => r.json()).then((d: Item[]) => setItems(Array.isArray(d) ? d : [])).catch(() => setItems([]));
+    fetch("/api/credits").then((r) => (r.ok ? r.json() : null)).then((d) => d && setEarned(d.earnedFromReaders ?? 0)).catch(() => {});
   }, []);
 
   return (
@@ -17,6 +19,13 @@ export default function LibraryPage() {
       <a href="/" style={S.back}>← Reverie</a>
       <h1 style={S.h1}>Your stories</h1>
       <p style={S.sub}>Everything you've started - pick up any chapter where you left off.</p>
+
+      {earned > 0 ? (
+        <div style={S.earn}>
+          <span style={S.earnStar}>★</span>
+          <span><b style={S.earnNum}>{earned}</b> credit{earned === 1 ? "" : "s"} earned from readers chatting with your characters.</span>
+        </div>
+      ) : null}
 
       {items === null ? (
         <p style={S.muted}>Loading…</p>
@@ -41,6 +50,9 @@ const S: Record<string, React.CSSProperties> = {
   back: { color: "#8A7A90", textDecoration: "none", fontSize: 14 },
   h1: { fontFamily: "Georgia, serif", fontSize: 40, margin: "22px 0 8px" },
   sub: { color: "#AC9CB0", margin: "0 0 28px" },
+  earn: { display: "flex", alignItems: "center", gap: 10, background: "#241826", border: "1px solid #4a3350", borderRadius: 12, padding: "12px 16px", margin: "0 0 24px", color: "#EadFe6", fontSize: 14.5 },
+  earnStar: { color: "#D46A8B", fontSize: 18 },
+  earnNum: { color: "#E9A06B" },
   muted: { color: "#AC9CB0" },
   hint: { color: "#6f6276", fontSize: 13 },
   link: { color: "#E9A06B" },

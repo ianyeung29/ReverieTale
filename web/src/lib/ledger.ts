@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, gt, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { creatorRewards, ledgerAccounts, ledgerEntries, ledgerTransactions } from "@/db/schema";
 
@@ -32,7 +32,6 @@ async function accountFor(ownerType: string, ownerId: string | null): Promise<st
 }
 
 export const userAccount = (userId: string) => accountFor("user", userId);
-export const creatorAccount = (creatorId: string) => accountFor("creator", creatorId);
 const platformAccount = () => accountFor("platform", null);
 
 async function balanceOfTx(tx: Tx, accountId: string): Promise<Balance> {
@@ -68,6 +67,17 @@ async function post(tx: Tx, type: string, idempotencyKey: string, entries: Entry
 export async function userBalance(userId: string): Promise<Balance> {
   const acct = await userAccount(userId);
   return db.transaction((tx) => balanceOfTx(tx, acct));
+}
+
+/** Lifetime credits this user has earned as a creator (reward credits into their bank). */
+export async function rewardsEarned(userId: string): Promise<number> {
+  const acct = await userAccount(userId);
+  const [row] = await db
+    .select({ s: sql<string>`coalesce(sum(${ledgerEntries.amountSigned}), 0)` })
+    .from(ledgerEntries)
+    .innerJoin(ledgerTransactions, eq(ledgerEntries.txnId, ledgerTransactions.id))
+    .where(and(eq(ledgerEntries.accountId, acct), eq(ledgerTransactions.type, "reward"), gt(ledgerEntries.amountSigned, 0)));
+  return Number(row?.s ?? 0);
 }
 
 /** Reader buys credits (purchased class). */
@@ -149,7 +159,8 @@ export async function ensureDailyDrip(userId: string, amount: number): Promise<b
  */
 export async function rewardCreator(creatorId: string, n = 1, idempotencyKey: string = randomUUID()) {
   if (n <= 0) return;
-  const [c, p] = [await creatorAccount(creatorId), await platformAccount()];
+  // Reward lands in the creator's own user bank (earned, spend-only).
+  const [c, p] = [await userAccount(creatorId), await platformAccount()];
   return db.transaction((tx) =>
     post(tx, "reward", idempotencyKey, [
       { accountId: c, creditClass: "earned", amount: n },
@@ -169,7 +180,8 @@ export async function rewardCreator(creatorId: string, n = 1, idempotencyKey: st
  */
 export async function rewardCreatorShare(creatorId: string, purchasedSpent: number, rate = REWARD_RATE): Promise<number> {
   if (purchasedSpent <= 0 || rate <= 0) return 0;
-  const [c, p] = [await creatorAccount(creatorId), await platformAccount()];
+  // Reward lands directly in the creator's own user bank (earned, spend-only).
+  const [c, p] = [await userAccount(creatorId), await platformAccount()];
   return db.transaction(async (tx) => {
     // Atomically bump the accrual basis; the row lock serializes concurrent chats.
     const [row] = await tx

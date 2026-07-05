@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { ensureDailyDrip, grantPurchase, userBalance } from "@/lib/ledger";
+import { ensureDailyDrip, grantPurchase, rewardsEarned, userBalance } from "@/lib/ledger";
 import { getCurrentUserId } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +12,8 @@ export async function GET() {
   const userId = await getCurrentUserId();
   if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   await ensureDailyDrip(userId, DAILY_DRIP);
-  return NextResponse.json({ balance: await userBalance(userId) });
+  const [balance, earnedFromReaders] = await Promise.all([userBalance(userId), rewardsEarned(userId)]);
+  return NextResponse.json({ balance, earnedFromReaders });
 }
 
 // POST /api/credits { credits } -> DEV-ONLY top-up (simulates a purchase).
