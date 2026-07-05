@@ -65,8 +65,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
     // Rewriting a chapter is a branch point: chapters after it were written to
     // follow the OLD version, so they're dropped (the client confirms first).
+    // Save the pre-rewrite version as a one-level backup the creator can restore.
     const kept = [...chapters.slice(0, body.chapterIndex), newChapter.trim()];
-    await db.update(stories).set({ content: kept.join(SEP) }).where(eq(stories.id, id));
+    await db.update(stories).set({ content: kept.join(SEP), backup: row.content, backupAt: new Date() }).where(eq(stories.id, id));
 
     return NextResponse.json({ chapter: newChapter.trim(), total: kept.length });
   } catch (e) {

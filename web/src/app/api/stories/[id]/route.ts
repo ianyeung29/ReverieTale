@@ -17,6 +17,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       content: stories.content,
       characterId: stories.characterId,
       ownerId: stories.userId,
+      backup: stories.backup,
       definition: characters.definition,
     })
     .from(stories)
@@ -27,12 +28,14 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   if (!row) return NextResponse.json({ error: "not found" }, { status: 404 });
   const def = (row.definition ?? {}) as Record<string, string>;
   const userId = await getCurrentUserId();
+  const isOwner = Boolean(row.ownerId && userId && row.ownerId === userId);
   return NextResponse.json({
     id: row.id,
     title: row.title,
     content: row.content,
     characterId: row.characterId,
     characterName: def.name ?? "Unknown",
-    isOwner: Boolean(row.ownerId && userId && row.ownerId === userId),
+    isOwner,
+    hasBackup: isOwner && Boolean(row.backup),
   });
 }

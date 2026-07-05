@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { Avatar } from "@/components/Avatar";
 import { ChatDock } from "@/components/ChatDock";
 
-type Story = { id: string; title: string; content: string; characterId: string; characterName: string; isOwner: boolean };
+type Story = { id: string; title: string; content: string; characterId: string; characterName: string; isOwner: boolean; hasBackup: boolean };
 
 const MOODS = ["sweet", "playful", "flirty", "tender", "tense", "mysterious", "dramatic"];
 const TWISTS = ["a confession", "an interruption", "a secret revealed", "they almost kiss", "a misunderstanding", "a bold move", "someone arrives"];
@@ -30,6 +30,8 @@ export default function StoryReadPage() {
   const [mood, setMood] = useState("");
   const [twist, setTwist] = useState("");
   const [setting, setSetting] = useState("");
+  const [backupText, setBackupText] = useState<string | null>(null);
+  const [showBackup, setShowBackup] = useState(false);
 
   useEffect(() => {
     fetch(`/api/stories/${id}`).then((r) => (r.ok ? r.json() : Promise.reject())).then((s: Story) => {
@@ -69,8 +71,32 @@ export default function StoryReadPage() {
       });
       const d = await res.json();
       // Rewrite truncates downstream chapters (branch point) - mirror that locally.
-      if (res.ok && d.chapter) setChapters((c) => [...c.slice(0, idx), d.chapter.trim()]);
+      if (res.ok && d.chapter) {
+        setChapters((c) => [...c.slice(0, idx), d.chapter.trim()]);
+        setStory((s) => (s ? { ...s, hasBackup: true } : s)); // a backup now exists
+      }
     } catch {} finally { setBusy(false); }
+  }
+
+  async function readBackup() {
+    try {
+      const d = await fetch(`/api/stories/${id}/backup`).then((r) => r.json());
+      if (d.content) { setBackupText(d.content); setShowBackup(true); }
+    } catch {}
+  }
+
+  async function restore() {
+    if (!confirm("Restore the previous version? This replaces the current story with your saved backup.")) return;
+    try {
+      const res = await fetch(`/api/stories/${id}/backup`, { method: "POST" }); // POST = restore
+      const d = await res.json();
+      if (res.ok && d.content) {
+        const ch = splitChapters(d.content);
+        setChapters(ch); setIdx(ch.length - 1);
+        setStory((s) => (s ? { ...s, hasBackup: false } : s));
+        setShowBackup(false);
+      }
+    } catch {}
   }
 
   if (notFound) return <main style={S.wrap}><p style={{ color: "#AC9CB0" }}>Story not found. <a href="/" style={S.link}>Home</a></p></main>;
@@ -88,6 +114,14 @@ export default function StoryReadPage() {
           <p style={S.by}>with {story.characterName} · chapter {idx + 1} of {chapters.length}</p>
         </div>
       </div>
+
+      {story.isOwner && story.hasBackup ? (
+        <div style={S.backupBanner}>
+          <span>A previous version is saved.</span>
+          <button style={S.bkBtn} onClick={readBackup}>Read it</button>
+          <button style={S.bkBtn} onClick={restore}>Restore</button>
+        </div>
+      ) : null}
 
       <article key={idx + ":" + (chapters[idx] ?? "").length} style={S.article}>
         {(chapters[idx] ?? "").split(/\n{2,}/).map((p, i) => <p key={i} style={S.para}>{p}</p>)}
@@ -137,6 +171,24 @@ export default function StoryReadPage() {
         <a style={S.talk} href={`/chat?characterId=${story.characterId}&fromStory=${story.id}`}>Open full chat with {story.characterName} →</a>
       </div>
 
+      {showBackup && backupText ? (
+        <div style={S.overlay} onClick={() => setShowBackup(false)}>
+          <div style={S.overlayCard} onClick={(e) => e.stopPropagation()}>
+            <div style={S.overlayHead}>
+              <span style={S.overlayTitle}>Previous version</span>
+              <button style={S.overlayClose} onClick={() => setShowBackup(false)}>×</button>
+            </div>
+            <div style={S.overlayBody}>
+              {backupText.split(/\n{2,}/).map((p, i) => (p.trim() === "· · ·" ? <p key={i} style={S.divider}>· · ·</p> : <p key={i} style={S.para}>{p}</p>))}
+            </div>
+            <div style={S.overlayActions}>
+              <button style={S.write} onClick={restore}>Restore this version</button>
+              <button style={S.cancel} onClick={() => setShowBackup(false)}>Close</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <ChatDock characterId={story.characterId} characterName={story.characterName} storyId={story.id} />
     </main>
   );
@@ -159,6 +211,16 @@ const S: Record<string, React.CSSProperties> = {
   by: { color: "#AC9CB0", margin: "4px 0 0", fontSize: 14 },
   article: { minHeight: 200 },
   para: { margin: "0 0 16px", color: "#EadFe6", fontSize: 17 },
+  divider: { textAlign: "center", color: "#6f6276", letterSpacing: ".5em", margin: "24px 0" },
+  backupBanner: { display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", background: "#1C1422", border: "1px solid #3A2E44", borderRadius: 12, padding: "10px 14px", margin: "18px 0", color: "#AC9CB0", fontSize: 14 },
+  bkBtn: { background: "transparent", color: "#E9A06B", border: "1px solid #4a3a50", borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontSize: 13 },
+  overlay: { position: "fixed", inset: 0, zIndex: 50, background: "rgba(10,7,13,.7)", display: "grid", placeItems: "center", padding: 20 },
+  overlayCard: { width: "min(620px, 100%)", maxHeight: "85vh", display: "flex", flexDirection: "column", background: "#150F1A", border: "1px solid #3A2E44", borderRadius: 16, overflow: "hidden" },
+  overlayHead: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", borderBottom: "1px solid #3A2E44" },
+  overlayTitle: { fontFamily: "Georgia, serif", fontSize: 18, color: "#F4EAF0" },
+  overlayClose: { background: "transparent", border: 0, color: "#AC9CB0", fontSize: 22, cursor: "pointer", lineHeight: 1 },
+  overlayBody: { overflowY: "auto", padding: "18px 22px" },
+  overlayActions: { display: "flex", gap: 10, padding: "14px 18px", borderTop: "1px solid #3A2E44" },
   rewrite: { marginTop: 18, background: "transparent", color: "#8A7A90", border: "1px solid #3A2E44", borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontSize: 13.5 },
   nav: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginTop: 22, borderTop: "1px solid #241a2b", paddingTop: 22 },
   navBtn: { background: "#231A2B", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 10, padding: "11px 16px", cursor: "pointer", fontSize: 14, fontWeight: 600 },

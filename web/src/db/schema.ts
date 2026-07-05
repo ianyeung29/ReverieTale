@@ -65,6 +65,9 @@ export const stories = pgTable(
     content: text("content").notNull(),
     elements: jsonb("elements"), // { setting, tone, ... }
     isPublic: boolean("is_public").notNull().default(true),
+    // One-level undo: the full content from before the most recent rewrite.
+    backup: text("backup"),
+    backupAt: timestamp("backup_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => ({ byChar: index("stories_char_idx").on(t.characterId) }),
