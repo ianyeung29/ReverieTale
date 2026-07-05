@@ -16,6 +16,9 @@ const Body = z.object({
   tone: z.string().max(60).optional(),
   scenario: z.string().max(120).optional(),
   relationship: z.string().max(80).optional(),
+  genre: z.string().max(60).optional(),
+  details: z.string().max(400).optional(),
+  length: z.enum(["short", "medium"]).optional(),
 });
 
 export async function POST(req: Request) {
@@ -27,7 +30,7 @@ export async function POST(req: Request) {
   }
 
   // Input safety gate on user-supplied elements.
-  if (screen(`${body.setting ?? ""} ${body.tone ?? ""} ${body.scenario ?? ""} ${body.relationship ?? ""}`).blocked) {
+  if (screen([body.setting, body.tone, body.scenario, body.relationship, body.genre, body.details].filter(Boolean).join(" ")).blocked) {
     return NextResponse.json({ error: "blocked", reason: "safety_minor" }, { status: 422 });
   }
 
@@ -36,7 +39,15 @@ export async function POST(req: Request) {
     if (!char) return NextResponse.json({ error: "character not found" }, { status: 404 });
 
     const def = (char.definition ?? {}) as Record<string, string>;
-    const { title, content } = await generateStory(def, { setting: body.setting, tone: body.tone, scenario: body.scenario, relationship: body.relationship });
+    const { title, content } = await generateStory(def, {
+      setting: body.setting,
+      tone: body.tone,
+      scenario: body.scenario,
+      relationship: body.relationship,
+      genre: body.genre,
+      details: body.details,
+      length: body.length,
+    });
 
     // Output safety gate.
     if (screen(`${title} ${content}`).blocked) {
@@ -50,7 +61,15 @@ export async function POST(req: Request) {
         userId: await getCurrentUserId(), // nullable - story is a public front-door
         title,
         content,
-        elements: { setting: body.setting ?? null, tone: body.tone ?? null, scenario: body.scenario ?? null, relationship: body.relationship ?? null },
+        elements: {
+          setting: body.setting ?? null,
+          tone: body.tone ?? null,
+          scenario: body.scenario ?? null,
+          relationship: body.relationship ?? null,
+          genre: body.genre ?? null,
+          details: body.details ?? null,
+          length: body.length ?? null,
+        },
       })
       .returning({ id: stories.id });
 

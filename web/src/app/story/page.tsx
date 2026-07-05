@@ -6,32 +6,21 @@ import { Avatar } from "@/components/Avatar";
 type Char = { id: string; name: string; tagline: string; persona: string; tags: string[] };
 
 const RELATIONSHIPS = ["strangers", "old friends", "reconnecting", "quietly in love", "it's complicated"];
+const GENRES = ["romance", "slice-of-life", "fantasy", "sci-fi", "mystery", "drama", "adventure", "comedy"];
+const SCENARIOS = ["a chance encounter", "reuniting after years apart", "your first date", "she's your new neighbor", "stranded together", "a late-night confession"];
 const MOODS = ["sweet", "playful", "flirty", "mysterious", "cozy", "adventurous", "bittersweet", "tense"];
-const SCENARIOS = [
-  "a chance encounter",
-  "reuniting after years apart",
-  "your first date",
-  "she's your new neighbor",
-  "stranded together",
-  "a late-night confession",
-];
-const SETTINGS = [
-  "a rainy rooftop at midnight",
-  "a cozy bookshop at closing time",
-  "a neon-lit arcade",
-  "a quiet night train",
-  "a beach bonfire",
-  "a jazz bar after hours",
-  "a snowed-in cabin",
-];
+const SETTINGS = ["a rainy rooftop at midnight", "a cozy bookshop at closing time", "a neon-lit arcade", "a quiet night train", "a beach bonfire", "a jazz bar after hours", "a snowed-in cabin"];
 
 export default function StoryPage() {
   const [chars, setChars] = useState<Char[]>([]);
   const [charId, setCharId] = useState("");
-  const [setting, setSetting] = useState("");
-  const [tone, setTone] = useState("");
-  const [scenario, setScenario] = useState("");
   const [relationship, setRelationship] = useState("");
+  const [genre, setGenre] = useState("");
+  const [scenario, setScenario] = useState("");
+  const [tone, setTone] = useState("");
+  const [setting, setSetting] = useState("");
+  const [details, setDetails] = useState("");
+  const [length, setLength] = useState<"short" | "medium">("short");
   const [busy, setBusy] = useState(false);
   const [story, setStory] = useState<{ id: string; title: string; content: string } | null>(null);
   const [error, setError] = useState("");
@@ -52,7 +41,16 @@ export default function StoryPage() {
       const res = await fetch("/api/story", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ characterId: charId, setting: setting.trim() || undefined, tone: tone || undefined, scenario: scenario || undefined, relationship: relationship || undefined }),
+        body: JSON.stringify({
+          characterId: charId,
+          relationship: relationship || undefined,
+          genre: genre || undefined,
+          scenario: scenario || undefined,
+          tone: tone || undefined,
+          setting: setting.trim() || undefined,
+          details: details.trim() || undefined,
+          length,
+        }),
       });
       const d = await res.json();
       if (res.ok && d.content) setStory({ id: d.storyId, title: d.title, content: d.content });
@@ -68,7 +66,7 @@ export default function StoryPage() {
     <main style={S.wrap}>
       <p style={S.eyebrow}>Begin a story</p>
       <h1 style={S.h1}>Meet someone new</h1>
-      <p style={S.sub}>Pick who you meet, then shape the moment. We'll write your first chapter - and you can step in and talk to them after.</p>
+      <p style={S.sub}>Pick who you meet, then shape the moment - use a suggestion or write your own for any of it.</p>
 
       <p style={S.section}>Who you meet</p>
       <div style={S.cards}>
@@ -82,17 +80,29 @@ export default function StoryPage() {
       </div>
 
       <p style={S.section}>Your relationship</p>
-      <Chips options={RELATIONSHIPS} value={relationship} onPick={(v) => setRelationship(v === relationship ? "" : v)} />
+      <Picker options={RELATIONSHIPS} value={relationship} onChange={setRelationship} placeholder="describe your own relationship" />
+
+      <p style={S.section}>Genre</p>
+      <Picker options={GENRES} value={genre} onChange={setGenre} placeholder="your own genre" />
 
       <p style={S.section}>How you meet</p>
-      <Chips options={SCENARIOS} value={scenario} onPick={(v) => setScenario(v === scenario ? "" : v)} />
+      <Picker options={SCENARIOS} value={scenario} onChange={setScenario} placeholder="your own scenario" />
 
       <p style={S.section}>Mood</p>
-      <Chips options={MOODS} value={tone} onPick={(v) => setTone(v === tone ? "" : v)} />
+      <Picker options={MOODS} value={tone} onChange={setTone} placeholder="your own mood" />
 
       <p style={S.section}>Setting</p>
-      <Chips options={SETTINGS} value={setting} onPick={(v) => setSetting(v === setting ? "" : v)} />
-      <input value={setting} onChange={(e) => setSetting(e.target.value)} placeholder="…or describe your own setting" style={S.input} />
+      <Picker options={SETTINGS} value={setting} onChange={setSetting} placeholder="your own setting" />
+
+      <p style={S.section}>Anything else? (optional)</p>
+      <textarea value={details} onChange={(e) => setDetails(e.target.value)} placeholder="a detail or idea to weave in - e.g. 'she just got back from a trip', 'we're hiding from the rain'…" style={S.textarea} maxLength={400} />
+
+      <p style={S.section}>Length</p>
+      <div style={S.chips}>
+        {(["short", "medium"] as const).map((l) => (
+          <button key={l} style={{ ...S.chip, ...(l === length ? S.chipOn : {}) }} onClick={() => setLength(l)}>{l}</button>
+        ))}
+      </div>
 
       <button style={{ ...S.cta, opacity: busy ? 0.6 : 1 }} onClick={generate} disabled={busy || !charId}>
         {busy ? "Writing…" : `Write my first chapter with ${active?.name ?? "…"}`}
@@ -110,12 +120,21 @@ export default function StoryPage() {
   );
 }
 
-function Chips({ options, value, onPick }: { options: string[]; value: string; onPick: (v: string) => void }) {
+function Picker({ options, value, onChange, placeholder }: { options: string[]; value: string; onChange: (v: string) => void; placeholder?: string }) {
+  const isCustom = value !== "" && !options.includes(value);
+  const [custom, setCustom] = useState(isCustom);
+  const showInput = custom || isCustom;
   return (
-    <div style={S.chips}>
-      {options.map((o) => (
-        <button key={o} style={{ ...S.chip, ...(o === value ? S.chipOn : {}) }} onClick={() => onPick(o)}>{o}</button>
-      ))}
+    <div>
+      <div style={S.chips}>
+        {options.map((o) => (
+          <button key={o} style={{ ...S.chip, ...(o === value ? S.chipOn : {}) }} onClick={() => { setCustom(false); onChange(o === value ? "" : o); }}>{o}</button>
+        ))}
+        <button style={{ ...S.chip, ...(showInput ? S.chipOn : {}) }} onClick={() => { setCustom(true); if (!isCustom) onChange(""); }}>＋ your own</button>
+      </div>
+      {showInput ? (
+        <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder || "write your own"} style={S.input} />
+      ) : null}
     </div>
   );
 }
@@ -138,6 +157,7 @@ const S: Record<string, React.CSSProperties> = {
   chip: { background: "#231A2B", color: "#CBBBD0", border: "1px solid #3A2E44", borderRadius: 999, padding: "9px 14px", cursor: "pointer", fontSize: 14 },
   chipOn: { background: "linear-gradient(100deg,#E9A06B,#D46A8B)", color: "#1A1220", border: "1px solid transparent", fontWeight: 600 },
   input: { width: "100%", marginTop: 10, background: "#1A121F", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 10, padding: "12px 14px", fontSize: 15, boxSizing: "border-box" },
+  textarea: { width: "100%", minHeight: 70, resize: "vertical", background: "#1A121F", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 10, padding: "12px 14px", fontSize: 15, boxSizing: "border-box", fontFamily: "inherit" },
   cta: { marginTop: 30, border: 0, cursor: "pointer", color: "#1A1220", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", borderRadius: 12, padding: "15px 24px", fontWeight: 650, fontSize: 16, width: "100%" },
   err: { color: "#E88", marginTop: 14 },
   story: { marginTop: 44, borderTop: "1px solid #3A2E44", paddingTop: 32 },
