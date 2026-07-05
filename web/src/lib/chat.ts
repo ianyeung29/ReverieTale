@@ -4,36 +4,37 @@ import { desc, eq } from "drizzle-orm";
 import { chat as modelChat, type ChatMessage } from "./model";
 import { screen } from "./moderation";
 import { extractAndStoreMemory, maybeUpdateSummary, retrieveMemory } from "./memory";
-import { rewardCreator, spend, userBalance, type Balance } from "./ledger";
+import { rewardCreator, spend, userBalance, type Balance, type SpendResult } from "./ledger";
 
 const CHAT_PRICE = Number(process.env.CHAT_PRICE || 5);
 
 type Params = { userId: string; characterId: string; threadId?: string; message: string; storyId?: string };
+type CharRow = typeof characters.$inferSelect;
+type OkSpend = Extract<SpendResult, { ok: true }>;
+
+export type Prep =
+  | { status: "blocked"; reason?: string }
+  | { status: "paywall"; balance: Balance }
+  | { status: "ready"; threadId: string; msgs: ChatMessage[]; char: CharRow; charge: OkSpend };
+
 export type ChatResult =
   | { status: "blocked"; reason?: string }
   | { status: "paywall"; balance: Balance }
   | { status: "ok"; threadId: string; reply: string; balance: Balance };
 
-export async function handleChat(params: Params): Promise<ChatResult> {
+/** Everything up to (and including) charging + prompt assembly, before generation. */
+export async function prepareChat(params: Params): Promise<Prep> {
   const { userId, characterId, message } = params;
 
-  // Input moderation - bright-line safety gate (stub; replace with exec-2 classifier).
   if (screen(message).blocked) return { status: "blocked", reason: "safety_minor" };
 
   const [char] = await db.select().from(characters).where(eq(characters.id, characterId)).limit(1);
   if (!char) throw new Error("character not found");
 
-  // Get or create the (user x character) thread.
   let threadId = params.threadId;
   if (!threadId) {
-    const [t] = await db
-      .insert(threads)
-      .values({ userId, characterId, characterVersion: char.version })
-      .returning({ id: threads.id });
+    const [t] = await db.insert(threads).values({ userId, characterId, characterVersion: char.version }).returning({ id: threads.id });
     threadId = t.id;
-
-    // If this chat spun off from a story, seed the thread's memory with it so
-    // the character carries the story into the conversation (the story->chat loop).
     if (params.storyId) {
       const [story] = await db.select().from(stories).where(eq(stories.id, params.storyId)).limit(1);
       if (story) {
@@ -45,11 +46,9 @@ export async function handleChat(params: Params): Promise<ChatResult> {
     }
   }
 
-  // Charge for the turn BEFORE generating. Out of credits -> paywall.
   const charge = await spend(userId, CHAT_PRICE, { threadId, characterId });
   if (!charge.ok) return { status: "paywall", balance: charge.balance };
 
-  // Persist the user turn, then assemble context.
   await db.insert(messages).values({ threadId, role: "user", content: message });
   const mem = await retrieveMemory(threadId, userId, characterId, message);
   const recent = (
@@ -79,23 +78,32 @@ export async function handleChat(params: Params): Promise<ChatResult> {
     ...recent.map((m) => ({ role: (m.role === "user" ? "user" : "assistant") as const, content: m.content })),
   ];
 
-  const res = await modelChat(msgs, { temperature: 0.9, maxTokens: 600 });
-  let reply = res.text || "...";
-  if (screen(reply).blocked) reply = "I can't go there - let's talk about something else.";
+  return { status: "ready", threadId, msgs, char, charge };
+}
 
-  await db.insert(messages).values({ threadId, role: "character", content: reply, tokenCount: res.usage.outputTokens });
+/** Persist the reply, log cost, reward creator, run memory upkeep; returns new balance. */
+export async function finalizeChat(args: {
+  userId: string;
+  char: CharRow;
+  threadId: string;
+  userMessage: string;
+  reply: string;
+  usage: { inputTokens: number; outputTokens: number };
+  charge: OkSpend;
+  recalled?: number;
+}): Promise<Balance> {
+  const { userId, char, threadId, userMessage, reply, usage, charge } = args;
+
+  await db.insert(messages).values({ threadId, role: "character", content: reply, tokenCount: usage.outputTokens });
 
   console.log("[generation_turn]", {
     threadId,
-    model: res.model,
-    inputTokens: res.usage.inputTokens,
-    outputTokens: res.usage.outputTokens,
-    recalled: mem.items.length,
+    inputTokens: usage.inputTokens,
+    outputTokens: usage.outputTokens,
+    recalled: args.recalled ?? 0,
     charged: charge.charged,
   });
 
-  // Creator reward: dormant in Phase 0 (first-party creatorId is null). Only real
-  // creator characters earn, and only on purchased-credit spend (exec-3 sec 7).
   if (char.creatorId && charge.fromPurchased > 0) {
     try {
       await rewardCreator(char.creatorId, 1);
@@ -104,10 +112,32 @@ export async function handleChat(params: Params): Promise<ChatResult> {
     }
   }
 
-  await extractAndStoreMemory(threadId, message, reply);
+  await extractAndStoreMemory(threadId, userMessage, reply);
   await maybeUpdateSummary(threadId);
   await db.update(threads).set({ lastActiveAt: new Date() }).where(eq(threads.id, threadId));
 
-  const balance = await userBalance(userId);
-  return { status: "ok", threadId, reply, balance };
+  return userBalance(userId);
+}
+
+/** Non-streaming path (kept as the fallback). */
+export async function handleChat(params: Params): Promise<ChatResult> {
+  const prep = await prepareChat(params);
+  if (prep.status === "blocked") return { status: "blocked", reason: prep.reason };
+  if (prep.status === "paywall") return { status: "paywall", balance: prep.balance };
+
+  const res = await modelChat(prep.msgs, { temperature: 0.9, maxTokens: 600 });
+  let reply = res.text || "...";
+  if (screen(reply).blocked) reply = "I can't go there - let's talk about something else.";
+
+  const balance = await finalizeChat({
+    userId: params.userId,
+    char: prep.char,
+    threadId: prep.threadId,
+    userMessage: params.message,
+    reply,
+    usage: res.usage,
+    charge: prep.charge,
+  });
+
+  return { status: "ok", threadId: prep.threadId, reply, balance };
 }

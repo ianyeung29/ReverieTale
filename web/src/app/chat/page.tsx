@@ -101,29 +101,68 @@ export default function ChatPage() {
     } catch {}
   }
 
+  function setLast(content: string, role: Msg["role"] = "character") {
+    setMessages((m) => { const c = m.slice(); c[c.length - 1] = { role, content }; return c; });
+  }
+
   async function send() {
     const text = input.trim();
     if (!text || !charId || busy) return;
-    setInput(""); setMessages((m) => [...m, { role: "user", content: text }]); setBusy(true);
+    setInput("");
+    const wasNew = !threadId;
+    setMessages((m) => [...m, { role: "user", content: text }]);
+    setBusy(true);
     try {
-      const res = await fetch("/api/chat", {
+      const res = await fetch("/api/chat/stream", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ characterId: charId, threadId, message: text, storyId: threadId ? undefined : storyId ?? undefined }),
       });
-      const data = await res.json();
-      if (res.ok && data.reply) {
-        const isNew = !threadId;
-        setThreadId(data.threadId); setStoryId(null);
-        setMessages((m) => [...m, { role: "character", content: data.reply }]);
-        if (data.balance) setCredits(data.balance.total);
-        if (isNew) loadConvos();
-      } else if (res.status === 402) {
-        setBroke(true); if (data.balance) setCredits(data.balance.total);
-        setMessages((m) => [...m, { role: "system", content: "You're out of credits. Top up to keep chatting." }]);
-      } else if (res.status === 401) {
-        setAuthEmail(null);
-      } else {
-        setMessages((m) => [...m, { role: "system", content: `[${data.error || "error"}${data.reason ? ": " + data.reason : ""}]` }]);
+
+      const ct = res.headers.get("content-type") || "";
+      // JSON = a non-streamed outcome (401 / 402 / blocked / error).
+      if (!res.ok || ct.includes("application/json") || !res.body) {
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 401) { setAuthEmail(null); return; }
+        if (res.status === 402) {
+          setBroke(true); if (data.balance) setCredits(data.balance.total);
+          setMessages((m) => [...m, { role: "system", content: "You're out of credits. Top up to keep chatting." }]);
+        } else {
+          setMessages((m) => [...m, { role: "system", content: `[${data.error || "error"}${data.reason ? ": " + data.reason : ""}]` }]);
+        }
+        return;
+      }
+
+      setStoryId(null);
+      const reader = res.body.getReader();
+      const dec = new TextDecoder();
+      let buf = "";
+      let acc = "";
+      let started = false;
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        const parts = buf.split("\n\n");
+        buf = parts.pop() || "";
+        for (const part of parts) {
+          const line = part.replace(/^data:\s?/, "").trim();
+          if (!line) continue;
+          let ev: { delta?: string; done?: boolean; threadId?: string; balance?: { total: number }; replace?: string; error?: string };
+          try { ev = JSON.parse(line); } catch { continue; }
+          if (ev.delta) {
+            acc += ev.delta;
+            if (!started) { started = true; setMessages((m) => [...m, { role: "character", content: acc }]); }
+            else setLast(acc);
+          } else if (ev.done) {
+            if (!started) setMessages((m) => [...m, { role: "character", content: ev.replace || "…" }]);
+            else if (ev.replace) setLast(ev.replace);
+            if (ev.threadId) setThreadId(ev.threadId);
+            if (ev.balance) setCredits(ev.balance.total);
+            if (wasNew) loadConvos();
+          } else if (ev.error) {
+            if (started) setLast("[chat failed]", "system"); else setMessages((m) => [...m, { role: "system", content: "[chat failed]" }]);
+          }
+        }
       }
     } catch {
       setMessages((m) => [...m, { role: "system", content: "[network error]" }]);
@@ -179,7 +218,9 @@ export default function ChatPage() {
             </div>
           ),
         )}
-        {busy ? <div style={{ ...S.row, justifyContent: "flex-start" }}><div style={{ ...S.bubble, ...S.bot, color: "#8A7A90" }}>typing…</div></div> : null}
+        {busy && (messages.length === 0 || messages[messages.length - 1].role !== "character") ? (
+          <div style={{ ...S.row, justifyContent: "flex-start" }}><div style={{ ...S.bubble, ...S.bot, color: "#8A7A90" }}>typing…</div></div>
+        ) : null}
         <div ref={endRef} />
       </div>
 

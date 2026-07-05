@@ -41,3 +41,19 @@ export async function chat(messages: ChatMessage[], opts: { temperature?: number
     model,
   };
 }
+
+/** Streaming variant: yields content deltas as they arrive. */
+export async function* chatStream(messages: ChatMessage[], opts: { temperature?: number; maxTokens?: number } = {}) {
+  const { client } = resolve();
+  const stream = await client.chat.completions.create({
+    model: resolve().model,
+    messages,
+    temperature: opts.temperature ?? 0.9,
+    max_tokens: opts.maxTokens ?? 600,
+    stream: true,
+  });
+  for await (const chunk of stream) {
+    const delta = chunk.choices?.[0]?.delta?.content;
+    if (delta) yield delta as string;
+  }
+}
