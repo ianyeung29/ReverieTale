@@ -51,3 +51,20 @@ export async function generateStory(def: Record<string, string>, elements: Story
   const content = m ? text.replace(m[0], "").trim() : text;
   return { title, content, usage: res.usage };
 }
+
+/** Continue an ongoing story - the next chapter, given what's happened so far. */
+export async function generateNextChapter(def: Record<string, string>, storySoFar: string) {
+  const system =
+    "You are a skilled fiction writer continuing an ongoing story. Write the NEXT chapter (300-500 words) that " +
+    "moves the scene forward with new events - do not repeat what already happened. Second person, present tense. " +
+    "Tasteful and non-explicit. Do NOT include a title; write only the prose.";
+  const user = `Character: ${def.name}. ${def.persona}. Voice: ${def.voice}.\n\nStory so far:\n${storySoFar.slice(-4000)}\n\nWrite the next chapter.`;
+  const res = await chat(
+    [
+      { role: "system", content: system },
+      { role: "user", content: user },
+    ],
+    { temperature: 0.95, maxTokens: 800 },
+  );
+  return res.text.trim();
+}

@@ -22,7 +22,6 @@ export default function StoryPage() {
   const [details, setDetails] = useState("");
   const [length, setLength] = useState<"short" | "medium">("short");
   const [busy, setBusy] = useState(false);
-  const [story, setStory] = useState<{ id: string; title: string; content: string } | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -53,11 +52,13 @@ export default function StoryPage() {
         }),
       });
       const d = await res.json();
-      if (res.ok && d.content) setStory({ id: d.storyId, title: d.title, content: d.content });
-      else setError(d.error === "blocked" ? "That prompt isn't allowed." : d.error || "Something went wrong.");
+      if (res.ok && d.storyId) { window.location.href = `/story/${d.storyId}`; return; }
+      setError(d.error === "blocked" ? "That prompt isn't allowed." : d.error || "Something went wrong.");
+      setBusy(false);
     } catch {
       setError("Network error.");
-    } finally { setBusy(false); }
+      setBusy(false);
+    }
   }
 
   const active = chars.find((c) => c.id === charId);
@@ -108,14 +109,6 @@ export default function StoryPage() {
         {busy ? "Writing…" : `Write my first chapter with ${active?.name ?? "…"}`}
       </button>
       {error ? <p style={S.err}>{error}</p> : null}
-
-      {story ? (
-        <article style={S.story}>
-          <h2 style={S.storyTitle}>{story.title}</h2>
-          {story.content.split(/\n{2,}/).map((p, i) => <p key={i} style={S.para}>{p}</p>)}
-          <a style={S.chatBtn} href={`/chat?characterId=${charId}&fromStory=${story.id}`}>Now talk to {active?.name ?? "them"} →</a>
-        </article>
-      ) : null}
     </main>
   );
 }
