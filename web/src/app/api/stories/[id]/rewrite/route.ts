@@ -63,10 +63,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     }
     if (screen(newChapter).blocked) return NextResponse.json({ error: "blocked", reason: "safety_minor" }, { status: 422 });
 
-    chapters[body.chapterIndex] = newChapter.trim();
-    await db.update(stories).set({ content: chapters.join(SEP) }).where(eq(stories.id, id));
+    // Rewriting a chapter is a branch point: chapters after it were written to
+    // follow the OLD version, so they're dropped (the client confirms first).
+    const kept = [...chapters.slice(0, body.chapterIndex), newChapter.trim()];
+    await db.update(stories).set({ content: kept.join(SEP) }).where(eq(stories.id, id));
 
-    return NextResponse.json({ chapter: newChapter.trim() });
+    return NextResponse.json({ chapter: newChapter.trim(), total: kept.length });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "failed" }, { status: 500 });
   }

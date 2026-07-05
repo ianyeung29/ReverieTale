@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Avatar } from "@/components/Avatar";
+import { EntryGate } from "@/components/EntryGate";
 
 type Msg = { role: "user" | "character" | "system"; content: string };
 type Char = { id: string; name: string; tagline: string };
@@ -232,39 +233,6 @@ export default function ChatPage() {
             placeholder={`Message ${active?.name ?? "…"}`} disabled={busy || !charId} />
           <button style={{ ...S.send, opacity: busy || !input.trim() ? 0.5 : 1 }} onClick={send} disabled={busy || !input.trim()}>Send</button>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function EntryGate({ onDone }: { onDone: (email: string) => void }) {
-  const [email, setEmail] = useState("");
-  const [over18, setOver18] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState("");
-
-  async function submit() {
-    if (!over18) return setErr("You must be 18 or older to enter.");
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return setErr("Enter a valid email.");
-    setBusy(true); setErr("");
-    try {
-      const res = await fetch("/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, over18 }) });
-      const d = await res.json();
-      if (res.ok) onDone(d.email); else setErr(d.error || "Something went wrong.");
-    } catch { setErr("Network error."); } finally { setBusy(false); }
-  }
-
-  return (
-    <div style={S.center}>
-      <div style={S.gate}>
-        <p style={S.gateMk}>Adults only</p>
-        <h2 style={S.gateH}>Enter Reverie</h2>
-        <p style={S.gateSub}>Continue with your email. 18+ only.</p>
-        <input style={S.input} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@email.com"
-          onKeyDown={(e) => { if (e.key === "Enter") submit(); }} />
-        <label style={S.gateChk}><input type="checkbox" checked={over18} onChange={(e) => setOver18(e.target.checked)} /> I am 18 or older</label>
-        {err ? <p style={S.gateErr}>{err}</p> : null}
-        <button style={{ ...S.send, opacity: busy ? 0.6 : 1, padding: "13px" }} onClick={submit} disabled={busy}>{busy ? "…" : "Continue"}</button>
       </div>
     </div>
   );

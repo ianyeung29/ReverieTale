@@ -58,6 +58,8 @@ export default function StoryReadPage() {
 
   async function rewrite() {
     if (busy) return;
+    const after = chapters.length - idx - 1;
+    if (after > 0 && !confirm(`Rewriting this chapter will remove the ${after} chapter${after === 1 ? "" : "s"} after it, because they were written to follow the old version. Continue?`)) return;
     setBusy(true);
     try {
       const res = await fetch(`/api/stories/${id}/rewrite`, {
@@ -66,7 +68,8 @@ export default function StoryReadPage() {
         body: JSON.stringify({ chapterIndex: idx }),
       });
       const d = await res.json();
-      if (res.ok && d.chapter) setChapters((c) => { const copy = c.slice(); copy[idx] = d.chapter.trim(); return copy; });
+      // Rewrite truncates downstream chapters (branch point) - mirror that locally.
+      if (res.ok && d.chapter) setChapters((c) => [...c.slice(0, idx), d.chapter.trim()]);
     } catch {} finally { setBusy(false); }
   }
 

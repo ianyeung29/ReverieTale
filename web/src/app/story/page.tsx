@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Avatar } from "@/components/Avatar";
+import { EntryGate } from "@/components/EntryGate";
 
 type Char = { id: string; name: string; tagline: string; persona: string; tags: string[] };
 
@@ -29,6 +30,11 @@ export default function StoryPage() {
   const [explicitEnabled, setExplicitEnabled] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [authEmail, setAuthEmail] = useState<string | null | undefined>(undefined);
+
+  useEffect(() => {
+    fetch("/api/auth/me").then((r) => r.json()).then((d) => setAuthEmail(d.user?.email ?? null)).catch(() => setAuthEmail(null));
+  }, []);
 
   function shuffle() {
     setRelationship(rand(RELATIONSHIPS));
@@ -70,6 +76,7 @@ export default function StoryPage() {
       });
       const d = await res.json();
       if (res.ok && d.storyId) { window.location.href = `/story/${d.storyId}`; return; }
+      if (res.status === 401) { setAuthEmail(null); setBusy(false); return; }
       setError(d.error === "blocked" ? "That prompt isn't allowed." : d.error || "Something went wrong.");
       setBusy(false);
     } catch {
@@ -77,6 +84,9 @@ export default function StoryPage() {
       setBusy(false);
     }
   }
+
+  if (authEmail === undefined) return <main style={S.wrap}><p style={{ color: "#AC9CB0" }}>Loading…</p></main>;
+  if (authEmail === null) return <EntryGate onDone={(e) => setAuthEmail(e)} subtitle="Sign in to create a story. 18+ only." />;
 
   const active = chars.find((c) => c.id === charId);
 

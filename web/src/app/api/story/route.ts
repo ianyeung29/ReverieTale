@@ -24,6 +24,9 @@ const Body = z.object({
 });
 
 export async function POST(req: Request) {
+  const userId = await getCurrentUserId();
+  if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
   let body: z.infer<typeof Body>;
   try {
     body = Body.parse(await req.json());
@@ -40,13 +43,8 @@ export async function POST(req: Request) {
     // Content tier is gated: explicit only if requested AND the operator has enabled
     // + configured the explicit lane AND the user is age-verified. Anonymous or
     // unverified -> standard, regardless of what's requested.
-    const userId = await getCurrentUserId();
-    let ageVerified = false;
-    if (userId) {
-      const [u] = await db.select({ av: users.ageVerified }).from(users).where(eq(users.id, userId)).limit(1);
-      ageVerified = Boolean(u?.av);
-    }
-    const tier = resolveTier(body.tier, { ageVerified });
+    const [u] = await db.select({ av: users.ageVerified }).from(users).where(eq(users.id, userId)).limit(1);
+    const tier = resolveTier(body.tier, { ageVerified: Boolean(u?.av) });
 
     const [char] = await db.select().from(characters).where(eq(characters.id, body.characterId)).limit(1);
     if (!char) return NextResponse.json({ error: "character not found" }, { status: 404 });
