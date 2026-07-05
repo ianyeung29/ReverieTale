@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Avatar } from "@/components/Avatar";
 
 type Msg = { role: "user" | "character" | "system"; content: string };
 type Char = { id: string; name: string; tagline: string };
@@ -141,7 +142,10 @@ export default function ChatPage() {
           <button style={S.iconBtn} onClick={newChat} title="New conversation">＋ New</button>
           <button style={S.iconBtn} onClick={() => { setShowHistory((v) => !v); loadConvos(); }} title="Past conversations">History ▾</button>
         </div>
-        <div style={S.name}>{active?.name ?? "Loading…"}</div>
+        <div style={S.nameWrap}>
+          {active ? <Avatar name={active.name} size={30} /> : null}
+          <span style={S.name}>{active?.name ?? "Loading…"}</span>
+        </div>
         <div style={S.headRight}>
           <span style={S.credits} title="credit balance">◈ {credits ?? "…"}</span>
           {chars.length > 1 ? (
@@ -238,7 +242,8 @@ const S: Record<string, React.CSSProperties> = {
   headLeft: { display: "flex", gap: 8 },
   headRight: { display: "flex", alignItems: "center", gap: 10 },
   iconBtn: { background: "#231A2B", color: "#AC9CB0", border: "1px solid #3A2E44", borderRadius: 8, padding: "7px 11px", fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" },
-  name: { fontFamily: "Georgia, serif", fontSize: 20, textAlign: "center", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
+  nameWrap: { display: "flex", alignItems: "center", gap: 9, justifyContent: "center", overflow: "hidden" },
+  name: { fontFamily: "Georgia, serif", fontSize: 20, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
   credits: { color: "#E9A06B", fontWeight: 650, fontSize: 14, fontVariantNumeric: "tabular-nums" },
   select: { background: "#231A2B", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 8, padding: "7px 9px" },
   history: { borderBottom: "1px solid #3A2E44", maxHeight: 220, overflowY: "auto", display: "flex", flexDirection: "column" },

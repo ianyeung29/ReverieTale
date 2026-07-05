@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Avatar } from "@/components/Avatar";
 
 type Char = { id: string; name: string; tagline: string; persona: string; tags: string[] };
 
+const RELATIONSHIPS = ["strangers", "old friends", "reconnecting", "quietly in love", "it's complicated"];
 const MOODS = ["sweet", "playful", "flirty", "mysterious", "cozy", "adventurous", "bittersweet", "tense"];
 const SCENARIOS = [
   "a chance encounter",
@@ -29,14 +31,17 @@ export default function StoryPage() {
   const [setting, setSetting] = useState("");
   const [tone, setTone] = useState("");
   const [scenario, setScenario] = useState("");
+  const [relationship, setRelationship] = useState("");
   const [busy, setBusy] = useState(false);
   const [story, setStory] = useState<{ id: string; title: string; content: string } | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    const urlChar = new URLSearchParams(window.location.search).get("characterId");
     fetch("/api/characters").then((r) => r.json()).then((c: Char[]) => {
       setChars(c);
-      if (c[0]) setCharId(c[0].id);
+      const preferred = urlChar && c.some((x) => x.id === urlChar) ? urlChar : c[0]?.id;
+      if (preferred) setCharId(preferred);
     }).catch(() => {});
   }, []);
 
@@ -47,7 +52,7 @@ export default function StoryPage() {
       const res = await fetch("/api/story", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ characterId: charId, setting: setting.trim() || undefined, tone: tone || undefined, scenario: scenario || undefined }),
+        body: JSON.stringify({ characterId: charId, setting: setting.trim() || undefined, tone: tone || undefined, scenario: scenario || undefined, relationship: relationship || undefined }),
       });
       const d = await res.json();
       if (res.ok && d.content) setStory({ id: d.storyId, title: d.title, content: d.content });
@@ -69,12 +74,15 @@ export default function StoryPage() {
       <div style={S.cards}>
         {chars.map((c) => (
           <button key={c.id} style={{ ...S.card, ...(c.id === charId ? S.cardOn : {}) }} onClick={() => setCharId(c.id)}>
-            <div style={S.cardName}>{c.name}</div>
+            <div style={S.cardHead}><Avatar name={c.name} size={38} /><div style={S.cardName}>{c.name}</div></div>
             <div style={S.cardPersona}>{c.persona}</div>
             <div style={S.tags}>{c.tags.map((t) => <span key={t} style={S.tag}>{t}</span>)}</div>
           </button>
         ))}
       </div>
+
+      <p style={S.section}>Your relationship</p>
+      <Chips options={RELATIONSHIPS} value={relationship} onPick={(v) => setRelationship(v === relationship ? "" : v)} />
 
       <p style={S.section}>How you meet</p>
       <Chips options={SCENARIOS} value={scenario} onPick={(v) => setScenario(v === scenario ? "" : v)} />
@@ -121,6 +129,7 @@ const S: Record<string, React.CSSProperties> = {
   cards: { display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))", gap: 12 },
   card: { textAlign: "left", background: "#1C1422", border: "1px solid #3A2E44", borderRadius: 14, padding: "14px 16px", cursor: "pointer", color: "#F4EAF0", display: "flex", flexDirection: "column", gap: 8 },
   cardOn: { borderColor: "#E9A06B", background: "#241726", boxShadow: "0 0 0 1px #E9A06B inset" },
+  cardHead: { display: "flex", alignItems: "center", gap: 10 },
   cardName: { fontFamily: "Georgia, serif", fontSize: 20 },
   cardPersona: { color: "#AC9CB0", fontSize: 13.5, lineHeight: 1.45 },
   tags: { display: "flex", flexWrap: "wrap", gap: 6, marginTop: 2 },

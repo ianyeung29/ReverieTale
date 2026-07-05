@@ -10,6 +10,7 @@ export default function Home() {
       </p>
       <div style={{ display: "flex", gap: 12, marginTop: 28, flexWrap: "wrap" }}>
         <a href="/story" style={btn(true)}>Begin a story →</a>
+        <a href="/browse" style={btn(false)}>Browse companions</a>
         <a href="/chat" style={btn(false)}>Skip to chat</a>
       </div>
       <p style={{ color: "#6f6276", fontSize: 13, marginTop: 40 }}>
