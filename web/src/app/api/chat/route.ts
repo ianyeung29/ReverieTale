@@ -17,6 +17,7 @@ const Body = z.object({
   threadId: z.string().uuid().optional(),
   message: z.string().min(1).max(4000),
   userId: z.string().uuid().optional(),
+  storyId: z.string().uuid().optional(),
 });
 
 // Dev convenience: no auth yet in Phase 0. Fall back to a fixed dev user, and
@@ -46,6 +47,7 @@ export async function POST(req: Request) {
       characterId: body.characterId,
       threadId: body.threadId,
       message: body.message,
+      storyId: body.storyId,
     });
 
     if (result.status === "blocked") return NextResponse.json({ error: "blocked", reason: result.reason }, { status: 422 });

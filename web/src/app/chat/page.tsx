@@ -14,12 +14,19 @@ export default function ChatPage() {
   const [busy, setBusy] = useState(false);
   const [credits, setCredits] = useState<number | null>(null);
   const [broke, setBroke] = useState(false);
+  const [storyId, setStoryId] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlChar = params.get("characterId");
+    const fromStory = params.get("fromStory");
+    if (fromStory) setStoryId(fromStory);
+
     fetch("/api/characters").then((r) => r.json()).then((c: Char[]) => {
       setChars(c);
-      if (c[0]) setCharId(c[0].id);
+      const preferred = urlChar && c.some((x) => x.id === urlChar) ? urlChar : c[0]?.id;
+      if (preferred) setCharId(preferred);
     }).catch(() => {});
     fetch("/api/credits").then((r) => r.json()).then((d) => setCredits(d.balance?.total ?? 0)).catch(() => {});
   }, []);
@@ -31,6 +38,7 @@ export default function ChatPage() {
     setThreadId(undefined);
     setMessages([]);
     setBroke(false);
+    setStoryId(null); // switching characters drops any story handoff
   }
 
   async function topUp() {
@@ -55,11 +63,12 @@ export default function ChatPage() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ characterId: charId, threadId, message: text }),
+        body: JSON.stringify({ characterId: charId, threadId, message: text, storyId: threadId ? undefined : storyId ?? undefined }),
       });
       const data = await res.json();
       if (res.ok && data.reply) {
         setThreadId(data.threadId);
+        setStoryId(null); // story seeded on the first turn only
         setMessages((m) => [...m, { role: "character", content: data.reply }]);
         if (data.balance) setCredits(data.balance.total);
       } else if (res.status === 402) {

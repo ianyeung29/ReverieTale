@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { characters, messages, threads } from "@/db/schema";
+import { characters, memorySummaries, messages, stories, threads } from "@/db/schema";
 import { desc, eq } from "drizzle-orm";
 import { chat as modelChat, type ChatMessage } from "./model";
 import { screen } from "./moderation";
@@ -8,7 +8,7 @@ import { rewardCreator, spend, userBalance, type Balance } from "./ledger";
 
 const CHAT_PRICE = Number(process.env.CHAT_PRICE || 5);
 
-type Params = { userId: string; characterId: string; threadId?: string; message: string };
+type Params = { userId: string; characterId: string; threadId?: string; message: string; storyId?: string };
 export type ChatResult =
   | { status: "blocked"; reason?: string }
   | { status: "paywall"; balance: Balance }
@@ -31,6 +31,18 @@ export async function handleChat(params: Params): Promise<ChatResult> {
       .values({ userId, characterId, characterVersion: char.version })
       .returning({ id: threads.id });
     threadId = t.id;
+
+    // If this chat spun off from a story, seed the thread's memory with it so
+    // the character carries the story into the conversation (the story->chat loop).
+    if (params.storyId) {
+      const [story] = await db.select().from(stories).where(eq(stories.id, params.storyId)).limit(1);
+      if (story) {
+        await db.insert(memorySummaries).values({
+          threadId,
+          summary: `Earlier, you and them shared a story together titled "${story.title}". ${story.content.slice(0, 600)}`,
+        });
+      }
+    }
   }
 
   // Charge for the turn BEFORE generating. Out of credits -> paywall.

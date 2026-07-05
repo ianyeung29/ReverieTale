@@ -52,6 +52,25 @@ export const characters = pgTable("characters", {
 });
 
 // ---------------------------------------------------------------------------
+// Stories - the free front-door (acquisition). A guided first chapter starring
+// a character; a story can spin off into chat with that same character.
+// ---------------------------------------------------------------------------
+export const stories = pgTable(
+  "stories",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    characterId: uuid("character_id").notNull().references(() => characters.id),
+    userId: uuid("user_id").references(() => users.id), // null = platform/anon
+    title: text("title").notNull(),
+    content: text("content").notNull(),
+    elements: jsonb("elements"), // { setting, tone, ... }
+    isPublic: boolean("is_public").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({ byChar: index("stories_char_idx").on(t.characterId) }),
+);
+
+// ---------------------------------------------------------------------------
 // Per-(character x reader) memory (exec-3 sec 6). Raw chat is transient (sec 8.1),
 // distilled memory is durable.
 // ---------------------------------------------------------------------------
