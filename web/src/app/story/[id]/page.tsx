@@ -7,6 +7,9 @@ import { ChatDock } from "@/components/ChatDock";
 
 type Story = { id: string; title: string; content: string; characterId: string; characterName: string };
 
+const MOODS = ["sweet", "playful", "flirty", "tender", "tense", "mysterious", "dramatic"];
+const TWISTS = ["a confession", "an interruption", "a secret revealed", "they almost kiss", "a misunderstanding", "a bold move", "someone arrives"];
+
 function splitChapters(content: string): string[] {
   const parts = content.split(/\n{2,}·\s·\s·\n{2,}/).map((s) => s.trim()).filter(Boolean);
   return parts.length ? parts : [content.trim()];
@@ -20,26 +23,42 @@ export default function StoryReadPage() {
   const [busy, setBusy] = useState(false);
   const [notFound, setNotFound] = useState(false);
 
+  // Continuation form
+  const [showForm, setShowForm] = useState(false);
+  const [whatHappens, setWhatHappens] = useState("");
+  const [mood, setMood] = useState("");
+  const [twist, setTwist] = useState("");
+  const [setting, setSetting] = useState("");
+
   useEffect(() => {
     fetch(`/api/stories/${id}`).then((r) => (r.ok ? r.json() : Promise.reject())).then((s: Story) => {
-      setStory(s);
-      setChapters(splitChapters(s.content));
+      setStory(s); setChapters(splitChapters(s.content));
     }).catch(() => setNotFound(true));
   }, [id]);
 
   useEffect(() => { window.scrollTo({ top: 0, behavior: "smooth" }); }, [idx]);
 
-  async function next() {
+  function resetForm() { setWhatHappens(""); setMood(""); setTwist(""); setSetting(""); setShowForm(false); }
+
+  async function writeNext() {
     if (busy) return;
-    if (idx < chapters.length - 1) { setIdx(idx + 1); return; }
-    // On the last chapter -> generate a new one.
     setBusy(true);
     try {
-      const res = await fetch(`/api/stories/${id}/continue`, { method: "POST" });
+      const res = await fetch(`/api/stories/${id}/continue`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          whatHappens: whatHappens.trim() || undefined,
+          mood: mood || undefined,
+          twist: twist || undefined,
+          setting: setting.trim() || undefined,
+        }),
+      });
       const d = await res.json();
       if (res.ok && d.chapter) {
         setChapters((c) => [...c, d.chapter.trim()]);
         setIdx((i) => i + 1);
+        resetForm();
       }
     } catch {} finally { setBusy(false); }
   }
@@ -65,12 +84,37 @@ export default function StoryReadPage() {
       </article>
 
       <div style={S.nav}>
-        <button style={{ ...S.navBtn, visibility: idx > 0 ? "visible" : "hidden" }} onClick={() => setIdx(idx - 1)}>← Previous</button>
+        <button style={{ ...S.navBtn, visibility: idx > 0 ? "visible" : "hidden" }} onClick={() => { setShowForm(false); setIdx(idx - 1); }}>← Previous</button>
         <span style={S.count}>{idx + 1} / {chapters.length}</span>
-        <button style={{ ...S.navBtn, ...S.navPrimary, opacity: busy ? 0.6 : 1 }} onClick={next} disabled={busy}>
-          {busy ? "Writing…" : last ? "Next chapter +" : "Next →"}
-        </button>
+        {last ? (
+          <button style={{ ...S.navBtn, ...S.navPrimary }} onClick={() => setShowForm((v) => !v)}>Next chapter +</button>
+        ) : (
+          <button style={{ ...S.navBtn, ...S.navPrimary }} onClick={() => setIdx(idx + 1)}>Next →</button>
+        )}
       </div>
+
+      {last && showForm ? (
+        <div style={S.form}>
+          <p style={S.formTitle}>Shape the next chapter</p>
+
+          <label style={S.label}>What happens next?</label>
+          <textarea value={whatHappens} onChange={(e) => setWhatHappens(e.target.value)} placeholder="e.g. she finally says how she feels… we get caught in the rain…" style={S.textarea} maxLength={400} />
+
+          <label style={S.label}>Add a twist</label>
+          <Chips options={TWISTS} value={twist} onPick={(v) => setTwist(v === twist ? "" : v)} />
+
+          <label style={S.label}>Mood</label>
+          <Chips options={MOODS} value={mood} onPick={(v) => setMood(v === mood ? "" : v)} />
+
+          <label style={S.label}>Move to a new setting (optional)</label>
+          <input value={setting} onChange={(e) => setSetting(e.target.value)} placeholder="e.g. a quiet balcony, the last train home…" style={S.input} />
+
+          <div style={S.formActions}>
+            <button style={{ ...S.write, opacity: busy ? 0.6 : 1 }} onClick={writeNext} disabled={busy}>{busy ? "Writing…" : "Write this chapter →"}</button>
+            <button style={S.cancel} onClick={resetForm} disabled={busy}>Cancel</button>
+          </div>
+        </div>
+      ) : null}
 
       <div style={S.talkRow}>
         <a style={S.talk} href={`/chat?characterId=${story.characterId}&fromStory=${story.id}`}>Open full chat with {story.characterName} →</a>
@@ -78,6 +122,16 @@ export default function StoryReadPage() {
 
       <ChatDock characterId={story.characterId} characterName={story.characterName} storyId={story.id} />
     </main>
+  );
+}
+
+function Chips({ options, value, onPick }: { options: string[]; value: string; onPick: (v: string) => void }) {
+  return (
+    <div style={S.chips}>
+      {options.map((o) => (
+        <button key={o} style={{ ...S.chip, ...(o === value ? S.chipOn : {}) }} onClick={() => onPick(o)}>{o}</button>
+      ))}
+    </div>
   );
 }
 
@@ -94,6 +148,17 @@ const S: Record<string, React.CSSProperties> = {
   navBtn: { background: "#231A2B", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 10, padding: "11px 16px", cursor: "pointer", fontSize: 14, fontWeight: 600 },
   navPrimary: { color: "#1A1220", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", border: "1px solid transparent" },
   count: { color: "#8A7A90", fontSize: 13, fontVariantNumeric: "tabular-nums" },
+  form: { marginTop: 20, background: "#1C1422", border: "1px solid #3A2E44", borderRadius: 16, padding: 20, display: "flex", flexDirection: "column", gap: 8 },
+  formTitle: { fontFamily: "Georgia, serif", fontSize: 20, margin: "0 0 6px" },
+  label: { fontSize: 12, letterSpacing: ".1em", textTransform: "uppercase", color: "#8A7A90", fontWeight: 700, marginTop: 10 },
+  textarea: { width: "100%", minHeight: 64, resize: "vertical", background: "#1A121F", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 10, padding: "11px 13px", fontSize: 15, boxSizing: "border-box", fontFamily: "inherit" },
+  input: { width: "100%", background: "#1A121F", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 10, padding: "11px 13px", fontSize: 15, boxSizing: "border-box" },
+  chips: { display: "flex", flexWrap: "wrap", gap: 8 },
+  chip: { background: "#231A2B", color: "#CBBBD0", border: "1px solid #3A2E44", borderRadius: 999, padding: "8px 13px", cursor: "pointer", fontSize: 13.5 },
+  chipOn: { background: "linear-gradient(100deg,#E9A06B,#D46A8B)", color: "#1A1220", border: "1px solid transparent", fontWeight: 600 },
+  formActions: { display: "flex", gap: 10, marginTop: 16, alignItems: "center" },
+  write: { border: 0, cursor: "pointer", color: "#1A1220", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", borderRadius: 10, padding: "12px 20px", fontWeight: 650, fontSize: 15 },
+  cancel: { background: "transparent", border: 0, color: "#8A7A90", cursor: "pointer", fontSize: 14 },
   talkRow: { marginTop: 22, textAlign: "center" },
   talk: { color: "#AC9CB0", textDecoration: "none", fontSize: 14 },
 };

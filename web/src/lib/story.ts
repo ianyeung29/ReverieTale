@@ -60,19 +60,41 @@ export async function generateStory(def: Record<string, string>, elements: Story
   return { title, content, usage: res.usage };
 }
 
-/** Continue an ongoing story - the next chapter, given what's happened so far. */
-export async function generateNextChapter(def: Record<string, string>, storySoFar: string) {
-  const system =
+export type ChapterDirection = { whatHappens?: string; mood?: string; twist?: string; setting?: string };
+
+/** Continue an ongoing story - the next chapter, steered by the reader's direction. */
+export async function generateNextChapter(
+  def: Record<string, string>,
+  storySoFar: string,
+  direction: ChapterDirection = {},
+  tier: Tier = "standard",
+) {
+  const standardSystem =
     "You are a skilled fiction writer continuing an ongoing story. Write the NEXT chapter (300-500 words) that " +
     "moves the scene forward with new events - do not repeat what already happened. Second person, present tense. " +
-    "Tasteful and non-explicit. Do NOT include a title; write only the prose.";
-  const user = `Character: ${def.name}. ${def.persona}. Voice: ${def.voice}.\n\nStory so far:\n${storySoFar.slice(-4000)}\n\nWrite the next chapter.`;
+    "Tasteful and non-explicit.";
+
+  const explicitSystem = process.env.EXPLICIT_SYSTEM_PROMPT_STORY || "";
+  const useExplicit = tier === "explicit" && explicitSystem.length > 0;
+  const system = `${useExplicit ? explicitSystem : standardSystem}\nDo NOT include a title; write only the prose.`;
+
+  const dir = [
+    direction.whatHappens ? `What happens next: ${direction.whatHappens}.` : "",
+    direction.twist ? `Include this beat: ${direction.twist}.` : "",
+    direction.mood ? `Mood: ${direction.mood}.` : "",
+    direction.setting ? `Move the scene to: ${direction.setting}.` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const user = `Character: ${def.name}. ${def.persona}. Voice: ${def.voice}.\n\nStory so far:\n${storySoFar.slice(-4000)}\n\n${dir}\n\nWrite the next chapter.`;
+
   const res = await chat(
     [
       { role: "system", content: system },
       { role: "user", content: user },
     ],
-    { temperature: 0.95, maxTokens: 800 },
+    { temperature: 0.95, maxTokens: 800, tier: useExplicit ? "explicit" : "standard" },
   );
   return res.text.trim();
 }
