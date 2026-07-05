@@ -4,12 +4,13 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { handleChat } from "@/lib/chat";
-import { grantDrip } from "@/lib/ledger";
+import { ensureDailyDrip, grantDrip } from "@/lib/ledger";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-const WELCOME_CREDITS = Number(process.env.WELCOME_CREDITS || 100);
+const WELCOME_CREDITS = Number(process.env.WELCOME_CREDITS || 50);
+const DAILY_DRIP = Number(process.env.DAILY_DRIP || 50);
 
 const Body = z.object({
   characterId: z.string().uuid(),
@@ -39,6 +40,7 @@ export async function POST(req: Request) {
 
   try {
     const userId = body.userId ?? (await devUserId());
+    await ensureDailyDrip(userId, DAILY_DRIP); // top up today's free credits if due
     const result = await handleChat({
       userId,
       characterId: body.characterId,

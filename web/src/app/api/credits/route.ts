@@ -3,7 +3,9 @@ import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
-import { grantPurchase, userBalance } from "@/lib/ledger";
+import { ensureDailyDrip, grantPurchase, userBalance } from "@/lib/ledger";
+
+const DAILY_DRIP = Number(process.env.DAILY_DRIP || 50);
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +19,7 @@ async function devUserId(): Promise<string | null> {
 export async function GET() {
   const userId = await devUserId();
   if (!userId) return NextResponse.json({ balance: { purchased: 0, earned: 0, total: 0 } });
+  await ensureDailyDrip(userId, DAILY_DRIP); // reflect today's free drip in the shown balance
   return NextResponse.json({ balance: await userBalance(userId) });
 }
 

@@ -122,6 +122,24 @@ export async function spend(userId: string, n: number, metadata?: unknown): Prom
 }
 
 /**
+ * Grant the daily free drip once per day per user. Idempotent via a dated key:
+ * the unique constraint on idempotency_key blocks a second grant the same day,
+ * so this is safe to call on every request. Returns true if it granted.
+ */
+export async function ensureDailyDrip(userId: string, amount: number): Promise<boolean> {
+  if (amount <= 0) return false;
+  const date = new Date().toISOString().slice(0, 10); // UTC day
+  try {
+    await grantDrip(userId, amount, `daily:${userId}:${date}`);
+    return true;
+  } catch (e) {
+    const err = e as { code?: string; message?: string };
+    if (err?.code === "23505" || /duplicate|unique/i.test(String(err?.message))) return false; // already dripped today
+    throw e;
+  }
+}
+
+/**
  * Creator reward (+n earned credits). Dormant in Phase 0 (first-party characters
  * have no creator). Only fires for real creator characters, on purchased-credit spend.
  */
