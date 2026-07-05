@@ -32,6 +32,7 @@ export default function StoryReadPage() {
   const [setting, setSetting] = useState("");
   const [backupText, setBackupText] = useState<string | null>(null);
   const [showBackup, setShowBackup] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`/api/stories/${id}`).then((r) => (r.ok ? r.json() : Promise.reject())).then((s: Story) => {
@@ -46,7 +47,7 @@ export default function StoryReadPage() {
 
   async function writeNext() {
     if (busy) return;
-    setBusy(true);
+    setBusy(true); setNotice(null);
     try {
       const res = await fetch(`/api/stories/${id}/continue`, {
         method: "POST",
@@ -54,6 +55,7 @@ export default function StoryReadPage() {
         body: JSON.stringify({ whatHappens: whatHappens.trim() || undefined, mood: mood || undefined, twist: twist || undefined, setting: setting.trim() || undefined }),
       });
       const d = await res.json();
+      if (res.status === 402) { setNotice(`You need ${d.price ?? 10} credits to write a chapter — you have ${d.balance?.total ?? 0}. Add credits to keep going.`); return; }
       if (res.ok && d.chapter) { setChapters((c) => [...c, d.chapter.trim()]); setIdx((i) => i + 1); resetForm(); }
     } catch {} finally { setBusy(false); }
   }
@@ -62,7 +64,7 @@ export default function StoryReadPage() {
     if (busy) return;
     const after = chapters.length - idx - 1;
     if (after > 0 && !confirm(`Rewriting this chapter will remove the ${after} chapter${after === 1 ? "" : "s"} after it, because they were written to follow the old version. Continue?`)) return;
-    setBusy(true);
+    setBusy(true); setNotice(null);
     try {
       const res = await fetch(`/api/stories/${id}/rewrite`, {
         method: "POST",
@@ -70,6 +72,7 @@ export default function StoryReadPage() {
         body: JSON.stringify({ chapterIndex: idx }),
       });
       const d = await res.json();
+      if (res.status === 402) { setNotice(`You need ${d.price ?? 10} credits to rewrite a chapter — you have ${d.balance?.total ?? 0}. Add credits to keep going.`); return; }
       // Rewrite truncates downstream chapters (branch point) - mirror that locally.
       if (res.ok && d.chapter) {
         setChapters((c) => [...c.slice(0, idx), d.chapter.trim()]);
@@ -134,12 +137,16 @@ export default function StoryReadPage() {
       <div style={S.nav}>
         <button style={{ ...S.navBtn, visibility: idx > 0 ? "visible" : "hidden" }} onClick={() => { setShowForm(false); setIdx(idx - 1); }}>← Previous</button>
         <span style={S.count}>{idx + 1} / {chapters.length}</span>
-        {last ? (
+        {!last ? (
+          <button style={{ ...S.navBtn, ...S.navPrimary }} onClick={() => setIdx(idx + 1)}>Next →</button>
+        ) : story.isOwner ? (
           <button style={{ ...S.navBtn, ...S.navPrimary }} onClick={() => setShowForm((v) => !v)}>Next chapter +</button>
         ) : (
-          <button style={{ ...S.navBtn, ...S.navPrimary }} onClick={() => setIdx(idx + 1)}>Next →</button>
+          <span style={{ ...S.navBtn, visibility: "hidden" }} aria-hidden />
         )}
       </div>
+
+      {notice ? <p style={S.notice}>{notice}</p> : null}
 
       {last && showForm ? (
         <div style={S.form}>
@@ -239,6 +246,7 @@ const S: Record<string, React.CSSProperties> = {
   formActions: { display: "flex", gap: 10, marginTop: 16, alignItems: "center" },
   write: { border: 0, cursor: "pointer", color: "#1A1220", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", borderRadius: 10, padding: "12px 20px", fontWeight: 650, fontSize: 15 },
   cancel: { background: "transparent", border: 0, color: "#8A7A90", cursor: "pointer", fontSize: 14 },
+  notice: { marginTop: 14, background: "#2A1A1E", border: "1px solid #6b3a44", borderRadius: 10, padding: "10px 14px", color: "#F0C9B0", fontSize: 14 },
   talkRow: { marginTop: 22, textAlign: "center" },
   talk: { color: "#AC9CB0", textDecoration: "none", fontSize: 14 },
 };

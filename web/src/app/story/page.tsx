@@ -77,6 +77,7 @@ export default function StoryPage() {
       const d = await res.json();
       if (res.ok && d.storyId) { window.location.href = `/story/${d.storyId}`; return; }
       if (res.status === 401) { setAuthEmail(null); setBusy(false); return; }
+      if (res.status === 402) { setError(`You need ${d.price ?? 10} credits to write a chapter — you have ${d.balance?.total ?? 0}. Come back tomorrow for your daily credits, or add more.`); setBusy(false); return; }
       setError(d.error === "blocked" ? "That prompt isn't allowed." : d.error || "Something went wrong.");
       setBusy(false);
     } catch {

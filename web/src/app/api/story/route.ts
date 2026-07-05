@@ -7,9 +7,13 @@ import { generateStory } from "@/lib/story";
 import { resolveTier } from "@/lib/model";
 import { screen } from "@/lib/moderation";
 import { getCurrentUserId } from "@/lib/session";
+import { ensureDailyDrip, spend, userBalance } from "@/lib/ledger";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
+
+const CHAPTER_PRICE = Number(process.env.CHAPTER_PRICE || 10);
+const DAILY_DRIP = Number(process.env.DAILY_DRIP || 20);
 
 const Body = z.object({
   characterId: z.string().uuid(),
@@ -37,6 +41,14 @@ export async function POST(req: Request) {
   // Input safety gate on user-supplied elements.
   if (screen([body.setting, body.tone, body.scenario, body.relationship, body.genre, body.details].filter(Boolean).join(" ")).blocked) {
     return NextResponse.json({ error: "blocked", reason: "safety_minor" }, { status: 422 });
+  }
+
+  // Chapters cost credits. Refresh the daily drip, then make sure the writer can
+  // afford this one before we spend a model call on it.
+  await ensureDailyDrip(userId, DAILY_DRIP);
+  const balance = await userBalance(userId);
+  if (balance.total < CHAPTER_PRICE) {
+    return NextResponse.json({ error: "insufficient_credits", price: CHAPTER_PRICE, balance }, { status: 402 });
   }
 
   try {
@@ -85,7 +97,11 @@ export async function POST(req: Request) {
       })
       .returning({ id: stories.id });
 
-    return NextResponse.json({ storyId: story.id, title, content });
+    // Charge only after a successful, safety-cleared generation + save.
+    const charge = await spend(userId, CHAPTER_PRICE, { kind: "chapter", storyId: story.id, chapter: 0 });
+    if (!charge.ok) return NextResponse.json({ error: "insufficient_credits", price: CHAPTER_PRICE, balance: charge.balance }, { status: 402 });
+
+    return NextResponse.json({ storyId: story.id, title, content, balance: charge.balance });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "story generation failed";
     return NextResponse.json({ error: msg }, { status: 500 });

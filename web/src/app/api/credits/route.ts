@@ -5,7 +5,7 @@ import { getCurrentUserId } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
-const DAILY_DRIP = Number(process.env.DAILY_DRIP || 50);
+const DAILY_DRIP = Number(process.env.DAILY_DRIP || 20);
 
 // GET /api/credits -> current balance for the logged-in user.
 export async function GET() {

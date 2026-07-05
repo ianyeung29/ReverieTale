@@ -6,7 +6,7 @@ import { screen } from "./moderation";
 import { extractAndStoreMemory, maybeUpdateSummary, retrieveMemory } from "./memory";
 import { rewardCreator, spend, userBalance, type Balance, type SpendResult } from "./ledger";
 
-const CHAT_PRICE = Number(process.env.CHAT_PRICE || 5);
+const CHAT_PRICE = Number(process.env.CHAT_PRICE || 1);
 
 type Params = { userId: string; characterId: string; threadId?: string; message: string; storyId?: string };
 type CharRow = typeof characters.$inferSelect;
@@ -75,7 +75,7 @@ export async function prepareChat(params: Params): Promise<Prep> {
 
   const msgs: ChatMessage[] = [
     { role: "system", content: system },
-    ...recent.map((m) => ({ role: (m.role === "user" ? "user" : "assistant") as const, content: m.content })),
+    ...recent.map((m): ChatMessage => ({ role: m.role === "user" ? "user" : "assistant", content: m.content })),
   ];
 
   return { status: "ready", threadId, msgs, char, charge };

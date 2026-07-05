@@ -67,7 +67,7 @@ export async function userBalance(userId: string): Promise<Balance> {
 }
 
 /** Reader buys credits (purchased class). */
-export async function grantPurchase(userId: string, n: number, idempotencyKey = randomUUID()) {
+export async function grantPurchase(userId: string, n: number, idempotencyKey: string = randomUUID()) {
   const [u, p] = [await userAccount(userId), await platformAccount()];
   return db.transaction((tx) =>
     post(tx, "purchase", idempotencyKey, [
@@ -78,7 +78,7 @@ export async function grantPurchase(userId: string, n: number, idempotencyKey = 
 }
 
 /** Daily free drip / welcome bonus (earned class - spend-only, never generates rewards). */
-export async function grantDrip(userId: string, n: number, idempotencyKey = randomUUID()) {
+export async function grantDrip(userId: string, n: number, idempotencyKey: string = randomUUID()) {
   const [u, p] = [await userAccount(userId), await platformAccount()];
   return db.transaction((tx) =>
     post(tx, "drip", idempotencyKey, [
@@ -143,7 +143,7 @@ export async function ensureDailyDrip(userId: string, amount: number): Promise<b
  * Creator reward (+n earned credits). Dormant in Phase 0 (first-party characters
  * have no creator). Only fires for real creator characters, on purchased-credit spend.
  */
-export async function rewardCreator(creatorId: string, n = 1, idempotencyKey = randomUUID()) {
+export async function rewardCreator(creatorId: string, n = 1, idempotencyKey: string = randomUUID()) {
   const [c, p] = [await creatorAccount(creatorId), await platformAccount()];
   return db.transaction((tx) =>
     post(tx, "reward", idempotencyKey, [

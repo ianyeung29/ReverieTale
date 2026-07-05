@@ -7,9 +7,13 @@ import { generateNextChapter, generateStory, type StoryElements } from "@/lib/st
 import { resolveTier, type Tier } from "@/lib/model";
 import { screen } from "@/lib/moderation";
 import { getCurrentUserId } from "@/lib/session";
+import { ensureDailyDrip, spend, userBalance } from "@/lib/ledger";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
+
+const CHAPTER_PRICE = Number(process.env.CHAPTER_PRICE || 10);
+const DAILY_DRIP = Number(process.env.DAILY_DRIP || 20);
 
 const SEP = "\n\n· · ·\n\n";
 const Body = z.object({
@@ -44,6 +48,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (!row) return NextResponse.json({ error: "not found" }, { status: 404 });
   if (row.ownerId !== userId) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
+  // A rewrite regenerates a chapter, so it costs the same as writing one.
+  await ensureDailyDrip(userId, DAILY_DRIP);
+  const balance = await userBalance(userId);
+  if (balance.total < CHAPTER_PRICE) {
+    return NextResponse.json({ error: "insufficient_credits", price: CHAPTER_PRICE, balance }, { status: 402 });
+  }
+
   try {
     const [u] = await db.select({ av: users.ageVerified }).from(users).where(eq(users.id, userId)).limit(1);
     const elements = (row.elements ?? {}) as StoryElements & { tier?: Tier };
@@ -69,7 +80,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const kept = [...chapters.slice(0, body.chapterIndex), newChapter.trim()];
     await db.update(stories).set({ content: kept.join(SEP), backup: row.content, backupAt: new Date() }).where(eq(stories.id, id));
 
-    return NextResponse.json({ chapter: newChapter.trim(), total: kept.length });
+    // Charge only after a successful, safety-cleared rewrite + save.
+    const charge = await spend(userId, CHAPTER_PRICE, { kind: "rewrite", storyId: id, chapter: body.chapterIndex });
+    if (!charge.ok) return NextResponse.json({ error: "insufficient_credits", price: CHAPTER_PRICE, balance: charge.balance }, { status: 402 });
+
+    return NextResponse.json({ chapter: newChapter.trim(), total: kept.length, balance: charge.balance });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "failed" }, { status: 500 });
   }
