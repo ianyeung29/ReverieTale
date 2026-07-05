@@ -14,6 +14,7 @@ const Body = z.object({
   characterId: z.string().uuid(),
   setting: z.string().max(200).optional(),
   tone: z.string().max(60).optional(),
+  scenario: z.string().max(120).optional(),
 });
 
 export async function POST(req: Request) {
@@ -25,7 +26,7 @@ export async function POST(req: Request) {
   }
 
   // Input safety gate on user-supplied elements.
-  if (screen(`${body.setting ?? ""} ${body.tone ?? ""}`).blocked) {
+  if (screen(`${body.setting ?? ""} ${body.tone ?? ""} ${body.scenario ?? ""}`).blocked) {
     return NextResponse.json({ error: "blocked", reason: "safety_minor" }, { status: 422 });
   }
 
@@ -34,7 +35,7 @@ export async function POST(req: Request) {
     if (!char) return NextResponse.json({ error: "character not found" }, { status: 404 });
 
     const def = (char.definition ?? {}) as Record<string, string>;
-    const { title, content } = await generateStory(def, { setting: body.setting, tone: body.tone });
+    const { title, content } = await generateStory(def, { setting: body.setting, tone: body.tone, scenario: body.scenario });
 
     // Output safety gate.
     if (screen(`${title} ${content}`).blocked) {
@@ -48,7 +49,7 @@ export async function POST(req: Request) {
         userId: await getCurrentUserId(), // nullable - story is a public front-door
         title,
         content,
-        elements: { setting: body.setting ?? null, tone: body.tone ?? null },
+        elements: { setting: body.setting ?? null, tone: body.tone ?? null, scenario: body.scenario ?? null },
       })
       .returning({ id: stories.id });
 

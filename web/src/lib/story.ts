@@ -7,7 +7,7 @@ import { chat } from "./model";
  */
 export async function generateStory(
   def: Record<string, string>,
-  elements: { setting?: string; tone?: string } = {},
+  elements: { setting?: string; tone?: string; scenario?: string } = {},
 ) {
   const system =
     "You are a skilled fiction writer. Write an immersive 'first chapter' - a short story (300-500 words) that " +
@@ -17,8 +17,9 @@ export async function generateStory(
 
   const user = [
     `Character: ${def.name}. ${def.persona}. Backstory: ${def.backstory}. Voice: ${def.voice}.`,
+    elements.scenario ? `How you meet: ${elements.scenario}.` : "",
     elements.setting ? `Setting: ${elements.setting}.` : "",
-    elements.tone ? `Tone: ${elements.tone}.` : "",
+    elements.tone ? `Mood: ${elements.tone}.` : "",
   ]
     .filter(Boolean)
     .join("\n");
