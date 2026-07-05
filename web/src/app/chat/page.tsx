@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 type Msg = { role: "user" | "character" | "system"; content: string };
 type Char = { id: string; name: string; tagline: string };
+type Convo = { id: string; characterId: string; name: string; lastActiveAt: string };
 
 export default function ChatPage() {
   const [chars, setChars] = useState<Char[]>([]);
@@ -15,7 +16,13 @@ export default function ChatPage() {
   const [credits, setCredits] = useState<number | null>(null);
   const [broke, setBroke] = useState(false);
   const [storyId, setStoryId] = useState<string | null>(null);
+  const [convos, setConvos] = useState<Convo[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
+
+  function loadConvos() {
+    fetch("/api/threads").then((r) => r.json()).then((c: Convo[]) => setConvos(Array.isArray(c) ? c : [])).catch(() => {});
+  }
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -29,26 +36,41 @@ export default function ChatPage() {
       if (preferred) setCharId(preferred);
     }).catch(() => {});
     fetch("/api/credits").then((r) => r.json()).then((d) => setCredits(d.balance?.total ?? 0)).catch(() => {});
+    loadConvos();
   }, []);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, busy]);
 
-  function pick(id: string) {
-    setCharId(id);
+  function newChat() {
     setThreadId(undefined);
     setMessages([]);
     setBroke(false);
-    setStoryId(null); // switching characters drops any story handoff
+    setStoryId(null);
+    setShowHistory(false);
+  }
+
+  function switchCharacter(id: string) {
+    setCharId(id);
+    newChat();
+  }
+
+  async function openConvo(c: Convo) {
+    setShowHistory(false);
+    setCharId(c.characterId);
+    setStoryId(null);
+    setBroke(false);
+    try {
+      const rows: Msg[] = await fetch(`/api/messages?threadId=${c.id}`).then((r) => r.json());
+      setMessages(Array.isArray(rows) ? rows : []);
+      setThreadId(c.id);
+    } catch {
+      setMessages([]);
+    }
   }
 
   async function topUp() {
     try {
-      const res = await fetch("/api/credits", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ credits: 100 }),
-      });
-      const d = await res.json();
+      const d = await fetch("/api/credits", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ credits: 100 }) }).then((r) => r.json());
       if (d.balance) { setCredits(d.balance.total); setBroke(false); }
     } catch {}
   }
@@ -67,10 +89,12 @@ export default function ChatPage() {
       });
       const data = await res.json();
       if (res.ok && data.reply) {
+        const isNew = !threadId;
         setThreadId(data.threadId);
-        setStoryId(null); // story seeded on the first turn only
+        setStoryId(null);
         setMessages((m) => [...m, { role: "character", content: data.reply }]);
         if (data.balance) setCredits(data.balance.total);
+        if (isNew) loadConvos();
       } else if (res.status === 402) {
         setBroke(true);
         if (data.balance) setCredits(data.balance.total);
@@ -90,19 +114,34 @@ export default function ChatPage() {
   return (
     <div style={S.wrap}>
       <div style={S.head}>
+        <div style={S.headLeft}>
+          <button style={S.iconBtn} onClick={newChat} title="New conversation">＋ New</button>
+          <button style={S.iconBtn} onClick={() => { setShowHistory((v) => !v); loadConvos(); }} title="Past conversations">History ▾</button>
+        </div>
         <div>
           <div style={S.name}>{active?.name ?? "Loading…"}</div>
-          {active?.tagline ? <div style={S.tag}>{active.tagline}</div> : null}
         </div>
         <div style={S.headRight}>
           <span style={S.credits} title="credit balance">◈ {credits ?? "…"}</span>
           {chars.length > 1 ? (
-            <select value={charId} onChange={(e) => pick(e.target.value)} style={S.select}>
+            <select value={charId} onChange={(e) => switchCharacter(e.target.value)} style={S.select}>
               {chars.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           ) : null}
         </div>
       </div>
+
+      {showHistory ? (
+        <div style={S.history}>
+          {convos.length === 0 ? <div style={S.histEmpty}>No past conversations yet.</div> : null}
+          {convos.map((c) => (
+            <button key={c.id} style={{ ...S.histItem, ...(c.id === threadId ? S.histActive : {}) }} onClick={() => openConvo(c)}>
+              <span>{c.name}</span>
+              <span style={S.histDate}>{new Date(c.lastActiveAt).toLocaleDateString()}</span>
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       <div style={S.feed}>
         {messages.length === 0 && !busy ? <div style={S.empty}>Say hello to {active?.name ?? "your companion"}.</div> : null}
@@ -124,9 +163,7 @@ export default function ChatPage() {
       </div>
 
       <div style={S.barWrap}>
-        {broke ? (
-          <button style={S.topup} onClick={topUp}>Top up 100 credits (dev)</button>
-        ) : null}
+        {broke ? <button style={S.topup} onClick={topUp}>Top up 100 credits (dev)</button> : null}
         <div style={S.bar}>
           <input
             style={S.input}
@@ -145,12 +182,18 @@ export default function ChatPage() {
 
 const S: Record<string, React.CSSProperties> = {
   wrap: { maxWidth: 720, margin: "0 auto", height: "100vh", display: "flex", flexDirection: "column" },
-  head: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 20px", borderBottom: "1px solid #3A2E44" },
-  headRight: { display: "flex", alignItems: "center", gap: 12 },
-  name: { fontFamily: "Georgia, serif", fontSize: 22 },
-  tag: { color: "#AC9CB0", fontSize: 13, marginTop: 2 },
+  head: { display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", padding: "14px 18px", borderBottom: "1px solid #3A2E44", gap: 10 },
+  headLeft: { display: "flex", gap: 8, justifySelf: "start" },
+  headRight: { display: "flex", alignItems: "center", gap: 10, justifySelf: "end" },
+  iconBtn: { background: "#231A2B", color: "#AC9CB0", border: "1px solid #3A2E44", borderRadius: 8, padding: "7px 11px", fontSize: 13, cursor: "pointer" },
+  name: { fontFamily: "Georgia, serif", fontSize: 20, textAlign: "center", whiteSpace: "nowrap" },
   credits: { color: "#E9A06B", fontWeight: 650, fontSize: 14, fontVariantNumeric: "tabular-nums" },
-  select: { background: "#231A2B", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 8, padding: "8px 10px" },
+  select: { background: "#231A2B", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 8, padding: "7px 9px" },
+  history: { borderBottom: "1px solid #3A2E44", maxHeight: 220, overflowY: "auto", display: "flex", flexDirection: "column" },
+  histEmpty: { color: "#8A7A90", fontSize: 14, padding: "14px 18px" },
+  histItem: { display: "flex", justifyContent: "space-between", background: "transparent", color: "#F4EAF0", border: 0, borderBottom: "1px solid #241a2b", padding: "12px 18px", cursor: "pointer", fontSize: 14, textAlign: "left" },
+  histActive: { background: "#231A2B" },
+  histDate: { color: "#8A7A90", fontSize: 12 },
   feed: { flex: 1, overflowY: "auto", padding: "20px", display: "flex", flexDirection: "column", gap: 12 },
   empty: { color: "#8A7A90", textAlign: "center", marginTop: 40 },
   sys: { alignSelf: "center", color: "#8A7A90", fontSize: 13, textAlign: "center" },
