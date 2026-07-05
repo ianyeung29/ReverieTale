@@ -1,3 +1,6 @@
+import { config } from "dotenv";
+config({ path: ".env.local" }); // drizzle-kit doesn't auto-load .env.local
+
 import type { Config } from "drizzle-kit";
 
 export default {
