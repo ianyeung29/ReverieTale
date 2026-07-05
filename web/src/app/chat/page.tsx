@@ -30,7 +30,9 @@ export default function ChatPage() {
     fetch("/api/auth/me").then((r) => r.json()).then((d) => setAuthEmail(d.user?.email ?? null)).catch(() => setAuthEmail(null));
   }, []);
 
-  // Load data once logged in.
+  // Load data once logged in, and auto-resume the latest conversation so a
+  // refresh keeps you in the same chat (she keeps the context) rather than
+  // silently starting a new one.
   useEffect(() => {
     if (!authEmail) return;
     const params = new URLSearchParams(window.location.search);
@@ -38,13 +40,28 @@ export default function ChatPage() {
     const fromStory = params.get("fromStory");
     if (fromStory) setStoryId(fromStory);
 
-    fetch("/api/characters").then((r) => r.json()).then((c: Char[]) => {
-      setChars(c);
-      const preferred = urlChar && c.some((x) => x.id === urlChar) ? urlChar : c[0]?.id;
+    (async () => {
+      const cs: Char[] = await fetch("/api/characters").then((r) => r.json()).catch(() => []);
+      setChars(Array.isArray(cs) ? cs : []);
+      const preferred = urlChar && cs.some((x) => x.id === urlChar) ? urlChar : cs[0]?.id;
       if (preferred) setCharId(preferred);
-    }).catch(() => {});
-    fetch("/api/credits").then((r) => r.json()).then((d) => setCredits(d.balance?.total ?? 0)).catch(() => {});
-    loadConvos();
+
+      fetch("/api/credits").then((r) => r.json()).then((d) => setCredits(d.balance?.total ?? 0)).catch(() => {});
+
+      const cv: Convo[] = await fetch("/api/threads").then((r) => r.json()).catch(() => []);
+      const list = Array.isArray(cv) ? cv : [];
+      setConvos(list);
+
+      // Resume the most recent conversation for the preferred character
+      // (unless we just arrived from a story, which starts a fresh thread).
+      if (!fromStory && preferred) {
+        const latest = list.find((c) => c.characterId === preferred);
+        if (latest) {
+          const rows: Msg[] = await fetch(`/api/messages?threadId=${latest.id}`).then((r) => r.json()).catch(() => []);
+          if (Array.isArray(rows)) { setMessages(rows); setThreadId(latest.id); }
+        }
+      }
+    })();
   }, [authEmail]);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, busy]);
@@ -56,7 +73,17 @@ export default function ChatPage() {
   }
 
   function newChat() { setThreadId(undefined); setMessages([]); setBroke(false); setStoryId(null); setShowHistory(false); }
-  function switchCharacter(id: string) { setCharId(id); newChat(); }
+
+  async function switchCharacter(id: string) {
+    setCharId(id); setStoryId(null); setBroke(false); setShowHistory(false);
+    const latest = convos.find((c) => c.characterId === id);
+    if (latest) {
+      const rows: Msg[] = await fetch(`/api/messages?threadId=${latest.id}`).then((r) => r.json()).catch(() => []);
+      setMessages(Array.isArray(rows) ? rows : []); setThreadId(latest.id);
+    } else {
+      setMessages([]); setThreadId(undefined);
+    }
+  }
 
   async function openConvo(c: Convo) {
     setShowHistory(false); setCharId(c.characterId); setStoryId(null); setBroke(false);

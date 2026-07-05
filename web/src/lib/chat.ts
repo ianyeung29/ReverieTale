@@ -51,14 +51,14 @@ export async function handleChat(params: Params): Promise<ChatResult> {
 
   // Persist the user turn, then assemble context.
   await db.insert(messages).values({ threadId, role: "user", content: message });
-  const mem = await retrieveMemory(threadId, message);
+  const mem = await retrieveMemory(threadId, userId, characterId, message);
   const recent = (
     await db
       .select({ role: messages.role, content: messages.content })
       .from(messages)
       .where(eq(messages.threadId, threadId))
       .orderBy(desc(messages.createdAt))
-      .limit(8)
+      .limit(12)
   ).reverse();
 
   const def = (char.definition ?? {}) as Record<string, string>;

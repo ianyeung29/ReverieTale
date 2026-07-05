@@ -1,6 +1,6 @@
 import { db } from "@/db";
-import { memoryItems, memorySummaries, messages } from "@/db/schema";
-import { cosineDistance, desc, eq, sql } from "drizzle-orm";
+import { memoryItems, memorySummaries, messages, threads } from "@/db/schema";
+import { and, cosineDistance, desc, eq, sql } from "drizzle-orm";
 import { embed, embedOne } from "./embeddings";
 import { chat } from "./model";
 import { screen } from "./moderation";
@@ -9,8 +9,19 @@ const embeddingsOn = () => Boolean(process.env.EMBEDDINGS_API_KEY);
 
 export type Recall = { summary?: string; items: string[] };
 
-/** Load rolling summary + top-k semantically-recalled memory for this thread. */
-export async function retrieveMemory(threadId: string, queryText: string, k = 6): Promise<Recall> {
+/**
+ * Rolling summary (this thread) + top-k durable memory recalled across ALL of
+ * this user's conversations with this character - so the relationship is
+ * remembered even in a brand-new conversation. Durable recall requires an
+ * embeddings key; until then only the thread summary is returned.
+ */
+export async function retrieveMemory(
+  threadId: string,
+  userId: string,
+  characterId: string,
+  queryText: string,
+  k = 6,
+): Promise<Recall> {
   const out: Recall = { items: [] };
 
   const [summ] = await db
@@ -27,7 +38,8 @@ export async function retrieveMemory(threadId: string, queryText: string, k = 6)
     const rows = await db
       .select({ content: memoryItems.content, sim })
       .from(memoryItems)
-      .where(eq(memoryItems.threadId, threadId))
+      .innerJoin(threads, eq(memoryItems.threadId, threads.id))
+      .where(and(eq(threads.userId, userId), eq(threads.characterId, characterId)))
       .orderBy(desc(sim))
       .limit(k);
     out.items = rows.map((r) => r.content);
