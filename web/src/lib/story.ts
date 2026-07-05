@@ -1,4 +1,4 @@
-import { chat } from "./model";
+import { chat, type Tier } from "./model";
 
 /**
  * Story generation - the free front-door. Produces a short "first chapter"
@@ -15,15 +15,23 @@ export type StoryElements = {
   length?: "short" | "medium";
 };
 
-export async function generateStory(def: Record<string, string>, elements: StoryElements = {}) {
+export async function generateStory(def: Record<string, string>, elements: StoryElements = {}, tier: Tier = "standard") {
   const words = elements.length === "medium" ? "500-800 words" : "300-500 words";
   const maxTokens = elements.length === "medium" ? 1100 : 700;
 
-  const system =
+  // Standard (non-explicit) system prompt - the only one authored here.
+  const standardSystem =
     `You are a skilled fiction writer. Write an immersive 'first chapter' - a short story (${words}) that ` +
     "introduces the reader to the character and pulls them into a scene together. Write in second person, present " +
-    "tense ('you'), so the reader feels present with the character. Keep it tasteful and non-explicit. " +
-    "Begin with a title on the first line as 'Title: <the title>', then a blank line, then the story.";
+    "tense ('you'), so the reader feels present with the character. Keep it tasteful and non-explicit.";
+
+  // Explicit tier uses an OPERATOR-SUPPLIED prompt from env (never authored here).
+  // Falls back to the standard, non-explicit prompt if not provided.
+  const explicitSystem = process.env.EXPLICIT_SYSTEM_PROMPT_STORY || "";
+  const useExplicit = tier === "explicit" && explicitSystem.length > 0;
+  const baseSystem = useExplicit ? explicitSystem : standardSystem;
+
+  const system = `${baseSystem}\nBegin with a title on the first line as 'Title: <the title>', then a blank line, then the story.`;
 
   const user = [
     `Character: ${def.name}. ${def.persona}. Backstory: ${def.backstory}. Voice: ${def.voice}.`,
@@ -42,7 +50,7 @@ export async function generateStory(def: Record<string, string>, elements: Story
       { role: "system", content: system },
       { role: "user", content: user },
     ],
-    { temperature: 0.95, maxTokens },
+    { temperature: 0.95, maxTokens, tier: useExplicit ? "explicit" : "standard" },
   );
 
   const text = res.text.trim();

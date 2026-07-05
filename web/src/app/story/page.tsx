@@ -25,6 +25,8 @@ export default function StoryPage() {
   const [setting, setSetting] = useState("");
   const [details, setDetails] = useState("");
   const [length, setLength] = useState<"short" | "medium">("short");
+  const [tier, setTier] = useState<"standard" | "explicit">("standard");
+  const [explicitEnabled, setExplicitEnabled] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -43,6 +45,7 @@ export default function StoryPage() {
       const preferred = urlChar && c.some((x) => x.id === urlChar) ? urlChar : c[0]?.id;
       if (preferred) setCharId(preferred);
     }).catch(() => {});
+    fetch("/api/config").then((r) => r.json()).then((d) => setExplicitEnabled(!!d.explicitEnabled)).catch(() => {});
     shuffle(); // start with a fresh random combination each visit
   }, []);
 
@@ -62,6 +65,7 @@ export default function StoryPage() {
           setting: setting.trim() || undefined,
           details: details.trim() || undefined,
           length,
+          tier,
         }),
       });
       const d = await res.json();
@@ -118,6 +122,17 @@ export default function StoryPage() {
           <button key={l} style={{ ...S.chip, ...(l === length ? S.chipOn : {}) }} onClick={() => setLength(l)}>{l}</button>
         ))}
       </div>
+
+      {explicitEnabled ? (
+        <>
+          <p style={S.section}>Intensity</p>
+          <div style={S.chips}>
+            {(["standard", "explicit"] as const).map((t) => (
+              <button key={t} style={{ ...S.chip, ...(t === tier ? S.chipOn : {}) }} onClick={() => setTier(t)}>{t === "standard" ? "sweet" : "spicy"}</button>
+            ))}
+          </div>
+        </>
+      ) : null}
 
       <button style={{ ...S.cta, opacity: busy ? 0.6 : 1 }} onClick={generate} disabled={busy || !charId}>
         {busy ? "Writing…" : `Write my first chapter with ${active?.name ?? "…"}`}

@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { characters, stories } from "@/db/schema";
+import { characters, stories, users } from "@/db/schema";
 import { generateStory } from "@/lib/story";
+import { resolveTier } from "@/lib/model";
 import { screen } from "@/lib/moderation";
 import { getCurrentUserId } from "@/lib/session";
 
@@ -19,6 +20,7 @@ const Body = z.object({
   genre: z.string().max(60).optional(),
   details: z.string().max(400).optional(),
   length: z.enum(["short", "medium"]).optional(),
+  tier: z.enum(["standard", "explicit"]).optional(),
 });
 
 export async function POST(req: Request) {
@@ -35,6 +37,17 @@ export async function POST(req: Request) {
   }
 
   try {
+    // Content tier is gated: explicit only if requested AND the operator has enabled
+    // + configured the explicit lane AND the user is age-verified. Anonymous or
+    // unverified -> standard, regardless of what's requested.
+    const userId = await getCurrentUserId();
+    let ageVerified = false;
+    if (userId) {
+      const [u] = await db.select({ av: users.ageVerified }).from(users).where(eq(users.id, userId)).limit(1);
+      ageVerified = Boolean(u?.av);
+    }
+    const tier = resolveTier(body.tier, { ageVerified });
+
     const [char] = await db.select().from(characters).where(eq(characters.id, body.characterId)).limit(1);
     if (!char) return NextResponse.json({ error: "character not found" }, { status: 404 });
 
@@ -47,7 +60,7 @@ export async function POST(req: Request) {
       genre: body.genre,
       details: body.details,
       length: body.length,
-    });
+    }, tier);
 
     // Output safety gate.
     if (screen(`${title} ${content}`).blocked) {
@@ -58,7 +71,7 @@ export async function POST(req: Request) {
       .insert(stories)
       .values({
         characterId: char.id,
-        userId: await getCurrentUserId(), // nullable - story is a public front-door
+        userId, // nullable - story is a public front-door
         title,
         content,
         elements: {
@@ -69,6 +82,7 @@ export async function POST(req: Request) {
           genre: body.genre ?? null,
           details: body.details ?? null,
           length: body.length ?? null,
+          tier,
         },
       })
       .returning({ id: stories.id });
