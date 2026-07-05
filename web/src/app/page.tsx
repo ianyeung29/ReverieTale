@@ -36,6 +36,7 @@ export default async function Home() {
       <div style={S.cta}>
         <a href="/story" style={btn(true)}>Begin a story →</a>
         <a href="/browse" style={btn(false)}>Browse companions</a>
+        <a href="/library" style={btn(false)}>Your stories</a>
         <a href="/chat" style={btn(false)}>Skip to chat</a>
       </div>
 

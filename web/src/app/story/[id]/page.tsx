@@ -5,11 +5,13 @@ import { useParams } from "next/navigation";
 import { Avatar } from "@/components/Avatar";
 import { ChatDock } from "@/components/ChatDock";
 
-type Story = { id: string; title: string; content: string; characterId: string; characterName: string };
+type Story = { id: string; title: string; content: string; characterId: string; characterName: string; isOwner: boolean };
 
 const MOODS = ["sweet", "playful", "flirty", "tender", "tense", "mysterious", "dramatic"];
 const TWISTS = ["a confession", "an interruption", "a secret revealed", "they almost kiss", "a misunderstanding", "a bold move", "someone arrives"];
+const WHAT_HAPPENS = ["she says how she really feels", "the moment nearly breaks", "you're left alone together", "a memory resurfaces", "the tension finally snaps", "an unexpected visitor arrives"];
 
+function rand<T>(a: T[]): T { return a[Math.floor(Math.random() * a.length)]; }
 function splitChapters(content: string): string[] {
   const parts = content.split(/\n{2,}·\s·\s·\n{2,}/).map((s) => s.trim()).filter(Boolean);
   return parts.length ? parts : [content.trim()];
@@ -23,7 +25,6 @@ export default function StoryReadPage() {
   const [busy, setBusy] = useState(false);
   const [notFound, setNotFound] = useState(false);
 
-  // Continuation form
   const [showForm, setShowForm] = useState(false);
   const [whatHappens, setWhatHappens] = useState("");
   const [mood, setMood] = useState("");
@@ -39,6 +40,7 @@ export default function StoryReadPage() {
   useEffect(() => { window.scrollTo({ top: 0, behavior: "smooth" }); }, [idx]);
 
   function resetForm() { setWhatHappens(""); setMood(""); setTwist(""); setSetting(""); setShowForm(false); }
+  function surprise() { setWhatHappens(rand(WHAT_HAPPENS)); setTwist(rand(TWISTS)); setMood(rand(MOODS)); setSetting(""); }
 
   async function writeNext() {
     if (busy) return;
@@ -47,19 +49,24 @@ export default function StoryReadPage() {
       const res = await fetch(`/api/stories/${id}/continue`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          whatHappens: whatHappens.trim() || undefined,
-          mood: mood || undefined,
-          twist: twist || undefined,
-          setting: setting.trim() || undefined,
-        }),
+        body: JSON.stringify({ whatHappens: whatHappens.trim() || undefined, mood: mood || undefined, twist: twist || undefined, setting: setting.trim() || undefined }),
       });
       const d = await res.json();
-      if (res.ok && d.chapter) {
-        setChapters((c) => [...c, d.chapter.trim()]);
-        setIdx((i) => i + 1);
-        resetForm();
-      }
+      if (res.ok && d.chapter) { setChapters((c) => [...c, d.chapter.trim()]); setIdx((i) => i + 1); resetForm(); }
+    } catch {} finally { setBusy(false); }
+  }
+
+  async function rewrite() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/stories/${id}/rewrite`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chapterIndex: idx }),
+      });
+      const d = await res.json();
+      if (res.ok && d.chapter) setChapters((c) => { const copy = c.slice(); copy[idx] = d.chapter.trim(); return copy; });
     } catch {} finally { setBusy(false); }
   }
 
@@ -79,9 +86,13 @@ export default function StoryReadPage() {
         </div>
       </div>
 
-      <article key={idx} style={S.article}>
+      <article key={idx + ":" + (chapters[idx] ?? "").length} style={S.article}>
         {(chapters[idx] ?? "").split(/\n{2,}/).map((p, i) => <p key={i} style={S.para}>{p}</p>)}
       </article>
+
+      {story.isOwner ? (
+        <button style={{ ...S.rewrite, opacity: busy ? 0.6 : 1 }} onClick={rewrite} disabled={busy}>↻ {busy ? "Rewriting…" : "Rewrite this chapter"}</button>
+      ) : null}
 
       <div style={S.nav}>
         <button style={{ ...S.navBtn, visibility: idx > 0 ? "visible" : "hidden" }} onClick={() => { setShowForm(false); setIdx(idx - 1); }}>← Previous</button>
@@ -95,7 +106,10 @@ export default function StoryReadPage() {
 
       {last && showForm ? (
         <div style={S.form}>
-          <p style={S.formTitle}>Shape the next chapter</p>
+          <div style={S.formTop}>
+            <p style={S.formTitle}>Shape the next chapter</p>
+            <button style={S.surprise} onClick={surprise} type="button">🎲 Surprise me</button>
+          </div>
 
           <label style={S.label}>What happens next?</label>
           <textarea value={whatHappens} onChange={(e) => setWhatHappens(e.target.value)} placeholder="e.g. she finally says how she feels… we get caught in the rain…" style={S.textarea} maxLength={400} />
@@ -128,9 +142,7 @@ export default function StoryReadPage() {
 function Chips({ options, value, onPick }: { options: string[]; value: string; onPick: (v: string) => void }) {
   return (
     <div style={S.chips}>
-      {options.map((o) => (
-        <button key={o} style={{ ...S.chip, ...(o === value ? S.chipOn : {}) }} onClick={() => onPick(o)}>{o}</button>
-      ))}
+      {options.map((o) => <button key={o} style={{ ...S.chip, ...(o === value ? S.chipOn : {}) }} onClick={() => onPick(o)}>{o}</button>)}
     </div>
   );
 }
@@ -144,12 +156,15 @@ const S: Record<string, React.CSSProperties> = {
   by: { color: "#AC9CB0", margin: "4px 0 0", fontSize: 14 },
   article: { minHeight: 200 },
   para: { margin: "0 0 16px", color: "#EadFe6", fontSize: 17 },
-  nav: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginTop: 34, borderTop: "1px solid #241a2b", paddingTop: 22 },
+  rewrite: { marginTop: 18, background: "transparent", color: "#8A7A90", border: "1px solid #3A2E44", borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontSize: 13.5 },
+  nav: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginTop: 22, borderTop: "1px solid #241a2b", paddingTop: 22 },
   navBtn: { background: "#231A2B", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 10, padding: "11px 16px", cursor: "pointer", fontSize: 14, fontWeight: 600 },
   navPrimary: { color: "#1A1220", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", border: "1px solid transparent" },
   count: { color: "#8A7A90", fontSize: 13, fontVariantNumeric: "tabular-nums" },
   form: { marginTop: 20, background: "#1C1422", border: "1px solid #3A2E44", borderRadius: 16, padding: 20, display: "flex", flexDirection: "column", gap: 8 },
-  formTitle: { fontFamily: "Georgia, serif", fontSize: 20, margin: "0 0 6px" },
+  formTop: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 },
+  formTitle: { fontFamily: "Georgia, serif", fontSize: 20, margin: 0 },
+  surprise: { background: "#231A2B", color: "#E9A06B", border: "1px solid #4a3a50", borderRadius: 999, padding: "7px 13px", cursor: "pointer", fontSize: 13, fontWeight: 600 },
   label: { fontSize: 12, letterSpacing: ".1em", textTransform: "uppercase", color: "#8A7A90", fontWeight: 700, marginTop: 10 },
   textarea: { width: "100%", minHeight: 64, resize: "vertical", background: "#1A121F", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 10, padding: "11px 13px", fontSize: 15, boxSizing: "border-box", fontFamily: "inherit" },
   input: { width: "100%", background: "#1A121F", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 10, padding: "11px 13px", fontSize: 15, boxSizing: "border-box" },
