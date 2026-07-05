@@ -9,8 +9,24 @@ export default function Home() {
         Backend foundation is running. Milestone 1 (scaffold, schema, adapters) is in place. Next milestones:
         chat + memory retrieval, credit ledger, age gate + moderation hooks, then the chat UI.
       </p>
-      <p style={{ color: "#AC9CB0" }}>
-        Health check: <a href="/api/health" style={{ color: "#E9A06B" }}>/api/health</a>
+      <p style={{ marginTop: 24 }}>
+        <a
+          href="/chat"
+          style={{
+            display: "inline-block",
+            color: "#1A1220",
+            background: "linear-gradient(100deg,#E9A06B,#D46A8B)",
+            padding: "12px 22px",
+            borderRadius: 12,
+            fontWeight: 650,
+            textDecoration: "none",
+          }}
+        >
+          Open the chat →
+        </a>
+      </p>
+      <p style={{ color: "#8A7A90", fontSize: 14 }}>
+        Health check: <a href="/api/health" style={{ color: "#AC9CB0" }}>/api/health</a>
       </p>
     </main>
   );
