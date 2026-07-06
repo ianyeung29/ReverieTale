@@ -98,7 +98,10 @@ export default function StoryPage() {
       <p style={S.sub}>Pick who you meet, then shape the moment - use a suggestion or write your own for any of it.</p>
       <button style={S.shuffle} onClick={shuffle} type="button">🎲 Shuffle elements</button>
 
-      <p style={S.section}>Who you meet</p>
+      <div style={S.sectionRow}>
+        <p style={S.section}>Who you meet</p>
+        <a href="/create" style={S.createLink}>＋ Create your own</a>
+      </div>
       <div style={S.cards}>
         {chars.map((c) => (
           <button key={c.id} style={{ ...S.card, ...(c.id === charId ? S.cardOn : {}) }} onClick={() => setCharId(c.id)}>
@@ -179,6 +182,8 @@ const S: Record<string, React.CSSProperties> = {
   sub: { color: "#AC9CB0", margin: "0 0 16px" },
   shuffle: { background: "#231A2B", color: "#E9A06B", border: "1px solid #4a3a50", borderRadius: 999, padding: "9px 16px", cursor: "pointer", fontSize: 14, fontWeight: 600 },
   section: { fontSize: 12, letterSpacing: ".14em", textTransform: "uppercase", color: "#8A7A90", fontWeight: 700, margin: "26px 0 12px" },
+  sectionRow: { display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 },
+  createLink: { color: "#E9A06B", textDecoration: "none", fontSize: 13.5, fontWeight: 600, whiteSpace: "nowrap" },
   cards: { display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))", gap: 12 },
   card: { textAlign: "left", background: "#1C1422", border: "1px solid #3A2E44", borderRadius: 14, padding: "14px 16px", cursor: "pointer", color: "#F4EAF0", display: "flex", flexDirection: "column", gap: 8 },
   cardOn: { border: "1px solid #E9A06B", background: "#241726", boxShadow: "0 0 0 1px #E9A06B inset" },

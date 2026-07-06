@@ -35,6 +35,7 @@ export default async function Home() {
       <p style={S.sub}>Begin with a story. Meet a character. Then stay and talk to someone who remembers every word.</p>
       <div style={S.cta}>
         <a href="/story" style={btn(true)}>Begin a story →</a>
+        <a href="/create" style={btn(false)}>Create a companion</a>
         <a href="/browse" style={btn(false)}>Browse companions</a>
         <a href="/library" style={btn(false)}>Your stories</a>
         <a href="/chat" style={btn(false)}>Skip to chat</a>
