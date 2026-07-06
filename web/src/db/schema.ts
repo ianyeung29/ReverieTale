@@ -50,6 +50,10 @@ export const characters = pgTable("characters", {
   status: text("status").notNull().default("draft"), // draft | in_review | published | disabled
   // Latest moderation note (why it was held/rejected), shown in the admin queue.
   reviewNote: text("review_note"),
+  // Optional generated portrait, stored base64 + mime, served via
+  // /api/characters/:id/image. (Object storage is the scale-path later.)
+  image: text("image"),
+  imageMime: text("image_mime"),
   // { name, persona, look, backstory, voice, tags }
   definition: jsonb("definition").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
