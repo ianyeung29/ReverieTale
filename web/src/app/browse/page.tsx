@@ -21,7 +21,9 @@ export default function BrowsePage() {
       <div style={S.grid}>
         {chars.map((c) => (
           <div key={c.id} style={S.card}>
-            <div style={S.head}><Avatar name={c.name} size={48} /><div><div style={S.name}>{c.name}</div><div style={S.tags}>{c.tags.map((t) => <span key={t} style={S.tag}>{t}</span>)}</div></div></div>
+            <a href={`/c/${c.id}`} style={S.headLink}>
+              <div style={S.head}><Avatar name={c.name} size={48} /><div><div style={S.name}>{c.name}</div><div style={S.tags}>{c.tags.map((t) => <span key={t} style={S.tag}>{t}</span>)}</div></div></div>
+            </a>
             <p style={S.persona}>{c.persona}</p>
             <p style={S.tagline}>{c.tagline}</p>
             <div style={S.actions}>
@@ -42,6 +44,7 @@ const S: Record<string, React.CSSProperties> = {
   sub: { color: "#AC9CB0", margin: "0 0 30px" },
   grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: 18 },
   card: { background: "#1C1422", border: "1px solid #3A2E44", borderRadius: 16, padding: 20, display: "flex", flexDirection: "column", gap: 10 },
+  headLink: { textDecoration: "none", color: "inherit", display: "block" },
   head: { display: "flex", alignItems: "center", gap: 12 },
   name: { fontFamily: "Georgia, serif", fontSize: 22, color: "#F4EAF0" },
   tags: { display: "flex", flexWrap: "wrap", gap: 6, marginTop: 4 },

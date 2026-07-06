@@ -114,7 +114,7 @@ export default function StoryReadPage() {
         <Avatar name={story.characterName} size={46} />
         <div>
           <h1 style={S.title}>{story.title}</h1>
-          <p style={S.by}>with {story.characterName} · chapter {idx + 1} of {chapters.length}</p>
+          <p style={S.by}>with <a href={`/c/${story.characterId}`} style={S.byLink}>{story.characterName}</a> · chapter {idx + 1} of {chapters.length}</p>
         </div>
       </div>
 
@@ -216,6 +216,7 @@ const S: Record<string, React.CSSProperties> = {
   head: { display: "flex", alignItems: "center", gap: 14, margin: "24px 0 28px" },
   title: { fontFamily: "Georgia, serif", fontSize: 32, margin: 0, lineHeight: 1.15 },
   by: { color: "#AC9CB0", margin: "4px 0 0", fontSize: 14 },
+  byLink: { color: "#E9A06B", textDecoration: "none" },
   article: { minHeight: 200 },
   para: { margin: "0 0 16px", color: "#EadFe6", fontSize: 17 },
   divider: { textAlign: "center", color: "#6f6276", letterSpacing: ".5em", margin: "24px 0" },
