@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Avatar } from "./Avatar";
 
 /**
- * Shows a character's generated portrait, falling back to the deterministic
- * gradient Avatar when there's no image (the <img> 404s and onError swaps in).
+ * Shows a character's generated portrait over the deterministic gradient Avatar.
+ * The gradient always renders underneath; the image is layered on top and only
+ * revealed once it actually loads. If there's no portrait (404), the image stays
+ * hidden and the gradient shows through - so a missing image never flashes a
+ * broken-image icon, even when the 404 happens before React hydrates.
  */
 export function CharacterAvatar({
   characterId,
@@ -18,18 +21,47 @@ export function CharacterAvatar({
   size: number;
   version?: string | number;
 }) {
+  const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
-  if (!characterId || failed) return <Avatar name={name} size={size} />;
+  const ref = useRef<HTMLImageElement>(null);
 
-  const src = `/api/characters/${characterId}/image${version != null ? `?v=${version}` : ""}`;
+  // Catch loads/errors that resolved before hydration (onLoad/onError would miss them).
+  useEffect(() => {
+    setLoaded(false);
+    setFailed(false);
+    const img = ref.current;
+    if (img && img.complete) {
+      if (img.naturalWidth > 0) setLoaded(true);
+      else setFailed(true);
+    }
+  }, [characterId, version]);
+
+  const showImg = Boolean(characterId) && !failed;
+
   return (
-    <img
-      src={src}
-      alt={name}
-      width={size}
-      height={size}
-      style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", display: "block", background: "#231A2B", flexShrink: 0 }}
-      onError={() => setFailed(true)}
-    />
+    <div style={{ position: "relative", width: size, height: size, flexShrink: 0, display: "inline-block", lineHeight: 0 }}>
+      <Avatar name={name} size={size} />
+      {showImg ? (
+        <img
+          ref={ref}
+          src={`/api/characters/${characterId}/image${version != null ? `?v=${version}` : ""}`}
+          alt=""
+          width={size}
+          height={size}
+          onLoad={() => setLoaded(true)}
+          onError={() => setFailed(true)}
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: size,
+            height: size,
+            borderRadius: "50%",
+            objectFit: "cover",
+            opacity: loaded ? 1 : 0,
+            transition: "opacity .15s ease",
+          }}
+        />
+      ) : null}
+    </div>
   );
 }
