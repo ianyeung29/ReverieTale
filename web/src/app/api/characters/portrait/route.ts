@@ -65,7 +65,9 @@ export async function POST(req: Request) {
   try {
     ({ base64, mime } = await generateImage(buildPrompt(body)));
   } catch (e) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : "generation failed" }, { status: 500 });
+    const msg = e instanceof Error ? e.message : "generation failed";
+    console.error("[portrait] generation failed:", msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 
   // Charge (if beyond the free allowance) only after a successful generation.

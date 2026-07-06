@@ -65,7 +65,8 @@ export default function CreateCharacterPage() {
       if (res.status === 401) { setAuthEmail(null); return; }
       if (res.status === 402) { setPortraitErr(`You need ${d.price ?? portraitPrice} credits for another portrait — you have ${d.balance?.total ?? 0}.`); setPortraitPaywall(true); return; }
       if (res.ok && d.image) { setPortrait({ image: d.image, mime: d.mime || "image/jpeg" }); if (typeof d.freeRemaining === "number") setPortraitFree(d.freeRemaining); }
-      else setPortraitErr(d.error === "blocked" ? "That description isn't allowed for a portrait." : "Couldn't generate a portrait — try again.");
+      else if (d.error === "blocked") setPortraitErr("That description isn't allowed for a portrait.");
+      else setPortraitErr(d.error ? `Portrait failed: ${d.error}` : "Couldn't generate a portrait — try again.");
     } catch {
       setPortraitErr("Network error while generating the portrait.");
     } finally {
