@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { and, eq, gt, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, gt, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { creatorRewards, ledgerAccounts, ledgerEntries, ledgerTransactions } from "@/db/schema";
 
@@ -67,6 +67,29 @@ async function post(tx: Tx, type: string, idempotencyKey: string, entries: Entry
 export async function userBalance(userId: string): Promise<Balance> {
   const acct = await userAccount(userId);
   return db.transaction((tx) => balanceOfTx(tx, acct));
+}
+
+export type LedgerEvent = { id: string; type: string; amount: number; createdAt: Date; metadata: unknown; key: string };
+
+/** This user's ledger, newest first: net credit change per transaction with type + metadata. */
+export async function ledgerHistory(userId: string, limit = 100): Promise<LedgerEvent[]> {
+  const acct = await userAccount(userId);
+  const rows = await db
+    .select({
+      id: ledgerTransactions.id,
+      type: ledgerTransactions.type,
+      createdAt: ledgerTransactions.createdAt,
+      metadata: ledgerTransactions.metadata,
+      key: ledgerTransactions.idempotencyKey,
+      amount: sql<number>`sum(${ledgerEntries.amountSigned})::int`,
+    })
+    .from(ledgerEntries)
+    .innerJoin(ledgerTransactions, eq(ledgerEntries.txnId, ledgerTransactions.id))
+    .where(eq(ledgerEntries.accountId, acct))
+    .groupBy(ledgerTransactions.id) // id is the PK; other txn columns are functionally dependent
+    .orderBy(desc(ledgerTransactions.createdAt))
+    .limit(limit);
+  return rows.map((r) => ({ id: r.id, type: r.type, amount: Number(r.amount), createdAt: r.createdAt, metadata: r.metadata, key: r.key }));
 }
 
 /** Lifetime credits this user has earned as a creator (reward credits into their bank). */
