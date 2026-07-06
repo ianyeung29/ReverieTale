@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { characters } from "@/db/schema";
 import { moderateContent } from "@/lib/moderation";
@@ -17,7 +17,12 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const [row] = await db
-    .select({ creatorId: characters.creatorId, definition: characters.definition, status: characters.status })
+    .select({
+      creatorId: characters.creatorId,
+      definition: characters.definition,
+      status: characters.status,
+      hasImage: sql<boolean>`(${characters.image} is not null)`,
+    })
     .from(characters)
     .where(eq(characters.id, id))
     .limit(1);
@@ -28,6 +33,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   return NextResponse.json({
     id,
     status: row.status,
+    hasImage: Boolean(row.hasImage),
     name: (def.name as string) ?? "",
     look: (def.look as string) ?? "",
     persona: (def.persona as string) ?? "",
@@ -47,6 +53,8 @@ const Patch = z.object({
   voice: z.string().trim().max(300).optional(),
   tags: z.array(z.string().trim().min(1).max(30)).max(8).optional(),
   status: z.enum(["published", "disabled"]).optional(),
+  image: z.string().max(12_000_000).optional(),
+  imageMime: z.string().max(60).optional(),
 });
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -70,11 +78,18 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (row.creatorId !== userId) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
   const editsDefinition = FIELDS.some((k) => body[k] !== undefined);
+  const image = body.image !== undefined ? { image: body.image, imageMime: body.imageMime ?? null } : {};
 
   // Unpublish is the one status change a creator can make directly and freely.
   if (!editsDefinition && body.status === "disabled") {
-    await db.update(characters).set({ status: "disabled", updatedAt: new Date() }).where(eq(characters.id, id));
+    await db.update(characters).set({ status: "disabled", updatedAt: new Date(), ...image }).where(eq(characters.id, id));
     return NextResponse.json({ ok: true, status: "disabled" });
+  }
+
+  // A portrait-only change (no text edit) doesn't need re-moderation.
+  if (!editsDefinition && body.status === undefined && body.image !== undefined) {
+    await db.update(characters).set({ ...image, updatedAt: new Date() }).where(eq(characters.id, id));
+    return NextResponse.json({ ok: true });
   }
 
   // Anything else that would make content public (an edit, or a resubmit via
@@ -91,6 +106,6 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   }
   const status = mod.decision === "approve" ? "published" : "in_review";
 
-  await db.update(characters).set({ definition: def, status, reviewNote: mod.reason, updatedAt: new Date() }).where(eq(characters.id, id));
+  await db.update(characters).set({ definition: def, status, reviewNote: mod.reason, updatedAt: new Date(), ...image }).where(eq(characters.id, id));
   return NextResponse.json({ ok: true, status });
 }

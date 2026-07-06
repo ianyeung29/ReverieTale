@@ -1,7 +1,7 @@
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { characters, stories, users } from "@/db/schema";
-import { Avatar } from "@/components/Avatar";
+import { CharacterAvatar } from "@/components/CharacterAvatar";
 import { getCurrentUserId } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -97,7 +97,7 @@ export default async function CharacterProfile({ params }: { params: Promise<{ i
       <a href="/browse" style={S.back}>← Companions</a>
 
       <div style={S.head}>
-        <Avatar name={p.name} size={72} />
+        <CharacterAvatar characterId={p.id} name={p.name} size={72} />
         <div style={S.headText}>
           <h1 style={S.name}>{p.name}</h1>
           <p style={S.by}>by {p.creatorId ? <a href={`/creator/${p.creatorId}`} style={S.byLink}>{p.creator}</a> : p.creator}</p>

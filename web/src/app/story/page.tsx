@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Avatar } from "@/components/Avatar";
+import { CharacterAvatar } from "@/components/CharacterAvatar";
 import { EntryGate } from "@/components/EntryGate";
 
 type Char = { id: string; name: string; tagline: string; persona: string; tags: string[] };
@@ -157,7 +157,7 @@ export default function StoryPage() {
       <div style={S.cards}>
         {chars.map((c) => (
           <button key={c.id} style={{ ...S.card, ...(c.id === charId ? S.cardOn : {}) }} onClick={() => setCharId(c.id)}>
-            <div style={S.cardHead}><Avatar name={c.name} size={38} /><div style={S.cardName}>{c.name}</div></div>
+            <div style={S.cardHead}><CharacterAvatar characterId={c.id} name={c.name} size={38} /><div style={S.cardName}>{c.name}</div></div>
             <div style={S.cardPersona}>{c.persona}</div>
             <div style={S.tags}>{c.tags.map((t) => <span key={t} style={S.tag}>{t}</span>)}</div>
           </button>

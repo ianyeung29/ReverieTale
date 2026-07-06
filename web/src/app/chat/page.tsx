@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Avatar } from "@/components/Avatar";
+import { CharacterAvatar } from "@/components/CharacterAvatar";
 import { EntryGate } from "@/components/EntryGate";
 
 type Msg = { role: "user" | "character" | "system"; content: string };
@@ -189,7 +189,7 @@ export default function ChatPage() {
           <button style={S.iconBtn} onClick={() => { setShowHistory((v) => !v); loadConvos(); }} title="Past conversations">History ▾</button>
         </div>
         <div style={S.nameWrap}>
-          {active ? <Avatar name={active.name} size={30} /> : null}
+          {active ? <CharacterAvatar characterId={active.id} name={active.name} size={30} /> : null}
           <span style={S.name}>{active?.name ?? "Loading…"}</span>
         </div>
         <div style={S.headRight}>
@@ -218,7 +218,7 @@ export default function ChatPage() {
       <div style={S.feed}>
         {messages.length === 0 && !busy ? (
           <div style={S.empty}>
-            {active ? <Avatar name={active.name} size={60} /> : null}
+            {active ? <CharacterAvatar characterId={active.id} name={active.name} size={60} /> : null}
             <p style={S.emptyName}>{active?.name ?? "your companion"}</p>
             <p style={S.emptyHint}>Say hello — they&apos;ll remember what you share.</p>
             <div style={S.openers}>

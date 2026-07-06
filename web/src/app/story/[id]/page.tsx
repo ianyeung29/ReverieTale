@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { Avatar } from "@/components/Avatar";
+import { CharacterAvatar } from "@/components/CharacterAvatar";
 import { ChatDock } from "@/components/ChatDock";
 
 type Story = { id: string; title: string; content: string; characterId: string; characterName: string; isOwner: boolean; hasBackup: boolean };
@@ -132,7 +132,7 @@ export default function StoryReadPage() {
 
       <a href="/" style={S.back}>← Reverie</a>
       <div style={S.head}>
-        <Avatar name={story.characterName} size={46} />
+        <CharacterAvatar characterId={story.characterId} name={story.characterName} size={46} />
         <div>
           <h1 style={S.title}>{story.title}</h1>
           <p style={S.by}>with <a href={`/c/${story.characterId}`} style={S.byLink}>{story.characterName}</a> · chapter {idx + 1} of {chapters.length} · ~{readMin} min</p>

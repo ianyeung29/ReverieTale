@@ -53,6 +53,8 @@ const Body = z.object({
   backstory: z.string().trim().max(600).optional(),
   voice: z.string().trim().max(300).optional(),
   tags: z.array(z.string().trim().min(1).max(30)).max(8).optional(),
+  image: z.string().max(12_000_000).optional(), // base64 portrait
+  imageMime: z.string().max(60).optional(),
 });
 
 export async function POST(req: Request) {
@@ -86,7 +88,7 @@ export async function POST(req: Request) {
 
   const [char] = await db
     .insert(characters)
-    .values({ creatorId: userId, status, reviewNote: mod.reason, definition })
+    .values({ creatorId: userId, status, reviewNote: mod.reason, definition, image: body.image ?? null, imageMime: body.imageMime ?? null })
     .returning({ id: characters.id });
 
   return NextResponse.json({ id: char.id, name: body.name, status });

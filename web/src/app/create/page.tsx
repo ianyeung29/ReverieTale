@@ -27,9 +27,14 @@ export default function CreateCharacterPage() {
   const [previewMsg, setPreviewMsg] = useState("");
   const [previewReply, setPreviewReply] = useState<string | null>(null);
   const [previewBusy, setPreviewBusy] = useState(false);
+  const [imageEnabled, setImageEnabled] = useState(false);
+  const [portrait, setPortrait] = useState<{ image: string; mime: string } | null>(null); // freshly generated
+  const [hasImage, setHasImage] = useState(false); // existing portrait (edit mode)
+  const [portraitBusy, setPortraitBusy] = useState(false);
 
   useEffect(() => {
     fetch("/api/auth/me").then((r) => r.json()).then((d) => setAuthEmail(d.user?.email ?? null)).catch(() => setAuthEmail(null));
+    fetch("/api/config").then((r) => r.json()).then((d) => setImageEnabled(!!d.imageEnabled)).catch(() => {});
     const id = new URLSearchParams(window.location.search).get("id");
     if (!id) return;
     setEditId(id);
@@ -37,8 +42,29 @@ export default function CreateCharacterPage() {
       if (!d) return;
       setName(d.name || ""); setLook(d.look || ""); setPersona(d.persona || "");
       setBackstory(d.backstory || ""); setVoice(d.voice || ""); setTags(Array.isArray(d.tags) ? d.tags : []);
+      setHasImage(!!d.hasImage);
     }).catch(() => {});
   }, []);
+
+  async function generatePortrait() {
+    if (portraitBusy) return;
+    setPortraitBusy(true); setError("");
+    try {
+      const res = await fetch("/api/characters/portrait", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: name.trim() || undefined, look: look.trim() || undefined, persona: persona.trim() || undefined, tags: tags.length ? tags : undefined }),
+      });
+      const d = await res.json();
+      if (res.status === 401) { setAuthEmail(null); return; }
+      if (res.ok && d.image) setPortrait({ image: d.image, mime: d.mime || "image/jpeg" });
+      else setError(d.error === "blocked" ? "That description isn't allowed for a portrait." : "Couldn't generate a portrait — try again.");
+    } catch {
+      setError("Network error while generating the portrait.");
+    } finally {
+      setPortraitBusy(false);
+    }
+  }
 
   function toggleTag(t: string) {
     setTags((cur) => (cur.includes(t) ? cur.filter((x) => x !== t) : cur.length >= 8 ? cur : [...cur, t]));
@@ -123,6 +149,8 @@ export default function CreateCharacterPage() {
       backstory: backstory.trim() || undefined,
       voice: voice.trim() || undefined,
       tags: tags.length ? tags : undefined,
+      image: portrait?.image,
+      imageMime: portrait?.mime,
     };
     try {
       if (editId) {
@@ -184,18 +212,36 @@ export default function CreateCharacterPage() {
     );
   }
 
+  const portraitSrc = portrait
+    ? `data:${portrait.mime};base64,${portrait.image}`
+    : editId && hasImage
+    ? `/api/characters/${editId}/image`
+    : null;
+
   return (
     <main style={S.wrap}>
       <a href="/" style={S.back}>← Reverie</a>
 
       <div style={S.head}>
-        <Avatar name={name || "?"} size={54} />
+        {portraitSrc ? <img src={portraitSrc} alt={name} style={S.headPortrait} /> : <Avatar name={name || "?"} size={54} />}
         <div>
           <p style={S.mark}>{editId ? "Edit companion" : "Create a companion"}</p>
           <h1 style={S.h1}>{name.trim() || "Your character"}</h1>
         </div>
       </div>
       <p style={S.sub}>{editId ? "Update how they look, sound, and behave. Changes apply to new chats and stories." : "Build them once. Every story you write and every reader who chats with them earns you credits."}</p>
+
+      {imageEnabled ? (
+        <div style={S.portraitRow}>
+          {portraitSrc ? <img src={portraitSrc} alt="portrait" style={S.portraitBig} /> : <div style={S.portraitPlaceholder}>no portrait yet</div>}
+          <div style={S.portraitCol}>
+            <button type="button" style={{ ...S.portraitBtn, opacity: portraitBusy ? 0.6 : 1 }} onClick={generatePortrait} disabled={portraitBusy}>
+              {portraitBusy ? "🎨 Generating…" : portraitSrc ? "🎨 Regenerate portrait" : "🎨 Generate portrait"}
+            </button>
+            <p style={S.genHint}>A portrait from FLUX, based on the name, look &amp; tags. ~10s.</p>
+          </div>
+        </div>
+      ) : null}
 
       <button type="button" style={{ ...S.genAll, opacity: genBusy ? 0.6 : 1 }} onClick={() => suggest(["look", "voice", "persona", "backstory"])} disabled={!!genBusy}>
         {genBusy === "all" ? "✨ Generating…" : "✨ Generate details for me"}
@@ -301,6 +347,12 @@ const S: Record<string, React.CSSProperties> = {
   suggest: { background: "#231A2B", color: "#E9A06B", border: "1px solid #4a3a50", borderRadius: 999, padding: "5px 11px", cursor: "pointer", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" },
   genAll: { marginTop: 20, background: "#231A2B", color: "#E9A06B", border: "1px solid #4a3a50", borderRadius: 10, padding: "11px 16px", cursor: "pointer", fontSize: 14.5, fontWeight: 650, width: "100%" },
   genHint: { color: "#6f6276", fontSize: 12.5, margin: "8px 0 0", textAlign: "center" },
+  headPortrait: { width: 54, height: 54, borderRadius: "50%", objectFit: "cover", display: "block", flexShrink: 0 },
+  portraitRow: { display: "flex", alignItems: "center", gap: 16, marginTop: 18, background: "#1A121F", border: "1px solid #3A2E44", borderRadius: 14, padding: 16 },
+  portraitBig: { width: 96, height: 128, borderRadius: 12, objectFit: "cover", display: "block", flexShrink: 0, background: "#231A2B" },
+  portraitPlaceholder: { width: 96, height: 128, borderRadius: 12, display: "grid", placeItems: "center", textAlign: "center", background: "#231A2B", border: "1px dashed #4a3a50", color: "#6f6276", fontSize: 12, flexShrink: 0, padding: 8 },
+  portraitCol: { display: "flex", flexDirection: "column", gap: 2 },
+  portraitBtn: { background: "#231A2B", color: "#E9A06B", border: "1px solid #4a3a50", borderRadius: 10, padding: "10px 16px", cursor: "pointer", fontSize: 14, fontWeight: 650, alignSelf: "flex-start" },
   tagAddRow: { display: "flex", gap: 8, margin: "0 0 10px" },
   tagInput: { flex: 1, background: "#1A121F", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 9, padding: "9px 12px", fontSize: 14, boxSizing: "border-box" },
   tagAdd: { background: "#231A2B", color: "#E9A06B", border: "1px solid #4a3a50", borderRadius: 9, padding: "9px 15px", cursor: "pointer", fontSize: 13.5, fontWeight: 600, whiteSpace: "nowrap" },

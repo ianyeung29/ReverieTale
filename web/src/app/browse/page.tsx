@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Avatar } from "@/components/Avatar";
+import { CharacterAvatar } from "@/components/CharacterAvatar";
 
 type Char = { id: string; name: string; tagline: string; persona: string; tags: string[]; reads: number; stories: number; createdAt: string };
 type Sort = "trend" | "newest" | "read";
@@ -82,7 +82,7 @@ export default function BrowsePage() {
           {shown.map((c) => (
             <div key={c.id} style={S.card}>
               <a href={`/c/${c.id}`} style={S.headLink}>
-                <div style={S.head}><Avatar name={c.name} size={48} /><div><div style={S.name}>{c.name}</div><div style={S.tags}>{c.tags.map((t) => <span key={t} style={S.tag}>{t}</span>)}</div></div></div>
+                <div style={S.head}><CharacterAvatar characterId={c.id} name={c.name} size={48} /><div><div style={S.name}>{c.name}</div><div style={S.tags}>{c.tags.map((t) => <span key={t} style={S.tag}>{t}</span>)}</div></div></div>
               </a>
               <p style={S.persona}>{c.persona}</p>
               <p style={S.tagline}>{c.tagline}</p>

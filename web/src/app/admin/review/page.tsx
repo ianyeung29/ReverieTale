@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Avatar } from "@/components/Avatar";
+import { CharacterAvatar } from "@/components/CharacterAvatar";
 
 type Pending = {
   id: string;
@@ -63,7 +63,7 @@ export default function AdminReviewPage() {
           {items.map((c) => (
             <div key={c.id} style={S.card}>
               <div style={S.head}>
-                <Avatar name={c.name} size={44} />
+                <CharacterAvatar characterId={c.id} name={c.name} size={44} />
                 <div>
                   <div style={S.name}>{c.name}</div>
                   <div style={S.by}>by {c.creator}</div>

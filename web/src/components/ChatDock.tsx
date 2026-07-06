@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Avatar } from "./Avatar";
+import { CharacterAvatar } from "./CharacterAvatar";
 
 type Msg = { role: "user" | "character" | "system"; content: string };
 
@@ -52,7 +52,7 @@ export function ChatDock({ characterId, characterName, storyId, chapter }: { cha
   if (!open) {
     return (
       <button style={D.fab} onClick={() => setOpen(true)} aria-label={`Chat with ${characterName}`}>
-        <Avatar name={characterName} size={34} />
+        <CharacterAvatar characterId={characterId} name={characterName} size={34} />
         <span style={D.fabLabel}>Chat with {characterName}</span>
       </button>
     );
@@ -61,7 +61,7 @@ export function ChatDock({ characterId, characterName, storyId, chapter }: { cha
   return (
     <div style={D.panel}>
       <div style={D.head}>
-        <div style={D.headL}><Avatar name={characterName} size={28} /><span style={D.name}>{characterName}</span></div>
+        <div style={D.headL}><CharacterAvatar characterId={characterId} name={characterName} size={28} /><span style={D.name}>{characterName}</span></div>
         <button style={D.close} onClick={() => setOpen(false)} aria-label="Close">×</button>
       </div>
       <div style={D.feed}>

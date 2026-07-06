@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
-import { Avatar } from "@/components/Avatar";
+import { CharacterAvatar } from "@/components/CharacterAvatar";
 import { listCharacters } from "@/lib/discovery";
 
 export const dynamic = "force-dynamic";
@@ -41,7 +41,7 @@ export default async function CreatorPage({ params }: { params: Promise<{ id: st
       <div style={S.grid}>
         {chars.map((c) => (
           <a key={c.id} href={`/c/${c.id}`} style={S.card}>
-            <div style={S.head}><Avatar name={c.name} size={44} /><div style={S.name}>{c.name}</div></div>
+            <div style={S.head}><CharacterAvatar characterId={c.id} name={c.name} size={44} /><div style={S.name}>{c.name}</div></div>
             {c.persona ? <p style={S.persona}>{c.persona}</p> : null}
             {c.tags.length ? <div style={S.tags}>{c.tags.slice(0, 4).map((t) => <span key={t} style={S.tag}>{t}</span>)}</div> : null}
             <span style={S.meta}>{c.reads} read{c.reads === 1 ? "" : "s"} · {c.stories} stor{c.stories === 1 ? "y" : "ies"}</span>

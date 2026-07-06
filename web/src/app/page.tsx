@@ -2,6 +2,7 @@ import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { characters, stories } from "@/db/schema";
 import { Avatar } from "@/components/Avatar";
+import { CharacterAvatar } from "@/components/CharacterAvatar";
 import { listCharacters, trendingScore } from "@/lib/discovery";
 
 export const dynamic = "force-dynamic";
@@ -78,7 +79,7 @@ export default async function Home() {
           <div style={S.grid}>
             {trending.map((c) => (
               <a key={c.id} href={`/c/${c.id}`} style={S.card}>
-                <div style={S.cardHead}><Avatar name={c.name} size={34} /><div style={S.cardName}>{c.name}</div></div>
+                <div style={S.cardHead}><CharacterAvatar characterId={c.id} name={c.name} size={34} /><div style={S.cardName}>{c.name}</div></div>
                 {c.persona ? <p style={S.cardSnip}>{c.persona.slice(0, 120)}…</p> : null}
                 <span style={S.with}>{c.reads} read{c.reads === 1 ? "" : "s"} · {c.stories} stor{c.stories === 1 ? "y" : "ies"}</span>
               </a>

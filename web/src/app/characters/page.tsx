@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Avatar } from "@/components/Avatar";
+import { CharacterAvatar } from "@/components/CharacterAvatar";
 import { EntryGate } from "@/components/EntryGate";
 
 type Char = { id: string; name: string; persona: string; tags: string[]; status: string };
@@ -95,7 +95,7 @@ export default function MyCharactersPage() {
             return (
               <div key={c.id} style={S.card}>
                 <div style={S.head}>
-                  <Avatar name={c.name} size={40} />
+                  <CharacterAvatar characterId={c.id} name={c.name} size={40} />
                   <div style={S.headText}>
                     <div style={S.name}>{c.name}</div>
                     <span style={{ ...S.badge, ...badge.st }}>{badge.label}</span>
