@@ -34,6 +34,9 @@ export default function CreateCharacterPage() {
   const [portraitFree, setPortraitFree] = useState<number | null>(null);
   const [portraitPrice, setPortraitPrice] = useState(5);
   const [portraitPaywall, setPortraitPaywall] = useState(false);
+  const [portraitErr, setPortraitErr] = useState("");
+  const [previewErr, setPreviewErr] = useState("");
+  const [genErr, setGenErr] = useState<{ where: string; msg: string } | null>(null);
 
   useEffect(() => {
     fetch("/api/auth/me").then((r) => r.json()).then((d) => { setAuthEmail(d.user?.email ?? null); if (d.user) setPortraitFree(d.user.portraitFreeRemaining ?? null); }).catch(() => setAuthEmail(null));
@@ -51,7 +54,7 @@ export default function CreateCharacterPage() {
 
   async function generatePortrait() {
     if (portraitBusy) return;
-    setPortraitBusy(true); setError(""); setPortraitPaywall(false);
+    setPortraitBusy(true); setPortraitErr(""); setPortraitPaywall(false);
     try {
       const res = await fetch("/api/characters/portrait", {
         method: "POST",
@@ -60,11 +63,11 @@ export default function CreateCharacterPage() {
       });
       const d = await res.json();
       if (res.status === 401) { setAuthEmail(null); return; }
-      if (res.status === 402) { setError(`You need ${d.price ?? portraitPrice} credits for another portrait — you have ${d.balance?.total ?? 0}.`); setPortraitPaywall(true); return; }
+      if (res.status === 402) { setPortraitErr(`You need ${d.price ?? portraitPrice} credits for another portrait — you have ${d.balance?.total ?? 0}.`); setPortraitPaywall(true); return; }
       if (res.ok && d.image) { setPortrait({ image: d.image, mime: d.mime || "image/jpeg" }); if (typeof d.freeRemaining === "number") setPortraitFree(d.freeRemaining); }
-      else setError(d.error === "blocked" ? "That description isn't allowed for a portrait." : "Couldn't generate a portrait — try again.");
+      else setPortraitErr(d.error === "blocked" ? "That description isn't allowed for a portrait." : "Couldn't generate a portrait — try again.");
     } catch {
-      setError("Network error while generating the portrait.");
+      setPortraitErr("Network error while generating the portrait.");
     } finally {
       setPortraitBusy(false);
     }
@@ -82,7 +85,7 @@ export default function CreateCharacterPage() {
 
   async function preview() {
     if (previewBusy) return;
-    setPreviewBusy(true); setError("");
+    setPreviewBusy(true); setPreviewErr("");
     try {
       const res = await fetch("/api/characters/preview", {
         method: "POST",
@@ -99,9 +102,9 @@ export default function CreateCharacterPage() {
       const d = await res.json();
       if (res.status === 401) { setAuthEmail(null); return; }
       if (res.ok && d.reply) setPreviewReply(d.reply);
-      else setError(d.error === "blocked" ? "That message isn't allowed." : "Couldn't preview just now — try again.");
+      else setPreviewErr(d.error === "blocked" ? "That message isn't allowed." : "Couldn't preview just now — try again.");
     } catch {
-      setError("Network error while previewing.");
+      setPreviewErr("Network error while previewing.");
     } finally {
       setPreviewBusy(false);
     }
@@ -110,8 +113,9 @@ export default function CreateCharacterPage() {
   // AI-assist: generate one or more fields from the details so far.
   async function suggest(targets: ("look" | "voice" | "persona" | "backstory")[]) {
     if (genBusy) return;
-    setGenBusy(targets.length > 1 ? "all" : targets[0]);
-    setError("");
+    const where = targets.length > 1 ? "all" : targets[0];
+    setGenBusy(where);
+    setGenErr(null);
     try {
       const res = await fetch("/api/characters/generate", {
         method: "POST",
@@ -134,10 +138,10 @@ export default function CreateCharacterPage() {
         if (d.fields.persona !== undefined) setPersona(d.fields.persona);
         if (d.fields.backstory !== undefined) setBackstory(d.fields.backstory);
       } else {
-        setError("Couldn't generate just now — try again.");
+        setGenErr({ where, msg: "Couldn't generate just now — try again." });
       }
     } catch {
-      setError("Network error while generating.");
+      setGenErr({ where, msg: "Network error while generating." });
     } finally {
       setGenBusy(null);
     }
@@ -246,8 +250,8 @@ export default function CreateCharacterPage() {
               {portraitFree != null && portraitFree > 0
                 ? `${portraitFree} free portrait${portraitFree === 1 ? "" : "s"} left, then ${portraitPrice} credits each.`
                 : `Costs ${portraitPrice} credits per portrait.`}
-              {portraitPaywall ? <> <a href="/credits" style={S.errLink}>Get credits →</a></> : null}
             </p>
+            {portraitErr ? <p style={S.fieldErr}>{portraitErr}{portraitPaywall ? <> <a href="/credits" style={S.errLink}>Get credits →</a></> : null}</p> : null}
           </div>
         </div>
       ) : null}
@@ -256,21 +260,26 @@ export default function CreateCharacterPage() {
         {genBusy === "all" ? "✨ Generating…" : "✨ Generate details for me"}
       </button>
       <p style={S.genHint}>Fills look, personality, backstory &amp; voice from the name and tags. Edit anything after.</p>
+      {genErr?.where === "all" ? <p style={S.fieldErr}>{genErr.msg}</p> : null}
 
       <label style={S.label}>Name</label>
       <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Mara, Kai, Sable…" style={S.input} maxLength={60} />
 
       <FieldLabel label="Look" onSuggest={() => suggest(["look"])} busy={genBusy === "look"} disabled={!!genBusy} />
       <input value={look} onChange={(e) => setLook(e.target.value)} placeholder="how they appear — hair, style, the way they carry themselves" style={S.input} maxLength={400} />
+      {genErr?.where === "look" ? <p style={S.fieldErr}>{genErr.msg}</p> : null}
 
       <FieldLabel label="Personality" onSuggest={() => suggest(["persona"])} busy={genBusy === "persona"} disabled={!!genBusy} />
       <textarea value={persona} onChange={(e) => setPersona(e.target.value)} placeholder="who they are — warm and teasing? guarded but loyal? quick to laugh?" style={S.textarea} maxLength={600} />
+      {genErr?.where === "persona" ? <p style={S.fieldErr}>{genErr.msg}</p> : null}
 
       <FieldLabel label="Backstory" onSuggest={() => suggest(["backstory"])} busy={genBusy === "backstory"} disabled={!!genBusy} />
       <textarea value={backstory} onChange={(e) => setBackstory(e.target.value)} placeholder="where they come from, what they want, what haunts them" style={S.textarea} maxLength={600} />
+      {genErr?.where === "backstory" ? <p style={S.fieldErr}>{genErr.msg}</p> : null}
 
       <FieldLabel label="Voice & style" onSuggest={() => suggest(["voice"])} busy={genBusy === "voice"} disabled={!!genBusy} />
       <input value={voice} onChange={(e) => setVoice(e.target.value)} placeholder="how they talk — dry wit, soft-spoken, poetic, blunt…" style={S.input} maxLength={300} />
+      {genErr?.where === "voice" ? <p style={S.fieldErr}>{genErr.msg}</p> : null}
 
       <label style={S.label}>Tags <span style={S.hint}>({tags.length}/8)</span></label>
       {tags.length ? (
@@ -318,6 +327,7 @@ export default function CreateCharacterPage() {
         ) : (
           <p style={S.genHint}>Hear how they respond before publishing — uses the details above.</p>
         )}
+        {previewErr ? <p style={S.fieldErr}>{previewErr}</p> : null}
       </div>
 
       {error ? <p style={S.err}>{error}</p> : null}
@@ -376,6 +386,7 @@ const S: Record<string, React.CSSProperties> = {
   chipOn: { background: "linear-gradient(100deg,#E9A06B,#D46A8B)", color: "#1A1220", border: "1px solid transparent", fontWeight: 600 },
   err: { color: "#E88", fontSize: 14, margin: "16px 0 0" },
   errLink: { color: "#E9A06B", fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" },
+  fieldErr: { color: "#E88", fontSize: 13, margin: "6px 0 0" },
   actions: { display: "flex", alignItems: "center", gap: 16, marginTop: 26 },
   primary: { border: 0, cursor: "pointer", color: "#1A1220", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", borderRadius: 12, padding: "13px 22px", fontWeight: 650, fontSize: 15.5 },
   cancel: { color: "#8A7A90", textDecoration: "none", fontSize: 14 },
