@@ -6,16 +6,24 @@ import { EntryGate } from "@/components/EntryGate";
 type Balance = { purchased: number; earned: number; total: number };
 type Item = { id: string; label: string; amount: number; at: string };
 type Data = { balance: Balance; earnedFromReaders: number; items: Item[] };
+type Pack = { id: string; credits: number; price: number; label: string; blurb?: string };
 
 function when(at: string): string {
   const d = new Date(at);
   return d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+}
+function usd(cents: number): string {
+  return `$${(cents / 100).toFixed(2)}`;
 }
 
 export default function CreditsPage() {
   const [authed, setAuthed] = useState<boolean | undefined>(undefined);
   const [data, setData] = useState<Data | null>(null);
   const [busy, setBusy] = useState(false);
+  const [packs, setPacks] = useState<Pack[]>([]);
+  const [payEnabled, setPayEnabled] = useState(false);
+  const [buyingId, setBuyingId] = useState<string | null>(null);
+  const [checkout, setCheckout] = useState<"success" | "cancel" | null>(null);
 
   function load() {
     fetch("/api/credits/history")
@@ -27,7 +35,18 @@ export default function CreditsPage() {
       .then((d: Data | null) => d && setData(d))
       .catch(() => {});
   }
-  useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    load();
+    fetch("/api/checkout").then((r) => r.json()).then((d) => { setPayEnabled(!!d.enabled); setPacks(Array.isArray(d.packs) ? d.packs : []); }).catch(() => {});
+    const status = new URLSearchParams(window.location.search).get("checkout");
+    if (status === "success" || status === "cancel") {
+      setCheckout(status);
+      window.history.replaceState({}, "", "/credits");
+      // Credits are granted by the webhook, which may land a beat after the redirect.
+      if (status === "success") { [1500, 4000, 8000].forEach((ms) => setTimeout(load, ms)); }
+    }
+  }, []);
 
   async function topUp() {
     if (busy) return;
@@ -36,6 +55,16 @@ export default function CreditsPage() {
       const res = await fetch("/api/credits", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ credits: 100 }) });
       if (res.ok) load();
     } catch {} finally { setBusy(false); }
+  }
+
+  async function buyPack(id: string) {
+    if (buyingId) return;
+    setBuyingId(id);
+    try {
+      const res = await fetch("/api/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ packId: id }) });
+      const d = await res.json();
+      if (res.ok && d.url) { window.location.href = d.url; return; }
+    } catch {} finally { setBuyingId(null); }
   }
 
   if (authed === undefined) return <main style={S.wrap}><p style={{ color: "#AC9CB0" }}>Loading…</p></main>;
@@ -48,6 +77,9 @@ export default function CreditsPage() {
       <a href="/" style={S.back}>← Reverie</a>
       <h1 style={S.h1}>Your credits</h1>
 
+      {checkout === "success" ? <div style={S.okBanner}>Payment received — your credits will appear here in a moment.</div> : null}
+      {checkout === "cancel" ? <div style={S.cancelBanner}>Checkout canceled — no charge was made.</div> : null}
+
       <div style={S.summary}>
         <div style={S.total}>◈ {b?.total ?? "…"}</div>
         <div style={S.breakdown}>
@@ -59,7 +91,23 @@ export default function CreditsPage() {
 
       <p style={S.note}>Chapters cost credits to write; reading is free. Chatting spends a credit per message. You get free credits daily, and creators earn a share when readers chat with their companions.</p>
 
-      <button style={{ ...S.topup, opacity: busy ? 0.6 : 1 }} onClick={topUp} disabled={busy}>{busy ? "Adding…" : "+ Add 100 credits (dev)"}</button>
+      {payEnabled && packs.length ? (
+        <>
+          <p style={S.section}>Buy credits</p>
+          <div style={S.packs}>
+            {packs.map((p) => (
+              <button key={p.id} style={{ ...S.pack, opacity: buyingId ? 0.6 : 1 }} onClick={() => buyPack(p.id)} disabled={!!buyingId}>
+                <span style={S.packCredits}>◈ {p.credits}</span>
+                <span style={S.packPrice}>{buyingId === p.id ? "…" : usd(p.price)}</span>
+                {p.blurb ? <span style={S.packBlurb}>{p.blurb}</span> : null}
+              </button>
+            ))}
+          </div>
+          <p style={S.secureNote}>Secure checkout by Stripe. Purchased credits never expire.</p>
+        </>
+      ) : (
+        <button style={{ ...S.topup, opacity: busy ? 0.6 : 1 }} onClick={topUp} disabled={busy}>{busy ? "Adding…" : "+ Add 100 credits (dev)"}</button>
+      )}
 
       <p style={S.section}>History</p>
       {!data ? (
@@ -94,6 +142,14 @@ const S: Record<string, React.CSSProperties> = {
   bdPink: { color: "#D46A8B" },
   note: { color: "#8A7A90", fontSize: 13.5, margin: "16px 0 18px" },
   topup: { background: "transparent", color: "#E9A06B", border: "1px solid #4a3a50", borderRadius: 10, padding: "9px 16px", cursor: "pointer", fontSize: 13.5, fontWeight: 600 },
+  okBanner: { background: "rgba(70,150,110,.16)", border: "1px solid #2f6b4c", color: "#8FE0B0", borderRadius: 10, padding: "10px 14px", margin: "0 0 16px", fontSize: 14 },
+  cancelBanner: { background: "#241826", border: "1px solid #4a3350", color: "#C6B7CC", borderRadius: 10, padding: "10px 14px", margin: "0 0 16px", fontSize: 14 },
+  packs: { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 12 },
+  pack: { display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 4, background: "#1C1422", border: "1px solid #3A2E44", borderRadius: 14, padding: "16px 18px", cursor: "pointer", textAlign: "left" },
+  packCredits: { color: "#E9A06B", fontSize: 20, fontWeight: 700 },
+  packPrice: { color: "#F4EAF0", fontSize: 16, fontWeight: 650 },
+  packBlurb: { color: "#8A7A90", fontSize: 12.5 },
+  secureNote: { color: "#6f6276", fontSize: 12.5, margin: "10px 0 0" },
   section: { fontSize: 12, letterSpacing: ".14em", textTransform: "uppercase", color: "#8A7A90", fontWeight: 700, margin: "34px 0 12px" },
   muted: { color: "#AC9CB0" },
   list: { display: "flex", flexDirection: "column", border: "1px solid #2a2033", borderRadius: 12, overflow: "hidden" },
