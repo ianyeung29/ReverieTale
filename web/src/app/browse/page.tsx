@@ -73,7 +73,9 @@ export default function BrowsePage() {
         </div>
       ) : null}
 
-      {shown.length === 0 ? (
+      {chars.length === 0 ? (
+        <p style={S.empty}>No companions have been published yet. <a href="/create" style={S.reset}>Create the first →</a></p>
+      ) : shown.length === 0 ? (
         <p style={S.empty}>No companions match. <button style={S.reset} onClick={() => { setQ(""); setActiveTags([]); }}>Reset filters</button></p>
       ) : (
         <div style={S.grid}>

@@ -8,6 +8,13 @@ type Msg = { role: "user" | "character" | "system"; content: string };
 type Char = { id: string; name: string; tagline: string };
 type Convo = { id: string; characterId: string; name: string; lastActiveAt: string };
 
+const OPENERS = [
+  "Hey — I've been thinking about you.",
+  "Tell me something about yourself.",
+  "What have you been up to?",
+  "I had the strangest day…",
+];
+
 export default function ChatPage() {
   const [authEmail, setAuthEmail] = useState<string | null | undefined>(undefined); // undefined = loading
   const [chars, setChars] = useState<Char[]>([]);
@@ -216,7 +223,18 @@ export default function ChatPage() {
       ) : null}
 
       <div style={S.feed}>
-        {messages.length === 0 && !busy ? <div style={S.empty}>Say hello to {active?.name ?? "your companion"}.</div> : null}
+        {messages.length === 0 && !busy ? (
+          <div style={S.empty}>
+            {active ? <Avatar name={active.name} size={60} /> : null}
+            <p style={S.emptyName}>{active?.name ?? "your companion"}</p>
+            <p style={S.emptyHint}>Say hello — they&apos;ll remember what you share.</p>
+            <div style={S.openers}>
+              {OPENERS.map((o) => (
+                <button key={o} style={S.opener} onClick={() => setInput(o)}>{o}</button>
+              ))}
+            </div>
+          </div>
+        ) : null}
         {messages.map((m, i) =>
           m.role === "system" ? (
             <div key={i} style={S.sys}>{m.content}</div>
@@ -270,7 +288,11 @@ const S: Record<string, React.CSSProperties> = {
   histActive: { background: "#231A2B" },
   histDate: { color: "#8A7A90", fontSize: 12 },
   feed: { flex: 1, overflowY: "auto", padding: "20px", display: "flex", flexDirection: "column", gap: 12 },
-  empty: { color: "#8A7A90", textAlign: "center", marginTop: 40 },
+  empty: { display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", margin: "auto", padding: 20, gap: 4 },
+  emptyName: { fontFamily: "Georgia, serif", fontSize: 22, color: "#F4EAF0", margin: "12px 0 0" },
+  emptyHint: { color: "#8A7A90", fontSize: 14, margin: "2px 0 16px" },
+  openers: { display: "flex", flexDirection: "column", gap: 8, width: "100%", maxWidth: 340 },
+  opener: { background: "#1C1422", color: "#CBBBD0", border: "1px solid #3A2E44", borderRadius: 12, padding: "11px 14px", cursor: "pointer", fontSize: 14, textAlign: "left" },
   sys: { alignSelf: "center", color: "#8A7A90", fontSize: 13, textAlign: "center" },
   row: { display: "flex" },
   bubble: { maxWidth: "78%", padding: "11px 15px", borderRadius: 16, lineHeight: 1.5, whiteSpace: "pre-wrap", wordBreak: "break-word" },
