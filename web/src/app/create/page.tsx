@@ -4,7 +4,11 @@ import { useEffect, useState } from "react";
 import { Avatar } from "@/components/Avatar";
 import { EntryGate } from "@/components/EntryGate";
 
-const TAG_SUGGESTIONS = ["romance", "flirty", "shy", "confident", "mysterious", "playful", "brooding", "warm", "witty", "protective", "adventurous", "artistic"];
+const TAG_SUGGESTIONS = [
+  "romance", "flirty", "shy", "confident", "mysterious", "playful", "brooding", "warm", "witty", "protective",
+  "adventurous", "artistic", "sarcastic", "gentle", "dominant", "sweet", "cold-but-caring", "nerdy", "rebellious",
+  "royalty", "vampire", "childhood-friend", "rival", "villain", "hero", "fantasy", "sci-fi", "modern", "historical", "supernatural",
+];
 
 export default function CreateCharacterPage() {
   const [authEmail, setAuthEmail] = useState<string | null | undefined>(undefined);
@@ -19,6 +23,10 @@ export default function CreateCharacterPage() {
   const [editId, setEditId] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState<string | null>(null);
   const [genBusy, setGenBusy] = useState<string | null>(null); // which field(s) are generating
+  const [tagInput, setTagInput] = useState("");
+  const [previewMsg, setPreviewMsg] = useState("");
+  const [previewReply, setPreviewReply] = useState<string | null>(null);
+  const [previewBusy, setPreviewBusy] = useState(false);
 
   useEffect(() => {
     fetch("/api/auth/me").then((r) => r.json()).then((d) => setAuthEmail(d.user?.email ?? null)).catch(() => setAuthEmail(null));
@@ -34,6 +42,39 @@ export default function CreateCharacterPage() {
 
   function toggleTag(t: string) {
     setTags((cur) => (cur.includes(t) ? cur.filter((x) => x !== t) : cur.length >= 8 ? cur : [...cur, t]));
+  }
+  function addTag(raw: string) {
+    const t = raw.trim().toLowerCase();
+    if (!t) return;
+    setTags((cur) => (cur.includes(t) || cur.length >= 8 ? cur : [...cur, t]));
+    setTagInput("");
+  }
+
+  async function preview() {
+    if (previewBusy) return;
+    setPreviewBusy(true); setError("");
+    try {
+      const res = await fetch("/api/characters/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim() || undefined,
+          look: look.trim() || undefined,
+          persona: persona.trim() || undefined,
+          backstory: backstory.trim() || undefined,
+          voice: voice.trim() || undefined,
+          message: previewMsg.trim() || undefined,
+        }),
+      });
+      const d = await res.json();
+      if (res.status === 401) { setAuthEmail(null); return; }
+      if (res.ok && d.reply) setPreviewReply(d.reply);
+      else setError(d.error === "blocked" ? "That message isn't allowed." : "Couldn't preview just now — try again.");
+    } catch {
+      setError("Network error while previewing.");
+    } finally {
+      setPreviewBusy(false);
+    }
   }
 
   // AI-assist: generate one or more fields from the details so far.
@@ -177,10 +218,51 @@ export default function CreateCharacterPage() {
       <input value={voice} onChange={(e) => setVoice(e.target.value)} placeholder="how they talk — dry wit, soft-spoken, poetic, blunt…" style={S.input} maxLength={300} />
 
       <label style={S.label}>Tags <span style={S.hint}>({tags.length}/8)</span></label>
+      {tags.length ? (
+        <div style={S.chips}>
+          {tags.map((t) => (
+            <button key={t} type="button" style={{ ...S.chip, ...S.chipOn }} onClick={() => toggleTag(t)} title="remove">{t} ✕</button>
+          ))}
+        </div>
+      ) : null}
+      <div style={S.tagAddRow}>
+        <input
+          value={tagInput}
+          onChange={(e) => setTagInput(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTag(tagInput); } }}
+          placeholder="add your own tag"
+          style={S.tagInput}
+          maxLength={30}
+        />
+        <button type="button" style={{ ...S.tagAdd, opacity: !tagInput.trim() || tags.length >= 8 ? 0.5 : 1 }} onClick={() => addTag(tagInput)} disabled={!tagInput.trim() || tags.length >= 8}>Add</button>
+      </div>
       <div style={S.chips}>
-        {TAG_SUGGESTIONS.map((t) => (
-          <button key={t} type="button" style={{ ...S.chip, ...(tags.includes(t) ? S.chipOn : {}) }} onClick={() => toggleTag(t)}>{t}</button>
+        {TAG_SUGGESTIONS.filter((t) => !tags.includes(t)).map((t) => (
+          <button key={t} type="button" style={S.chip} onClick={() => toggleTag(t)}>+ {t}</button>
         ))}
+      </div>
+
+      <label style={S.label}>Preview a reply</label>
+      <div style={S.previewBox}>
+        <div style={S.tagAddRow}>
+          <input
+            value={previewMsg}
+            onChange={(e) => setPreviewMsg(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); preview(); } }}
+            placeholder="say something to them… (optional)"
+            style={S.tagInput}
+            maxLength={500}
+          />
+          <button type="button" style={{ ...S.tagAdd, opacity: previewBusy ? 0.5 : 1 }} onClick={preview} disabled={previewBusy}>{previewBusy ? "…" : "Preview"}</button>
+        </div>
+        {previewReply ? (
+          <div style={S.previewReply}>
+            <Avatar name={name || "?"} size={26} />
+            <p style={S.previewText}>{previewReply}</p>
+          </div>
+        ) : (
+          <p style={S.genHint}>Hear how they respond before publishing — uses the details above.</p>
+        )}
       </div>
 
       {error ? <p style={S.err}>{error}</p> : null}
@@ -219,6 +301,12 @@ const S: Record<string, React.CSSProperties> = {
   suggest: { background: "#231A2B", color: "#E9A06B", border: "1px solid #4a3a50", borderRadius: 999, padding: "5px 11px", cursor: "pointer", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" },
   genAll: { marginTop: 20, background: "#231A2B", color: "#E9A06B", border: "1px solid #4a3a50", borderRadius: 10, padding: "11px 16px", cursor: "pointer", fontSize: 14.5, fontWeight: 650, width: "100%" },
   genHint: { color: "#6f6276", fontSize: 12.5, margin: "8px 0 0", textAlign: "center" },
+  tagAddRow: { display: "flex", gap: 8, margin: "0 0 10px" },
+  tagInput: { flex: 1, background: "#1A121F", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 9, padding: "9px 12px", fontSize: 14, boxSizing: "border-box" },
+  tagAdd: { background: "#231A2B", color: "#E9A06B", border: "1px solid #4a3a50", borderRadius: 9, padding: "9px 15px", cursor: "pointer", fontSize: 13.5, fontWeight: 600, whiteSpace: "nowrap" },
+  previewBox: { background: "#1A121F", border: "1px solid #3A2E44", borderRadius: 12, padding: 14 },
+  previewReply: { display: "flex", gap: 10, marginTop: 12, alignItems: "flex-start" },
+  previewText: { margin: 0, color: "#EadFe6", fontSize: 14.5, lineHeight: 1.5, background: "#231A2B", border: "1px solid #3A2E44", borderRadius: 12, borderTopLeftRadius: 3, padding: "10px 13px" },
   hint: { color: "#6f6276", letterSpacing: 0, textTransform: "none", fontWeight: 400 },
   input: { width: "100%", background: "#1A121F", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 10, padding: "12px 14px", fontSize: 15, boxSizing: "border-box", fontFamily: "inherit" },
   textarea: { width: "100%", minHeight: 74, resize: "vertical", background: "#1A121F", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 10, padding: "12px 14px", fontSize: 15, boxSizing: "border-box", fontFamily: "inherit", lineHeight: 1.5 },
