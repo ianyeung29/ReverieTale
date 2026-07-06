@@ -6,7 +6,7 @@ import { Avatar } from "./Avatar";
 type Msg = { role: "user" | "character" | "system"; content: string };
 
 /** Floating chat bubble (bottom-right) to talk to a character in place. */
-export function ChatDock({ characterId, characterName, storyId }: { characterId: string; characterName: string; storyId?: string }) {
+export function ChatDock({ characterId, characterName, storyId, chapter }: { characterId: string; characterName: string; storyId?: string; chapter?: number }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [threadId, setThreadId] = useState<string | undefined>();
@@ -25,7 +25,9 @@ export function ChatDock({ characterId, characterName, storyId }: { characterId:
     setBusy(true);
     try {
       const body: Record<string, unknown> = { characterId, threadId, message: text };
-      if (!threadId && storyId) body.storyId = storyId; // seed story context on the first turn
+      // Send the story + current chapter every turn so her memory refreshes (and
+      // stays spoiler-bounded) as the reader advances through the story.
+      if (storyId) { body.storyId = storyId; if (chapter) body.chapter = chapter; }
       const res = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const data = await res.json();
       if (res.ok && data.reply) {

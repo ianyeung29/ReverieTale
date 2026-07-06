@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { characters, memorySummaries, messages, stories, threads } from "@/db/schema";
+import { characters, messages, stories, threads } from "@/db/schema";
 import { desc, eq } from "drizzle-orm";
 import { chat as modelChat, type ChatMessage } from "./model";
 import { screen } from "./moderation";
@@ -8,9 +8,61 @@ import { rewardCreatorShare, spend, userBalance, type Balance, type SpendResult 
 
 const CHAT_PRICE = Number(process.env.CHAT_PRICE || 1);
 
-type Params = { userId: string; characterId: string; threadId?: string; message: string; storyId?: string };
+type Params = { userId: string; characterId: string; threadId?: string; message: string; storyId?: string; chapter?: number };
 type CharRow = typeof characters.$inferSelect;
 type OkSpend = Extract<SpendResult, { ok: true }>;
+
+const CHAPTER_SEP = /\n{2,}·\s·\s·\n{2,}/;
+function splitChapters(content: string): string[] {
+  const parts = content.split(CHAPTER_SEP).map((s) => s.trim()).filter(Boolean);
+  return parts.length ? parts : [content.trim()];
+}
+
+/** Compress the story-so-far into a companion's memory of it (spoiler-free beyond the text given). */
+async function summarizeStory(title: string, text: string): Promise<string> {
+  try {
+    const res = await modelChat(
+      [
+        {
+          role: "system",
+          content:
+            "You are compressing a story into a companion's memory of it. In 3-6 sentences, summarize ONLY what is written below - the events, the emotional beats, and where things stand at the end of this excerpt. Write it as a shared memory between you and the reader (\"you and them\"). Never invent anything beyond the text, and never hint at events that haven't happened yet.",
+        },
+        { role: "user", content: `Title: ${title}\n\n${text}` },
+      ],
+      { temperature: 0.3, maxTokens: 300 },
+    );
+    return res.text?.trim() || `You and them shared a story titled "${title}".`;
+  } catch {
+    return `You and them shared a story titled "${title}".`;
+  }
+}
+
+/**
+ * Seed or refresh a thread's durable "story we shared" memory, bounded to the
+ * chapters the reader has actually read (no spoilers). Only regenerates when the
+ * reading position advances past what's already stored, so it's cheap to call
+ * on every message. Best-effort: failures never block the chat.
+ */
+async function ensureStoryContext(threadId: string, storyId: string, chapter?: number) {
+  const [t] = await db
+    .select({ sId: threads.storyId, chap: threads.storyContextChapter })
+    .from(threads)
+    .where(eq(threads.id, threadId))
+    .limit(1);
+  const sameStory = t?.sId === storyId;
+  const have = sameStory ? t?.chap ?? 0 : 0;
+
+  const [story] = await db.select({ title: stories.title, content: stories.content }).from(stories).where(eq(stories.id, storyId)).limit(1);
+  if (!story) return;
+  const chapters = splitChapters(story.content);
+  // `chapter` = how many chapters the reader has read; default to all that exist.
+  const want = chapter && chapter > 0 ? Math.min(chapter, chapters.length) : chapters.length;
+  if (sameStory && want <= have) return; // already covered up to here
+
+  const synopsis = await summarizeStory(story.title, chapters.slice(0, want).join("\n\n"));
+  await db.update(threads).set({ storyId, storyContext: synopsis, storyContextChapter: want }).where(eq(threads.id, threadId));
+}
 
 export type Prep =
   | { status: "blocked"; reason?: string }
@@ -35,14 +87,14 @@ export async function prepareChat(params: Params): Promise<Prep> {
   if (!threadId) {
     const [t] = await db.insert(threads).values({ userId, characterId, characterVersion: char.version }).returning({ id: threads.id });
     threadId = t.id;
-    if (params.storyId) {
-      const [story] = await db.select().from(stories).where(eq(stories.id, params.storyId)).limit(1);
-      if (story) {
-        await db.insert(memorySummaries).values({
-          threadId,
-          summary: `Earlier, you and them shared a story together titled "${story.title}". ${story.content.slice(0, 600)}`,
-        });
-      }
+  }
+
+  // Seed / refresh the durable story memory, bounded to the chapters read so far.
+  if (params.storyId) {
+    try {
+      await ensureStoryContext(threadId, params.storyId, params.chapter);
+    } catch {
+      /* story memory is best-effort; never block the chat */
     }
   }
 
@@ -50,6 +102,7 @@ export async function prepareChat(params: Params): Promise<Prep> {
   if (!charge.ok) return { status: "paywall", balance: charge.balance };
 
   await db.insert(messages).values({ threadId, role: "user", content: message });
+  const [tRow] = await db.select({ sc: threads.storyContext }).from(threads).where(eq(threads.id, threadId)).limit(1);
   const mem = await retrieveMemory(threadId, userId, characterId, message);
   const recent = (
     await db
@@ -64,10 +117,12 @@ export async function prepareChat(params: Params): Promise<Prep> {
   const system = [
     `You are ${def.name || "a companion"}, an AI character. Stay fully in character.`,
     def.persona ? `Personality: ${def.persona}` : "",
+    def.look ? `Appearance: ${def.look}` : "",
     def.backstory ? `Backstory: ${def.backstory}` : "",
     def.voice ? `Voice and style: ${def.voice}` : "",
     "You are an AI companion, not a real person. If asked directly, do not claim to be human or sentient.",
-    mem.summary ? `What you remember so far: ${mem.summary}` : "",
+    tRow?.sc ? `A story you and them lived through together, as you remember it up to where they've read (do not reference anything beyond this): ${tRow.sc}` : "",
+    mem.summary ? `What you remember from talking together: ${mem.summary}` : "",
     mem.items.length ? `Relevant memories:\n- ${mem.items.join("\n- ")}` : "",
   ]
     .filter(Boolean)

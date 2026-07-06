@@ -84,6 +84,12 @@ export const threads = pgTable(
     userId: uuid("user_id").notNull().references(() => users.id),
     characterId: uuid("character_id").notNull().references(() => characters.id),
     characterVersion: integer("character_version").notNull().default(1),
+    // Durable "story we shared" memory, seeded when chat starts from a story and
+    // refreshed as the reader advances. Kept separate from the rolling conversation
+    // summary so it is never overwritten, and capped to the chapters read (no spoilers).
+    storyId: uuid("story_id"),
+    storyContext: text("story_context"),
+    storyContextChapter: integer("story_context_chapter").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     lastActiveAt: timestamp("last_active_at", { withTimezone: true }).notNull().defaultNow(),
   },

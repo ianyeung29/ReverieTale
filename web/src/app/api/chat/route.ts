@@ -14,6 +14,7 @@ const Body = z.object({
   threadId: z.string().uuid().optional(),
   message: z.string().min(1).max(4000),
   storyId: z.string().uuid().optional(),
+  chapter: z.number().int().positive().max(1000).optional(),
 });
 
 export async function POST(req: Request) {
@@ -35,6 +36,7 @@ export async function POST(req: Request) {
       threadId: body.threadId,
       message: body.message,
       storyId: body.storyId,
+      chapter: body.chapter,
     });
 
     if (result.status === "blocked") return NextResponse.json({ error: "blocked", reason: result.reason }, { status: 422 });

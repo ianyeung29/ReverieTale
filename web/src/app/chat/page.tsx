@@ -20,6 +20,7 @@ export default function ChatPage() {
   const [earned, setEarned] = useState(0);
   const [broke, setBroke] = useState(false);
   const [storyId, setStoryId] = useState<string | null>(null);
+  const [storyChapter, setStoryChapter] = useState<number | undefined>();
   const [convos, setConvos] = useState<Convo[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
@@ -42,6 +43,8 @@ export default function ChatPage() {
     const urlChar = params.get("characterId");
     const fromStory = params.get("fromStory");
     if (fromStory) setStoryId(fromStory);
+    const ch = Number(params.get("chapter"));
+    if (ch > 0) setStoryChapter(ch);
 
     (async () => {
       const cs: Char[] = await fetch("/api/characters").then((r) => r.json()).catch(() => []);
@@ -75,7 +78,7 @@ export default function ChatPage() {
     setMessages([]); setThreadId(undefined); setConvos([]); setCredits(null);
   }
 
-  function newChat() { setThreadId(undefined); setMessages([]); setBroke(false); setStoryId(null); setShowHistory(false); }
+  function newChat() { setThreadId(undefined); setMessages([]); setBroke(false); setStoryId(null); setStoryChapter(undefined); setShowHistory(false); }
 
   async function switchCharacter(id: string) {
     setCharId(id); setStoryId(null); setBroke(false); setShowHistory(false);
@@ -117,7 +120,7 @@ export default function ChatPage() {
     try {
       const res = await fetch("/api/chat/stream", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ characterId: charId, threadId, message: text, storyId: threadId ? undefined : storyId ?? undefined }),
+        body: JSON.stringify({ characterId: charId, threadId, message: text, storyId: threadId ? undefined : storyId ?? undefined, chapter: threadId || !storyId ? undefined : storyChapter }),
       });
 
       const ct = res.headers.get("content-type") || "";

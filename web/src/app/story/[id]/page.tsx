@@ -175,7 +175,7 @@ export default function StoryReadPage() {
       ) : null}
 
       <div style={S.talkRow}>
-        <a style={S.talk} href={`/chat?characterId=${story.characterId}&fromStory=${story.id}`}>Open full chat with {story.characterName} →</a>
+        <a style={S.talk} href={`/chat?characterId=${story.characterId}&fromStory=${story.id}&chapter=${idx + 1}`}>Open full chat with {story.characterName} →</a>
       </div>
 
       {showBackup && backupText ? (
@@ -196,7 +196,7 @@ export default function StoryReadPage() {
         </div>
       ) : null}
 
-      <ChatDock characterId={story.characterId} characterName={story.characterName} storyId={story.id} />
+      <ChatDock characterId={story.characterId} characterName={story.characterName} storyId={story.id} chapter={idx + 1} />
     </main>
   );
 }
