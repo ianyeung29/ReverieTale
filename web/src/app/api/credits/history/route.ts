@@ -15,6 +15,7 @@ function describe(type: string, metadata: unknown, key: string): string {
   if (type === "spend") {
     if (m.kind === "chapter") return "Story chapter";
     if (m.kind === "rewrite") return "Chapter rewrite";
+    if (m.kind === "portrait") return "Character portrait";
     if (m.threadId || m.characterId) return "Chat message";
     return "Spent";
   }

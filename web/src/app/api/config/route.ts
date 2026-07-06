@@ -13,6 +13,8 @@ export async function GET() {
     pricing: {
       chat: Number(process.env.CHAT_PRICE || 1),
       chapter: Number(process.env.CHAPTER_PRICE || 10),
+      portrait: Number(process.env.PORTRAIT_PRICE || 5),
+      portraitFree: Number(process.env.FREE_PORTRAITS || 2),
     },
   });
 }

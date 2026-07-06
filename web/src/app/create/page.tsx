@@ -31,10 +31,13 @@ export default function CreateCharacterPage() {
   const [portrait, setPortrait] = useState<{ image: string; mime: string } | null>(null); // freshly generated
   const [hasImage, setHasImage] = useState(false); // existing portrait (edit mode)
   const [portraitBusy, setPortraitBusy] = useState(false);
+  const [portraitFree, setPortraitFree] = useState<number | null>(null);
+  const [portraitPrice, setPortraitPrice] = useState(5);
+  const [portraitPaywall, setPortraitPaywall] = useState(false);
 
   useEffect(() => {
-    fetch("/api/auth/me").then((r) => r.json()).then((d) => setAuthEmail(d.user?.email ?? null)).catch(() => setAuthEmail(null));
-    fetch("/api/config").then((r) => r.json()).then((d) => setImageEnabled(!!d.imageEnabled)).catch(() => {});
+    fetch("/api/auth/me").then((r) => r.json()).then((d) => { setAuthEmail(d.user?.email ?? null); if (d.user) setPortraitFree(d.user.portraitFreeRemaining ?? null); }).catch(() => setAuthEmail(null));
+    fetch("/api/config").then((r) => r.json()).then((d) => { setImageEnabled(!!d.imageEnabled); if (d.pricing?.portrait) setPortraitPrice(d.pricing.portrait); }).catch(() => {});
     const id = new URLSearchParams(window.location.search).get("id");
     if (!id) return;
     setEditId(id);
@@ -48,7 +51,7 @@ export default function CreateCharacterPage() {
 
   async function generatePortrait() {
     if (portraitBusy) return;
-    setPortraitBusy(true); setError("");
+    setPortraitBusy(true); setError(""); setPortraitPaywall(false);
     try {
       const res = await fetch("/api/characters/portrait", {
         method: "POST",
@@ -57,7 +60,8 @@ export default function CreateCharacterPage() {
       });
       const d = await res.json();
       if (res.status === 401) { setAuthEmail(null); return; }
-      if (res.ok && d.image) setPortrait({ image: d.image, mime: d.mime || "image/jpeg" });
+      if (res.status === 402) { setError(`You need ${d.price ?? portraitPrice} credits for another portrait — you have ${d.balance?.total ?? 0}.`); setPortraitPaywall(true); return; }
+      if (res.ok && d.image) { setPortrait({ image: d.image, mime: d.mime || "image/jpeg" }); if (typeof d.freeRemaining === "number") setPortraitFree(d.freeRemaining); }
       else setError(d.error === "blocked" ? "That description isn't allowed for a portrait." : "Couldn't generate a portrait — try again.");
     } catch {
       setError("Network error while generating the portrait.");
@@ -238,7 +242,12 @@ export default function CreateCharacterPage() {
             <button type="button" style={{ ...S.portraitBtn, opacity: portraitBusy ? 0.6 : 1 }} onClick={generatePortrait} disabled={portraitBusy}>
               {portraitBusy ? "🎨 Generating…" : portraitSrc ? "🎨 Regenerate portrait" : "🎨 Generate portrait"}
             </button>
-            <p style={S.genHint}>A portrait from FLUX, based on the name, look &amp; tags. ~10s.</p>
+            <p style={S.genHint}>
+              {portraitFree != null && portraitFree > 0
+                ? `${portraitFree} free portrait${portraitFree === 1 ? "" : "s"} left, then ${portraitPrice} credits each.`
+                : `Costs ${portraitPrice} credits per portrait.`}
+              {portraitPaywall ? <> <a href="/credits" style={S.errLink}>Get credits →</a></> : null}
+            </p>
           </div>
         </div>
       ) : null}
@@ -366,6 +375,7 @@ const S: Record<string, React.CSSProperties> = {
   chip: { background: "#231A2B", color: "#CBBBD0", border: "1px solid #3A2E44", borderRadius: 999, padding: "8px 13px", cursor: "pointer", fontSize: 13.5 },
   chipOn: { background: "linear-gradient(100deg,#E9A06B,#D46A8B)", color: "#1A1220", border: "1px solid transparent", fontWeight: 600 },
   err: { color: "#E88", fontSize: 14, margin: "16px 0 0" },
+  errLink: { color: "#E9A06B", fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" },
   actions: { display: "flex", alignItems: "center", gap: 16, marginTop: 26 },
   primary: { border: 0, cursor: "pointer", color: "#1A1220", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", borderRadius: 12, padding: "13px 22px", fontWeight: 650, fontSize: 15.5 },
   cancel: { color: "#8A7A90", textDecoration: "none", fontSize: 14 },

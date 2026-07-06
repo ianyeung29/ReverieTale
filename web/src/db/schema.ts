@@ -25,6 +25,9 @@ export const users = pgTable("users", {
   // Public creator handle (optional). Shown as attribution on character profiles;
   // never the email, which stays private.
   displayName: text("display_name"),
+  // Lifetime count of portrait generations; the first FREE_PORTRAITS are free,
+  // then each costs PORTRAIT_PRICE credits.
+  portraitGens: integer("portrait_gens").notNull().default(0),
   // Age gate: attestation now, verification-vendor token later (see exec-3 sec 3).
   ageVerified: boolean("age_verified").notNull().default(false),
   verifiedJurisdiction: text("verified_jurisdiction"),
