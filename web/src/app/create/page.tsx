@@ -18,6 +18,7 @@ export default function CreateCharacterPage() {
   const [error, setError] = useState("");
   const [editId, setEditId] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState<string | null>(null);
+  const [genBusy, setGenBusy] = useState<string | null>(null); // which field(s) are generating
 
   useEffect(() => {
     fetch("/api/auth/me").then((r) => r.json()).then((d) => setAuthEmail(d.user?.email ?? null)).catch(() => setAuthEmail(null));
@@ -33,6 +34,42 @@ export default function CreateCharacterPage() {
 
   function toggleTag(t: string) {
     setTags((cur) => (cur.includes(t) ? cur.filter((x) => x !== t) : cur.length >= 8 ? cur : [...cur, t]));
+  }
+
+  // AI-assist: generate one or more fields from the details so far.
+  async function suggest(targets: ("look" | "voice" | "persona" | "backstory")[]) {
+    if (genBusy) return;
+    setGenBusy(targets.length > 1 ? "all" : targets[0]);
+    setError("");
+    try {
+      const res = await fetch("/api/characters/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim() || undefined,
+          look: look.trim() || undefined,
+          persona: persona.trim() || undefined,
+          backstory: backstory.trim() || undefined,
+          voice: voice.trim() || undefined,
+          tags: tags.length ? tags : undefined,
+          targets,
+        }),
+      });
+      const d = await res.json();
+      if (res.status === 401) { setAuthEmail(null); return; }
+      if (res.ok && d.fields) {
+        if (d.fields.look !== undefined) setLook(d.fields.look);
+        if (d.fields.voice !== undefined) setVoice(d.fields.voice);
+        if (d.fields.persona !== undefined) setPersona(d.fields.persona);
+        if (d.fields.backstory !== undefined) setBackstory(d.fields.backstory);
+      } else {
+        setError("Couldn't generate just now — try again.");
+      }
+    } catch {
+      setError("Network error while generating.");
+    } finally {
+      setGenBusy(null);
+    }
   }
 
   async function create() {
@@ -119,19 +156,24 @@ export default function CreateCharacterPage() {
       </div>
       <p style={S.sub}>{editId ? "Update how they look, sound, and behave. Changes apply to new chats and stories." : "Build them once. Every story you write and every reader who chats with them earns you credits."}</p>
 
+      <button type="button" style={{ ...S.genAll, opacity: genBusy ? 0.6 : 1 }} onClick={() => suggest(["look", "voice", "persona", "backstory"])} disabled={!!genBusy}>
+        {genBusy === "all" ? "✨ Generating…" : "✨ Generate details for me"}
+      </button>
+      <p style={S.genHint}>Fills look, personality, backstory &amp; voice from the name and tags. Edit anything after.</p>
+
       <label style={S.label}>Name</label>
       <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Mara, Kai, Sable…" style={S.input} maxLength={60} />
 
-      <label style={S.label}>Look</label>
+      <FieldLabel label="Look" onSuggest={() => suggest(["look"])} busy={genBusy === "look"} disabled={!!genBusy} />
       <input value={look} onChange={(e) => setLook(e.target.value)} placeholder="how they appear — hair, style, the way they carry themselves" style={S.input} maxLength={400} />
 
-      <label style={S.label}>Personality</label>
+      <FieldLabel label="Personality" onSuggest={() => suggest(["persona"])} busy={genBusy === "persona"} disabled={!!genBusy} />
       <textarea value={persona} onChange={(e) => setPersona(e.target.value)} placeholder="who they are — warm and teasing? guarded but loyal? quick to laugh?" style={S.textarea} maxLength={600} />
 
-      <label style={S.label}>Backstory</label>
+      <FieldLabel label="Backstory" onSuggest={() => suggest(["backstory"])} busy={genBusy === "backstory"} disabled={!!genBusy} />
       <textarea value={backstory} onChange={(e) => setBackstory(e.target.value)} placeholder="where they come from, what they want, what haunts them" style={S.textarea} maxLength={600} />
 
-      <label style={S.label}>Voice &amp; style</label>
+      <FieldLabel label="Voice & style" onSuggest={() => suggest(["voice"])} busy={genBusy === "voice"} disabled={!!genBusy} />
       <input value={voice} onChange={(e) => setVoice(e.target.value)} placeholder="how they talk — dry wit, soft-spoken, poetic, blunt…" style={S.input} maxLength={300} />
 
       <label style={S.label}>Tags <span style={S.hint}>({tags.length}/8)</span></label>
@@ -154,6 +196,17 @@ export default function CreateCharacterPage() {
   );
 }
 
+function FieldLabel({ label, onSuggest, busy, disabled }: { label: string; onSuggest: () => void; busy: boolean; disabled: boolean }) {
+  return (
+    <div style={S.labelRow}>
+      <label style={{ ...S.label, margin: 0 }}>{label}</label>
+      <button type="button" style={{ ...S.suggest, opacity: disabled ? 0.5 : 1 }} onClick={onSuggest} disabled={disabled}>
+        {busy ? "✨ …" : "✨ Suggest"}
+      </button>
+    </div>
+  );
+}
+
 const S: Record<string, React.CSSProperties> = {
   wrap: { maxWidth: 560, margin: "0 auto", padding: "36px 24px 100px", lineHeight: 1.6 },
   back: { color: "#8A7A90", textDecoration: "none", fontSize: 14, letterSpacing: ".04em" },
@@ -162,6 +215,10 @@ const S: Record<string, React.CSSProperties> = {
   h1: { fontFamily: "Georgia, serif", fontSize: 30, margin: "4px 0 0", lineHeight: 1.1 },
   sub: { color: "#AC9CB0", margin: "0 0 22px", fontSize: 14.5 },
   label: { display: "block", fontSize: 12, letterSpacing: ".1em", textTransform: "uppercase", color: "#8A7A90", fontWeight: 700, margin: "18px 0 7px" },
+  labelRow: { display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 10, margin: "18px 0 7px" },
+  suggest: { background: "#231A2B", color: "#E9A06B", border: "1px solid #4a3a50", borderRadius: 999, padding: "5px 11px", cursor: "pointer", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" },
+  genAll: { marginTop: 20, background: "#231A2B", color: "#E9A06B", border: "1px solid #4a3a50", borderRadius: 10, padding: "11px 16px", cursor: "pointer", fontSize: 14.5, fontWeight: 650, width: "100%" },
+  genHint: { color: "#6f6276", fontSize: 12.5, margin: "8px 0 0", textAlign: "center" },
   hint: { color: "#6f6276", letterSpacing: 0, textTransform: "none", fontWeight: 400 },
   input: { width: "100%", background: "#1A121F", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 10, padding: "12px 14px", fontSize: 15, boxSizing: "border-box", fontFamily: "inherit" },
   textarea: { width: "100%", minHeight: 74, resize: "vertical", background: "#1A121F", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 10, padding: "12px 14px", fontSize: 15, boxSizing: "border-box", fontFamily: "inherit", lineHeight: 1.5 },
