@@ -34,6 +34,7 @@ export default function StoryReadPage() {
   const [showBackup, setShowBackup] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [chapterPrice, setChapterPrice] = useState(10);
+  const [showToc, setShowToc] = useState(false);
 
   useEffect(() => {
     fetch(`/api/stories/${id}`).then((r) => (r.ok ? r.json() : Promise.reject())).then((s: Story) => {
@@ -43,6 +44,18 @@ export default function StoryReadPage() {
   }, [id]);
 
   useEffect(() => { window.scrollTo({ top: 0, behavior: "smooth" }); }, [idx]);
+
+  // Keyboard paging (ignored while typing in the next-chapter form).
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const el = document.activeElement;
+      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA")) return;
+      if (e.key === "ArrowRight") { setShowForm(false); setIdx((i) => Math.min(i + 1, chapters.length - 1)); }
+      else if (e.key === "ArrowLeft") { setShowForm(false); setIdx((i) => Math.max(i - 1, 0)); }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [chapters.length]);
 
   function resetForm() { setWhatHappens(""); setMood(""); setTwist(""); setSetting(""); setShowForm(false); }
   function surprise() { setWhatHappens(rand(WHAT_HAPPENS)); setTwist(rand(TWISTS)); setMood(rand(MOODS)); setSetting(""); }
@@ -108,15 +121,21 @@ export default function StoryReadPage() {
   if (!story) return <main style={S.wrap}><p style={{ color: "#AC9CB0" }}>Loading…</p></main>;
 
   const last = idx === chapters.length - 1;
+  const progress = chapters.length ? ((idx + 1) / chapters.length) * 100 : 0;
+  const words = (chapters[idx] ?? "").trim().split(/\s+/).filter(Boolean).length;
+  const readMin = Math.max(1, Math.round(words / 200));
 
   return (
     <main style={S.wrap}>
+      <style>{"@keyframes rvFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}"}</style>
+      <div style={S.progressTrack}><div style={{ ...S.progressFill, width: `${progress}%` }} /></div>
+
       <a href="/" style={S.back}>← Reverie</a>
       <div style={S.head}>
         <Avatar name={story.characterName} size={46} />
         <div>
           <h1 style={S.title}>{story.title}</h1>
-          <p style={S.by}>with <a href={`/c/${story.characterId}`} style={S.byLink}>{story.characterName}</a> · chapter {idx + 1} of {chapters.length}</p>
+          <p style={S.by}>with <a href={`/c/${story.characterId}`} style={S.byLink}>{story.characterName}</a> · chapter {idx + 1} of {chapters.length} · ~{readMin} min</p>
         </div>
       </div>
 
@@ -138,7 +157,22 @@ export default function StoryReadPage() {
 
       <div style={S.nav}>
         <button style={{ ...S.navBtn, visibility: idx > 0 ? "visible" : "hidden" }} onClick={() => { setShowForm(false); setIdx(idx - 1); }}>← Previous</button>
-        <span style={S.count}>{idx + 1} / {chapters.length}</span>
+        <div style={S.tocWrap}>
+          <button style={S.count} onClick={() => setShowToc((v) => !v)} title="Jump to a chapter">{idx + 1} / {chapters.length} ▾</button>
+          {showToc ? (
+            <>
+              <div style={S.tocBackdrop} onClick={() => setShowToc(false)} />
+              <div style={S.toc}>
+                {chapters.map((c, i) => (
+                  <button key={i} style={{ ...S.tocItem, ...(i === idx ? S.tocItemOn : {}) }} onClick={() => { setIdx(i); setShowForm(false); setShowToc(false); }}>
+                    <span style={S.tocNum}>{i + 1}</span>
+                    <span style={S.tocText}>{c.replace(/\s+/g, " ").slice(0, 46)}…</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : null}
+        </div>
         {!last ? (
           <button style={{ ...S.navBtn, ...S.navPrimary }} onClick={() => setIdx(idx + 1)}>Next →</button>
         ) : story.isOwner ? (
@@ -212,15 +246,17 @@ function Chips({ options, value, onPick }: { options: string[]; value: string; o
 }
 
 const S: Record<string, React.CSSProperties> = {
-  wrap: { maxWidth: 640, margin: "0 auto", padding: "36px 24px 120px", lineHeight: 1.7 },
+  wrap: { maxWidth: 660, margin: "0 auto", padding: "36px 24px 120px", lineHeight: 1.7 },
   back: { color: "#8A7A90", textDecoration: "none", fontSize: 14, letterSpacing: ".04em" },
   link: { color: "#E9A06B" },
+  progressTrack: { position: "fixed", top: 52, left: 0, right: 0, height: 3, background: "#241a2b", zIndex: 20 },
+  progressFill: { height: "100%", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", transition: "width .3s ease" },
   head: { display: "flex", alignItems: "center", gap: 14, margin: "24px 0 28px" },
   title: { fontFamily: "Georgia, serif", fontSize: 32, margin: 0, lineHeight: 1.15 },
   by: { color: "#AC9CB0", margin: "4px 0 0", fontSize: 14 },
   byLink: { color: "#E9A06B", textDecoration: "none" },
-  article: { minHeight: 200 },
-  para: { margin: "0 0 16px", color: "#EadFe6", fontSize: 17 },
+  article: { minHeight: 200, animation: "rvFade .35s ease" },
+  para: { margin: "0 0 20px", color: "#ECE3E8", fontSize: 18.5, lineHeight: 1.82, fontFamily: 'Georgia, "Times New Roman", serif' },
   divider: { textAlign: "center", color: "#6f6276", letterSpacing: ".5em", margin: "24px 0" },
   backupBanner: { display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", background: "#1C1422", border: "1px solid #3A2E44", borderRadius: 12, padding: "10px 14px", margin: "18px 0", color: "#AC9CB0", fontSize: 14 },
   bkBtn: { background: "transparent", color: "#E9A06B", border: "1px solid #4a3a50", borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontSize: 13 },
@@ -235,7 +271,14 @@ const S: Record<string, React.CSSProperties> = {
   nav: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginTop: 22, borderTop: "1px solid #241a2b", paddingTop: 22 },
   navBtn: { background: "#231A2B", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 10, padding: "11px 16px", cursor: "pointer", fontSize: 14, fontWeight: 600 },
   navPrimary: { color: "#1A1220", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", border: "1px solid transparent" },
-  count: { color: "#8A7A90", fontSize: 13, fontVariantNumeric: "tabular-nums" },
+  count: { color: "#AC9CB0", fontSize: 13, fontVariantNumeric: "tabular-nums", background: "transparent", border: "1px solid #3A2E44", borderRadius: 8, padding: "7px 11px", cursor: "pointer", whiteSpace: "nowrap" },
+  tocWrap: { position: "relative", display: "flex", justifyContent: "center" },
+  tocBackdrop: { position: "fixed", inset: 0, zIndex: 45 },
+  toc: { position: "absolute", bottom: "130%", left: "50%", transform: "translateX(-50%)", width: "min(340px, 82vw)", maxHeight: 300, overflowY: "auto", background: "#150F1A", border: "1px solid #3A2E44", borderRadius: 12, zIndex: 46, boxShadow: "0 16px 40px rgba(0,0,0,.5)", padding: 6 },
+  tocItem: { display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left", background: "transparent", border: 0, borderRadius: 8, padding: "9px 10px", cursor: "pointer", color: "#CBBBD0" },
+  tocItemOn: { background: "#231A2B", color: "#F4EAF0" },
+  tocNum: { color: "#E9A06B", fontWeight: 700, fontSize: 13, minWidth: 18, fontVariantNumeric: "tabular-nums" },
+  tocText: { fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   form: { marginTop: 20, background: "#1C1422", border: "1px solid #3A2E44", borderRadius: 16, padding: 20, display: "flex", flexDirection: "column", gap: 8 },
   formTop: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 },
   formTitle: { fontFamily: "Georgia, serif", fontSize: 20, margin: 0 },
