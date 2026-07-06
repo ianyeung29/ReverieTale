@@ -1,4 +1,4 @@
-import { desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { characters, stories } from "@/db/schema";
 import { Avatar } from "@/components/Avatar";
@@ -28,7 +28,7 @@ async function recentStories() {
       })
       .from(stories)
       .innerJoin(characters, eq(stories.characterId, characters.id))
-      .where(eq(stories.isPublic, true))
+      .where(and(eq(stories.isPublic, true), eq(characters.status, "published")))
       .orderBy(desc(stories.createdAt))
       .limit(9);
     return rows.map((r) => ({ id: r.id, title: r.title, name: r.name, snippet: r.content.replace(/\s+/g, " ").slice(0, 150) }));

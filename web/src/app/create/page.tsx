@@ -17,6 +17,7 @@ export default function CreateCharacterPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [editId, setEditId] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/auth/me").then((r) => r.json()).then((d) => setAuthEmail(d.user?.email ?? null)).catch(() => setAuthEmail(null));
@@ -67,11 +68,14 @@ export default function CreateCharacterPage() {
         body: JSON.stringify(payload),
       });
       const d = await res.json();
-      // Combined flow: hand off to the story creator with her preselected, so the
-      // creator's next step is writing her opening story.
-      if (res.ok && d.id) { window.location.href = `/story?characterId=${d.id}`; return; }
+      if (res.ok && d.id) {
+        // Auto-approved -> straight into writing her first story. Held for review
+        // -> show a confirmation instead (she isn't public yet).
+        if (d.status === "published") { window.location.href = `/story?characterId=${d.id}`; return; }
+        setSubmitted(d.name || name.trim()); setBusy(false); return;
+      }
       if (res.status === 401) { setAuthEmail(null); setBusy(false); return; }
-      setError(d.error === "blocked" ? "That description isn't allowed." : d.error || "Something went wrong.");
+      setError(d.error === "blocked" ? `This didn't pass our safety check: ${d.reason || "not allowed"}.` : d.error || "Something went wrong.");
       setBusy(false);
     } catch {
       setError("Network error.");
@@ -81,6 +85,26 @@ export default function CreateCharacterPage() {
 
   if (authEmail === undefined) return <main style={S.wrap}><p style={{ color: "#AC9CB0" }}>Loading…</p></main>;
   if (authEmail === null) return <EntryGate onDone={(e) => setAuthEmail(e)} subtitle="Sign in to create a companion. 18+ only." />;
+
+  if (submitted) {
+    return (
+      <main style={S.wrap}>
+        <a href="/" style={S.back}>← Reverie</a>
+        <div style={S.head}>
+          <Avatar name={submitted} size={54} />
+          <div>
+            <p style={S.mark}>Submitted for review</p>
+            <h1 style={S.h1}>{submitted}</h1>
+          </div>
+        </div>
+        <p style={S.sub}>Thanks! {submitted} is in a quick safety review before going public. You&apos;ll find them under Your companions — once approved, they&apos;ll show up in browse and stories.</p>
+        <div style={S.actions}>
+          <a href="/characters" style={S.primary}>Go to your companions →</a>
+          <a href="/create" style={S.cancel}>Create another</a>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main style={S.wrap}>

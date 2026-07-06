@@ -48,6 +48,8 @@ export const characters = pgTable("characters", {
   creatorId: uuid("creator_id"), // null/platform for first-party Phase 0 seed characters
   version: integer("version").notNull().default(1),
   status: text("status").notNull().default("draft"), // draft | in_review | published | disabled
+  // Latest moderation note (why it was held/rejected), shown in the admin queue.
+  reviewNote: text("review_note"),
   // { name, persona, look, backstory, voice, tags }
   definition: jsonb("definition").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

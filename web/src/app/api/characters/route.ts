@@ -3,7 +3,7 @@ import { z } from "zod";
 import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { characters, stories } from "@/db/schema";
-import { screen } from "@/lib/moderation";
+import { moderateContent } from "@/lib/moderation";
 import { getCurrentUserId } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -66,11 +66,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid request body" }, { status: 400 });
   }
 
-  // Safety gate on every free-text field the creator supplied.
+  // Hybrid pre-publish gate: hard filter -> classifier -> auto-approve / hold /
+  // reject. Creators never publish directly; only auto-approve or an admin does.
   const blob = [body.name, body.persona, body.look, body.backstory, body.voice, ...(body.tags ?? [])].filter(Boolean).join(" ");
-  if (screen(blob).blocked) {
-    return NextResponse.json({ error: "blocked", reason: "safety_minor" }, { status: 422 });
+  const mod = await moderateContent(blob);
+  if (mod.decision === "reject") {
+    return NextResponse.json({ error: "blocked", reason: mod.reason }, { status: 422 });
   }
+  const status = mod.decision === "approve" ? "published" : "in_review";
 
   const definition = {
     name: body.name,
@@ -83,8 +86,8 @@ export async function POST(req: Request) {
 
   const [char] = await db
     .insert(characters)
-    .values({ creatorId: userId, status: "published", definition })
+    .values({ creatorId: userId, status, reviewNote: mod.reason, definition })
     .returning({ id: characters.id });
 
-  return NextResponse.json({ id: char.id, name: body.name });
+  return NextResponse.json({ id: char.id, name: body.name, status });
 }

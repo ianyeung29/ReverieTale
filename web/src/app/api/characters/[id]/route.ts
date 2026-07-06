@@ -3,7 +3,7 @@ import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { characters } from "@/db/schema";
-import { screen } from "@/lib/moderation";
+import { moderateContent } from "@/lib/moderation";
 import { getCurrentUserId } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -69,20 +69,28 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (!row) return NextResponse.json({ error: "not found" }, { status: 404 });
   if (row.creatorId !== userId) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
-  // Merge only the provided definition fields onto the existing definition.
+  const editsDefinition = FIELDS.some((k) => body[k] !== undefined);
+
+  // Unpublish is the one status change a creator can make directly and freely.
+  if (!editsDefinition && body.status === "disabled") {
+    await db.update(characters).set({ status: "disabled", updatedAt: new Date() }).where(eq(characters.id, id));
+    return NextResponse.json({ ok: true, status: "disabled" });
+  }
+
+  // Anything else that would make content public (an edit, or a resubmit via
+  // status:"published") must pass the hybrid gate again. Creators can't self-publish.
   const def = { ...((row.definition ?? {}) as Record<string, unknown>) };
   for (const k of FIELDS) if (body[k] !== undefined) def[k] = body[k];
 
   const blob = [def.name, def.look, def.persona, def.backstory, def.voice, ...(Array.isArray(def.tags) ? def.tags : [])]
     .filter(Boolean)
     .join(" ");
-  if (screen(String(blob)).blocked) {
-    return NextResponse.json({ error: "blocked", reason: "safety_minor" }, { status: 422 });
+  const mod = await moderateContent(String(blob));
+  if (mod.decision === "reject") {
+    return NextResponse.json({ error: "blocked", reason: mod.reason }, { status: 422 });
   }
+  const status = mod.decision === "approve" ? "published" : "in_review";
 
-  const set: { definition: unknown; updatedAt: Date; status?: string } = { definition: def, updatedAt: new Date() };
-  if (body.status) set.status = body.status;
-  await db.update(characters).set(set).where(eq(characters.id, id));
-
-  return NextResponse.json({ ok: true });
+  await db.update(characters).set({ definition: def, status, reviewNote: mod.reason, updatedAt: new Date() }).where(eq(characters.id, id));
+  return NextResponse.json({ ok: true, status });
 }
