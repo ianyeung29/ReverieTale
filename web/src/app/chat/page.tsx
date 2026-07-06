@@ -244,8 +244,8 @@ export default function ChatPage() {
 }
 
 const S: Record<string, React.CSSProperties> = {
-  wrap: { maxWidth: 720, margin: "0 auto", height: "100vh", display: "flex", flexDirection: "column" },
-  center: { minHeight: "100vh", display: "grid", placeItems: "center", padding: 24, color: "#AC9CB0" },
+  wrap: { maxWidth: 720, margin: "0 auto", height: "calc(100dvh - 52px)", display: "flex", flexDirection: "column" },
+  center: { minHeight: "calc(100dvh - 52px)", display: "grid", placeItems: "center", padding: 24, color: "#AC9CB0" },
   gate: { display: "flex", flexDirection: "column", gap: 12, width: "100%", maxWidth: 360, background: "#231A2B", border: "1px solid #3A2E44", borderRadius: 18, padding: "30px 26px", textAlign: "center" },
   gateMk: { fontSize: 12, letterSpacing: ".2em", textTransform: "uppercase", color: "#E9A06B", fontWeight: 700, margin: 0 },
   gateH: { fontFamily: "Georgia, serif", fontSize: 26, margin: 0, color: "#F4EAF0" },

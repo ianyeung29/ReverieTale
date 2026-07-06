@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Nav } from "@/components/Nav";
 
 export const metadata: Metadata = {
   title: "Reverie - Phase 0",
@@ -16,6 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           color: "#F4EAF0",
         }}
       >
+        <Nav />
         {children}
       </body>
     </html>

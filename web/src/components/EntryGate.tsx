@@ -36,7 +36,7 @@ export function EntryGate({ onDone, subtitle = "Continue with your email. 18+ on
 }
 
 const G: Record<string, React.CSSProperties> = {
-  center: { minHeight: "100vh", display: "grid", placeItems: "center", padding: 24 },
+  center: { minHeight: "calc(100dvh - 52px)", display: "grid", placeItems: "center", padding: 24 },
   gate: { display: "flex", flexDirection: "column", gap: 12, width: "100%", maxWidth: 360, background: "#231A2B", border: "1px solid #3A2E44", borderRadius: 18, padding: "30px 26px", textAlign: "center" },
   mk: { fontSize: 12, letterSpacing: ".2em", textTransform: "uppercase", color: "#E9A06B", fontWeight: 700, margin: 0 },
   h: { fontFamily: "Georgia, serif", fontSize: 26, margin: 0, color: "#F4EAF0" },

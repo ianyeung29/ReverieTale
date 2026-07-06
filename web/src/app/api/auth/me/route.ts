@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { users } from "@/db/schema";
+import { characters, users } from "@/db/schema";
 import { getCurrentUserId } from "@/lib/session";
 import { isAdmin } from "@/lib/admin";
 
@@ -12,5 +12,15 @@ export async function GET() {
   if (!userId) return NextResponse.json({ user: null });
   const [u] = await db.select({ email: users.email, displayName: users.displayName }).from(users).where(eq(users.id, userId)).limit(1);
   const admin = await isAdmin(userId);
-  return NextResponse.json({ user: u ? { email: u.email, displayName: u.displayName ?? "", isAdmin: admin } : null });
+
+  let pendingReviews = 0;
+  if (admin) {
+    const [c] = await db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(characters)
+      .where(eq(characters.status, "in_review"));
+    pendingReviews = c?.n ?? 0;
+  }
+
+  return NextResponse.json({ user: u ? { email: u.email, displayName: u.displayName ?? "", isAdmin: admin, pendingReviews } : null });
 }
