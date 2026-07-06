@@ -27,6 +27,15 @@ const SPEC: Record<Target, string> = {
   backstory: "backstory = 2-3 sentences of history (where they're from, what they want, what weighs on them)",
 };
 
+// The model sometimes returns a synonym key (e.g. "personality" for persona);
+// accept those so a field isn't silently dropped.
+const ALIASES: Record<Target, string[]> = {
+  look: ["look", "appearance", "looks"],
+  voice: ["voice", "voice_and_style", "voice & style", "voicestyle", "style"],
+  persona: ["persona", "personality", "personality_traits"],
+  backstory: ["backstory", "background", "history", "back_story"],
+};
+
 // POST /api/characters/generate -> AI suggestions for character fields. Tasteful,
 // non-explicit; the on-save moderation gate still applies when they publish.
 export async function POST(req: Request) {
@@ -55,6 +64,7 @@ export async function POST(req: Request) {
     "Given the details so far, write ONLY the requested fields, staying consistent with what's provided. " +
     "Keep everything vivid but tasteful and strictly NON-EXPLICIT - no sexual or graphic content. " +
     "Return STRICT JSON containing only the requested keys, each a plain string. No markdown, no labels.\n" +
+    `Use exactly these JSON keys: ${body.targets.join(", ")}.\n` +
     `Requested fields:\n${wanted}`;
 
   try {
@@ -68,10 +78,15 @@ export async function POST(req: Request) {
     const json = res.text.match(/\{[\s\S]*\}/)?.[0];
     const parsed = json ? (JSON.parse(json) as Record<string, unknown>) : {};
 
+    // Case-insensitive lookup so key casing/synonyms don't drop a field.
+    const lower: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(parsed)) lower[k.toLowerCase()] = v;
+
     const fields: Partial<Record<Target, string>> = {};
     for (const t of body.targets) {
-      const v = parsed[t];
-      if (typeof v === "string" && v.trim() && !screen(v).blocked) fields[t] = v.trim();
+      const key = ALIASES[t].find((a) => typeof lower[a] === "string" && (lower[a] as string).trim());
+      const v = key ? (lower[key] as string) : undefined;
+      if (v && !screen(v).blocked) fields[t] = v.trim();
     }
     if (Object.keys(fields).length === 0) return NextResponse.json({ error: "generation failed" }, { status: 502 });
     return NextResponse.json({ fields });
