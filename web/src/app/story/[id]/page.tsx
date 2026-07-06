@@ -33,11 +33,13 @@ export default function StoryReadPage() {
   const [backupText, setBackupText] = useState<string | null>(null);
   const [showBackup, setShowBackup] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [chapterPrice, setChapterPrice] = useState(10);
 
   useEffect(() => {
     fetch(`/api/stories/${id}`).then((r) => (r.ok ? r.json() : Promise.reject())).then((s: Story) => {
       setStory(s); setChapters(splitChapters(s.content));
     }).catch(() => setNotFound(true));
+    fetch("/api/config").then((r) => r.json()).then((d) => { if (d.pricing?.chapter) setChapterPrice(d.pricing.chapter); }).catch(() => {});
   }, [id]);
 
   useEffect(() => { window.scrollTo({ top: 0, behavior: "smooth" }); }, [idx]);
@@ -131,7 +133,7 @@ export default function StoryReadPage() {
       </article>
 
       {story.isOwner ? (
-        <button style={{ ...S.rewrite, opacity: busy ? 0.6 : 1 }} onClick={rewrite} disabled={busy}>↻ {busy ? "Rewriting…" : "Rewrite this chapter"}</button>
+        <button style={{ ...S.rewrite, opacity: busy ? 0.6 : 1 }} onClick={rewrite} disabled={busy}>↻ {busy ? "Rewriting…" : `Rewrite this chapter · ${chapterPrice} credits`}</button>
       ) : null}
 
       <div style={S.nav}>
@@ -168,7 +170,7 @@ export default function StoryReadPage() {
           <input value={setting} onChange={(e) => setSetting(e.target.value)} placeholder="e.g. a quiet balcony, the last train home…" style={S.input} />
 
           <div style={S.formActions}>
-            <button style={{ ...S.write, opacity: busy ? 0.6 : 1 }} onClick={writeNext} disabled={busy}>{busy ? "Writing…" : "Write this chapter →"}</button>
+            <button style={{ ...S.write, opacity: busy ? 0.6 : 1 }} onClick={writeNext} disabled={busy}>{busy ? "Writing…" : `Write this chapter · ${chapterPrice} credits`}</button>
             <button style={S.cancel} onClick={resetForm} disabled={busy}>Cancel</button>
           </div>
         </div>

@@ -18,6 +18,7 @@ export default function ChatPage() {
   const [busy, setBusy] = useState(false);
   const [credits, setCredits] = useState<number | null>(null);
   const [earned, setEarned] = useState(0);
+  const [chatPrice, setChatPrice] = useState(1);
   const [broke, setBroke] = useState(false);
   const [storyId, setStoryId] = useState<string | null>(null);
   const [storyChapter, setStoryChapter] = useState<number | undefined>();
@@ -53,6 +54,7 @@ export default function ChatPage() {
       if (preferred) setCharId(preferred);
 
       fetch("/api/credits").then((r) => r.json()).then((d) => { setCredits(d.balance?.total ?? 0); setEarned(d.earnedFromReaders ?? 0); }).catch(() => {});
+      fetch("/api/config").then((r) => r.json()).then((d) => { if (d.pricing?.chat) setChatPrice(d.pricing.chat); }).catch(() => {});
 
       const cv: Convo[] = await fetch("/api/threads").then((r) => r.json()).catch(() => []);
       const list = Array.isArray(cv) ? cv : [];
@@ -191,7 +193,7 @@ export default function ChatPage() {
           <span style={S.name}>{active?.name ?? "Loading…"}</span>
         </div>
         <div style={S.headRight}>
-          <span style={S.credits} title="credit balance">◈ {credits ?? "…"}</span>
+          <span style={S.credits} title={`Credit balance · ${chatPrice} credit${chatPrice === 1 ? "" : "s"} per message`}>◈ {credits ?? "…"} <span style={S.perMsg}>· {chatPrice}/msg</span></span>
           {earned > 0 ? <span style={S.earned} title="credits earned from readers chatting with your characters">★ {earned}</span> : null}
           {chars.length > 1 ? (
             <select value={charId} onChange={(e) => switchCharacter(e.target.value)} style={S.select}>
@@ -259,6 +261,7 @@ const S: Record<string, React.CSSProperties> = {
   nameWrap: { display: "flex", alignItems: "center", gap: 9, justifyContent: "center", overflow: "hidden" },
   name: { fontFamily: "Georgia, serif", fontSize: 20, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
   credits: { color: "#E9A06B", fontWeight: 650, fontSize: 14, fontVariantNumeric: "tabular-nums" },
+  perMsg: { color: "#8A7A90", fontWeight: 500, fontSize: 12 },
   earned: { color: "#D46A8B", fontWeight: 650, fontSize: 13, fontVariantNumeric: "tabular-nums" },
   select: { background: "#231A2B", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 8, padding: "7px 9px" },
   history: { borderBottom: "1px solid #3A2E44", maxHeight: 220, overflowY: "auto", display: "flex", flexDirection: "column" },

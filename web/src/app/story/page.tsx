@@ -73,6 +73,7 @@ export default function StoryPage() {
   const [length, setLength] = useState<"short" | "medium">("short");
   const [tier, setTier] = useState<"standard" | "explicit">("standard");
   const [explicitEnabled, setExplicitEnabled] = useState(false);
+  const [chapterPrice, setChapterPrice] = useState(10);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [authEmail, setAuthEmail] = useState<string | null | undefined>(undefined);
@@ -101,7 +102,7 @@ export default function StoryPage() {
       const preferred = urlChar && c.some((x) => x.id === urlChar) ? urlChar : c[0]?.id;
       if (preferred) setCharId(preferred);
     }).catch(() => {});
-    fetch("/api/config").then((r) => r.json()).then((d) => setExplicitEnabled(!!d.explicitEnabled)).catch(() => {});
+    fetch("/api/config").then((r) => r.json()).then((d) => { setExplicitEnabled(!!d.explicitEnabled); if (d.pricing?.chapter) setChapterPrice(d.pricing.chapter); }).catch(() => {});
     roll(); // fresh blend of suggestions + a random combination each visit
   }, []);
 
@@ -201,6 +202,7 @@ export default function StoryPage() {
       <button style={{ ...S.cta, opacity: busy ? 0.6 : 1 }} onClick={generate} disabled={busy || !charId}>
         {busy ? "Writing…" : `Write my first chapter with ${active?.name ?? "…"}`}
       </button>
+      <p style={S.cost}>Costs {chapterPrice} credits · reading is always free</p>
       {error ? <p style={S.err}>{error}</p> : null}
     </main>
   );
@@ -248,6 +250,7 @@ const S: Record<string, React.CSSProperties> = {
   input: { width: "100%", marginTop: 10, background: "#1A121F", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 10, padding: "12px 14px", fontSize: 15, boxSizing: "border-box" },
   textarea: { width: "100%", minHeight: 70, resize: "vertical", background: "#1A121F", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 10, padding: "12px 14px", fontSize: 15, boxSizing: "border-box", fontFamily: "inherit" },
   cta: { marginTop: 30, border: 0, cursor: "pointer", color: "#1A1220", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", borderRadius: 12, padding: "15px 24px", fontWeight: 650, fontSize: 16, width: "100%" },
+  cost: { color: "#8A7A90", fontSize: 13, textAlign: "center", margin: "10px 0 0" },
   err: { color: "#E88", marginTop: 14 },
   story: { marginTop: 44, borderTop: "1px solid #3A2E44", paddingTop: 32 },
   storyTitle: { fontFamily: "Georgia, serif", fontSize: 30, margin: "0 0 18px", textAlign: "center" },

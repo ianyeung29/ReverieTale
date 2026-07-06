@@ -8,9 +8,12 @@ type Me = { email?: string; isAdmin?: boolean; pendingReviews?: number } | null;
 
 export function Nav() {
   const [me, setMe] = useState<Me>(null);
+  const [credits, setCredits] = useState<number | null>(null);
 
   useEffect(() => {
     fetch("/api/auth/me").then((r) => r.json()).then((d) => setMe(d.user ?? null)).catch(() => {});
+    // Balance (also refreshes today's free drip). Only returns for signed-in users.
+    fetch("/api/credits").then((r) => (r.ok ? r.json() : null)).then((d) => d && setCredits(d.balance?.total ?? 0)).catch(() => {});
   }, []);
 
   return (
@@ -27,6 +30,7 @@ export function Nav() {
             Review{me.pendingReviews ? <span style={S.count}>{me.pendingReviews}</span> : null}
           </a>
         ) : null}
+        {credits !== null ? <span style={S.credits} title="Your credit balance. Free credits top up daily.">◈ {credits}</span> : null}
       </div>
     </nav>
   );
@@ -53,4 +57,5 @@ const S: Record<string, React.CSSProperties> = {
   link: { color: "#AC9CB0", textDecoration: "none", fontSize: 14, fontWeight: 500, whiteSpace: "nowrap" },
   review: { color: "#E9A06B", textDecoration: "none", fontSize: 14, fontWeight: 650, whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: 6 },
   count: { background: "#D46A8B", color: "#1A1220", borderRadius: 999, padding: "1px 7px", fontSize: 12, fontWeight: 700 },
+  credits: { color: "#E9A06B", fontWeight: 700, fontSize: 14, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap", borderLeft: "1px solid #3A2E44", paddingLeft: 16 },
 };

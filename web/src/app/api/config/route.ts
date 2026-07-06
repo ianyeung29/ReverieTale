@@ -3,8 +3,14 @@ import { explicitConfigured } from "@/lib/model";
 
 export const dynamic = "force-dynamic";
 
-// Public feature flags for the client. Only exposes whether the explicit tier is
-// switched on + configured - never any keys, endpoints, or prompts.
+// Public feature flags + pricing for the client. Only exposes whether the explicit
+// tier is on - never any keys, endpoints, or prompts.
 export async function GET() {
-  return NextResponse.json({ explicitEnabled: explicitConfigured() });
+  return NextResponse.json({
+    explicitEnabled: explicitConfigured(),
+    pricing: {
+      chat: Number(process.env.CHAT_PRICE || 1),
+      chapter: Number(process.env.CHAPTER_PRICE || 10),
+    },
+  });
 }
