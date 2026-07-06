@@ -6,14 +6,59 @@ import { EntryGate } from "@/components/EntryGate";
 
 type Char = { id: string; name: string; tagline: string; persona: string; tags: string[] };
 
-const RELATIONSHIPS = ["strangers", "old friends", "reconnecting", "quietly in love", "it's complicated"];
-const GENRES = ["romance", "slice-of-life", "fantasy", "sci-fi", "mystery", "drama", "adventure", "comedy"];
-const SCENARIOS = ["a chance encounter", "reuniting after years apart", "your first date", "she's your new neighbor", "stranded together", "a late-night confession"];
-const MOODS = ["sweet", "playful", "flirty", "mysterious", "cozy", "adventurous", "bittersweet", "tense"];
-const SETTINGS = ["a rainy rooftop at midnight", "a cozy bookshop at closing time", "a neon-lit arcade", "a quiet night train", "a beach bonfire", "a jazz bar after hours", "a snowed-in cabin"];
+// Each suggestion category is a big pool split into everyday ("common") and
+// unexpected ("creative") options. On each visit we sample a fresh blend of both,
+// so the chips shown are different every time - some familiar, some surprising.
+type Pool = { common: string[]; creative: string[] };
+
+const POOLS: Record<"relationship" | "genre" | "scenario" | "mood" | "setting", Pool> = {
+  relationship: {
+    common: ["strangers", "old friends", "reconnecting", "quietly in love", "it's complicated", "exes", "coworkers", "childhood friends", "new neighbors", "friends with a secret"],
+    creative: ["rivals who can't quit each other", "pen pals who've never met", "two people sharing the same dream", "a ghost and the one who sees them", "bounty hunter and their mark", "strangers in an arranged marriage", "a time traveler and a local", "a knight and the monarch they can't confess to", "sworn enemies on the same side now", "the one who got away, returned"],
+  },
+  genre: {
+    common: ["romance", "slice-of-life", "fantasy", "sci-fi", "mystery", "drama", "adventure", "comedy"],
+    creative: ["cyberpunk noir", "cozy cottagecore", "gothic romance", "space-western", "dark academia", "magical realism", "post-apocalyptic", "steampunk", "supernatural thriller", "fairy-tale retelling"],
+  },
+  scenario: {
+    common: ["a chance encounter", "reuniting after years apart", "your first date", "they're your new neighbor", "stranded together", "a late-night confession", "set up by a mutual friend"],
+    creative: ["a wrong-number text at 3am", "both reaching for the last book", "sharing one umbrella in a downpour", "you catch them talking to your cat", "assigned as reluctant partners", "you find their lost diary", "meeting again in a dream you keep sharing", "snowed in at a remote inn", "they're the barista who misspells your name daily"],
+  },
+  mood: {
+    common: ["sweet", "playful", "flirty", "mysterious", "cozy", "adventurous", "bittersweet", "tense"],
+    creative: ["electric", "wistful", "mischievous", "smoldering", "tender", "dizzying", "haunting", "giddy", "aching", "dreamy"],
+  },
+  setting: {
+    common: ["a rainy rooftop at midnight", "a cozy bookshop at closing time", "a neon-lit arcade", "a quiet night train", "a beach bonfire", "a jazz bar after hours", "a snowed-in cabin"],
+    creative: ["a lighthouse during a storm", "an all-night diner off the highway", "a greenhouse full of glowing flowers", "a ferris wheel stuck at the top", "a masquerade ball", "a mountain bathhouse in the snow", "a record shop that smells of rain", "a tiny boat under a meteor shower", "a rooftop garden above a sleepless city"],
+  },
+};
 
 function rand<T>(a: T[]): T {
   return a[Math.floor(Math.random() * a.length)];
+}
+function pick<T>(a: T[], n: number): T[] {
+  return [...a].sort(() => Math.random() - 0.5).slice(0, n);
+}
+// A shuffled blend of common + creative options for one category.
+function mix(pool: Pool, nCommon: number, nCreative: number): string[] {
+  return pick([...pick(pool.common, nCommon), ...pick(pool.creative, nCreative)], nCommon + nCreative);
+}
+// Deterministic first render (avoids SSR/client hydration mismatch); the real
+// random blend is rolled on mount in the client.
+function firstOptions(pool: Pool, nCommon: number, nCreative: number): string[] {
+  return [...pool.common.slice(0, nCommon), ...pool.creative.slice(0, nCreative)];
+}
+
+type OptionSet = { relationship: string[]; genre: string[]; scenario: string[]; mood: string[]; setting: string[] };
+function buildOptions(fn: (pool: Pool, a: number, b: number) => string[]): OptionSet {
+  return {
+    relationship: fn(POOLS.relationship, 4, 3),
+    genre: fn(POOLS.genre, 4, 3),
+    scenario: fn(POOLS.scenario, 3, 3),
+    mood: fn(POOLS.mood, 4, 3),
+    setting: fn(POOLS.setting, 3, 3),
+  };
 }
 
 export default function StoryPage() {
@@ -31,17 +76,22 @@ export default function StoryPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [authEmail, setAuthEmail] = useState<string | null | undefined>(undefined);
+  const [opts, setOpts] = useState<OptionSet>(() => buildOptions(firstOptions));
 
   useEffect(() => {
     fetch("/api/auth/me").then((r) => r.json()).then((d) => setAuthEmail(d.user?.email ?? null)).catch(() => setAuthEmail(null));
   }, []);
 
-  function shuffle() {
-    setRelationship(rand(RELATIONSHIPS));
-    setGenre(rand(GENRES));
-    setScenario(rand(SCENARIOS));
-    setTone(rand(MOODS));
-    setSetting(rand(SETTINGS));
+  // Resample the whole suggestion palette (a fresh common+creative blend) AND
+  // preselect a random one from each new set.
+  function roll() {
+    const o = buildOptions(mix);
+    setOpts(o);
+    setRelationship(rand(o.relationship));
+    setGenre(rand(o.genre));
+    setScenario(rand(o.scenario));
+    setTone(rand(o.mood));
+    setSetting(rand(o.setting));
   }
 
   useEffect(() => {
@@ -52,7 +102,7 @@ export default function StoryPage() {
       if (preferred) setCharId(preferred);
     }).catch(() => {});
     fetch("/api/config").then((r) => r.json()).then((d) => setExplicitEnabled(!!d.explicitEnabled)).catch(() => {});
-    shuffle(); // start with a fresh random combination each visit
+    roll(); // fresh blend of suggestions + a random combination each visit
   }, []);
 
   async function generate() {
@@ -96,7 +146,7 @@ export default function StoryPage() {
       <p style={S.eyebrow}>Begin a story</p>
       <h1 style={S.h1}>Meet someone new</h1>
       <p style={S.sub}>Pick who you meet, then shape the moment - use a suggestion or write your own for any of it.</p>
-      <button style={S.shuffle} onClick={shuffle} type="button">🎲 Shuffle elements</button>
+      <button style={S.shuffle} onClick={roll} type="button">🎲 Shuffle suggestions</button>
 
       <div style={S.sectionRow}>
         <p style={S.section}>Who you meet</p>
@@ -113,19 +163,19 @@ export default function StoryPage() {
       </div>
 
       <p style={S.section}>Your relationship</p>
-      <Picker options={RELATIONSHIPS} value={relationship} onChange={setRelationship} placeholder="describe your own relationship" />
+      <Picker options={opts.relationship} value={relationship} onChange={setRelationship} placeholder="describe your own relationship" />
 
       <p style={S.section}>Genre</p>
-      <Picker options={GENRES} value={genre} onChange={setGenre} placeholder="your own genre" />
+      <Picker options={opts.genre} value={genre} onChange={setGenre} placeholder="your own genre" />
 
       <p style={S.section}>How you meet</p>
-      <Picker options={SCENARIOS} value={scenario} onChange={setScenario} placeholder="your own scenario" />
+      <Picker options={opts.scenario} value={scenario} onChange={setScenario} placeholder="your own scenario" />
 
       <p style={S.section}>Mood</p>
-      <Picker options={MOODS} value={tone} onChange={setTone} placeholder="your own mood" />
+      <Picker options={opts.mood} value={tone} onChange={setTone} placeholder="your own mood" />
 
       <p style={S.section}>Setting</p>
-      <Picker options={SETTINGS} value={setting} onChange={setSetting} placeholder="your own setting" />
+      <Picker options={opts.setting} value={setting} onChange={setSetting} placeholder="your own setting" />
 
       <p style={S.section}>Anything else? (optional)</p>
       <textarea value={details} onChange={(e) => setDetails(e.target.value)} placeholder="a detail or idea to weave in - e.g. 'she just got back from a trip', 'we're hiding from the rain'…" style={S.textarea} maxLength={400} />
