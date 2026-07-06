@@ -63,7 +63,7 @@ export default function MyCharactersPage() {
         <h1 style={S.h1}>Your companions</h1>
         <div style={S.titleActions}>
           {admin ? <a href="/admin/review" style={S.reviewLink}>Review queue →</a> : null}
-          <a href="/create" style={S.newBtn}>＋ Create a companion</a>
+          <a href="/create" className="rv-btn rv-btn-primary" style={S.newBtn}>＋ Create a companion</a>
         </div>
       </div>
       <p style={S.sub}>Every published companion can be met in stories and chats — and earns you credits when readers talk to them.</p>
@@ -93,7 +93,7 @@ export default function MyCharactersPage() {
             const live = c.status === "published";
             const badge = live ? { label: "Published", st: S.badgeLive } : inReview ? { label: "In review", st: S.badgeReview } : { label: "Unpublished", st: S.badgeOff };
             return (
-              <div key={c.id} style={S.card}>
+              <div key={c.id} className="rv-card" style={S.card}>
                 <div style={S.head}>
                   <CharacterAvatar characterId={c.id} name={c.name} size={40} />
                   <div style={S.headText}>

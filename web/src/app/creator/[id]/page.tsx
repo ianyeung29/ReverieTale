@@ -52,7 +52,7 @@ export default async function CreatorPage({ params }: { params: Promise<{ id: st
 
       <div style={S.grid}>
         {chars.map((c) => (
-          <a key={c.id} href={`/c/${c.id}`} style={S.card}>
+          <a key={c.id} href={`/c/${c.id}`} className="rv-card" style={S.card}>
             <div style={S.head}><CharacterAvatar characterId={c.id} name={c.name} size={44} /><div style={S.name}>{c.name}</div></div>
             {c.persona ? <p style={S.persona}>{c.persona}</p> : null}
             {c.tags.length ? <div style={S.tags}>{c.tags.slice(0, 4).map((t) => <span key={t} style={S.tag}>{t}</span>)}</div> : null}

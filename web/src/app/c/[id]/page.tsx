@@ -111,7 +111,7 @@ export default async function CharacterProfile({ params }: { params: Promise<{ i
     <main style={S.wrap}>
       <a href="/browse" style={S.back}>← Companions</a>
 
-      <div style={S.head}>
+      <div style={S.head} className="rv-reveal">
         <CharacterAvatar characterId={p.id} name={p.name} size={72} />
         <div style={S.headText}>
           <h1 style={S.name}>{p.name}</h1>
@@ -121,10 +121,10 @@ export default async function CharacterProfile({ params }: { params: Promise<{ i
         </div>
       </div>
 
-      <div style={S.cta}>
-        <a href={`/story?characterId=${p.id}`} style={S.primary}>Begin a story with {p.name} →</a>
-        <a href={`/chat?characterId=${p.id}`} style={S.secondary}>Chat</a>
-        {p.isOwner ? <a href={`/create?id=${p.id}`} style={S.secondary}>Edit</a> : null}
+      <div style={S.cta} className="rv-reveal rv-d1">
+        <a href={`/story?characterId=${p.id}`} className="rv-btn rv-btn-primary" style={S.primary}>Begin a story with {p.name} →</a>
+        <a href={`/chat?characterId=${p.id}`} className="rv-btn" style={S.secondary}>Chat</a>
+        {p.isOwner ? <a href={`/create?id=${p.id}`} className="rv-btn" style={S.secondary}>Edit</a> : null}
       </div>
 
       {p.persona ? (<><p style={S.section}>About</p><p style={S.body}>{p.persona}</p></>) : null}
@@ -136,7 +136,7 @@ export default async function CharacterProfile({ params }: { params: Promise<{ i
       ) : (
         <div style={S.grid}>
           {p.stories.map((s) => (
-            <a key={s.id} href={`/story/${s.id}`} style={S.card}>
+            <a key={s.id} href={`/story/${s.id}`} className="rv-card" style={S.card}>
               <div style={S.cardTitle}>{s.title}</div>
               <p style={S.cardSnip}>{s.snippet}…</p>
               <span style={S.cardMeta}>{s.chapters} chapter{s.chapters === 1 ? "" : "s"} · {s.reads} read{s.reads === 1 ? "" : "s"}</span>

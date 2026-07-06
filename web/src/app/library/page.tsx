@@ -35,14 +35,14 @@ export default function LibraryPage() {
           <p style={S.emptyTitle}>No stories yet</p>
           <p style={S.emptyBody}>Pick a companion and write your first chapter — it&apos;ll live here so you can pick up any time.</p>
           <div style={S.emptyCta}>
-            <a href="/story" style={S.primary}>Begin a story →</a>
-            <a href="/browse" style={S.secondary}>Browse companions</a>
+            <a href="/story" className="rv-btn rv-btn-primary" style={S.primary}>Begin a story →</a>
+            <a href="/browse" className="rv-btn" style={S.secondary}>Browse companions</a>
           </div>
         </div>
       ) : (
         <div style={S.grid}>
           {items.map((s) => (
-            <a key={s.id} href={`/story/${s.id}`} style={S.card}>
+            <a key={s.id} href={`/story/${s.id}`} className="rv-card" style={S.card}>
               <div style={S.head}><CharacterAvatar characterId={s.characterId} name={s.name} size={34} /><div style={S.title}>{s.title}</div></div>
               <span style={S.meta}>with {s.name} · {s.chapters} chapter{s.chapters === 1 ? "" : "s"}</span>
             </a>

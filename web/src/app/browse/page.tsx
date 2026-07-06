@@ -80,7 +80,7 @@ export default function BrowsePage() {
       ) : (
         <div style={S.grid}>
           {shown.map((c) => (
-            <div key={c.id} style={S.card}>
+            <div key={c.id} className="rv-card" style={S.card}>
               <a href={`/c/${c.id}`} style={S.headLink}>
                 <div style={S.head}><CharacterAvatar characterId={c.id} name={c.name} size={48} /><div><div style={S.name}>{c.name}</div><div style={S.tags}>{c.tags.map((t) => <span key={t} style={S.tag}>{t}</span>)}</div></div></div>
               </a>
@@ -88,8 +88,8 @@ export default function BrowsePage() {
               <p style={S.tagline}>{c.tagline}</p>
               <div style={S.meta}>{c.reads} read{c.reads === 1 ? "" : "s"} · {c.stories} stor{c.stories === 1 ? "y" : "ies"}</div>
               <div style={S.actions}>
-                <a style={S.primary} href={`/story?characterId=${c.id}`}>Begin a story</a>
-                <a style={S.secondary} href={`/chat?characterId=${c.id}`}>Chat</a>
+                <a className="rv-btn rv-btn-primary" style={S.primary} href={`/story?characterId=${c.id}`}>Begin a story</a>
+                <a className="rv-btn" style={S.secondary} href={`/chat?characterId=${c.id}`}>Chat</a>
               </div>
             </div>
           ))}
