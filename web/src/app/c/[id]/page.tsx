@@ -1,6 +1,6 @@
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { characters, stories } from "@/db/schema";
+import { characters, stories, users } from "@/db/schema";
 import { Avatar } from "@/components/Avatar";
 import { getCurrentUserId } from "@/lib/session";
 
@@ -19,7 +19,8 @@ type Profile = {
   backstory: string;
   tags: string[];
   isOwner: boolean;
-  stories: { id: string; title: string; snippet: string; chapters: number }[];
+  creator: string; // display attribution ("Reverie" for first-party)
+  stories: { id: string; title: string; snippet: string; chapters: number; reads: number }[];
 };
 
 async function loadProfile(id: string): Promise<Profile | null> {
@@ -37,8 +38,18 @@ async function loadProfile(id: string): Promise<Profile | null> {
     if (char.status !== "published" && !isOwner) return null;
 
     const def = (char.definition ?? {}) as Record<string, unknown>;
+
+    // Attribution: first-party (no creator) shows as Reverie; a creator shows
+    // their chosen display name, or "Anonymous creator" if they haven't set one.
+    // The email is never exposed.
+    let creator = "Reverie";
+    if (char.creatorId) {
+      const [c] = await db.select({ dn: users.displayName }).from(users).where(eq(users.id, char.creatorId)).limit(1);
+      creator = c?.dn?.trim() || "Anonymous creator";
+    }
+
     const rows = await db
-      .select({ id: stories.id, title: stories.title, content: stories.content })
+      .select({ id: stories.id, title: stories.title, content: stories.content, reads: stories.reads })
       .from(stories)
       .where(and(eq(stories.characterId, id), eq(stories.isPublic, true)))
       .orderBy(desc(stories.createdAt))
@@ -52,11 +63,13 @@ async function loadProfile(id: string): Promise<Profile | null> {
       backstory: (def.backstory as string) ?? "",
       tags: Array.isArray(def.tags) ? (def.tags as string[]) : [],
       isOwner,
+      creator,
       stories: rows.map((r) => ({
         id: r.id,
         title: r.title,
         snippet: r.content.replace(/\s+/g, " ").slice(0, 140),
         chapters: chapterCount(r.content),
+        reads: r.reads,
       })),
     };
   } catch {
@@ -85,6 +98,7 @@ export default async function CharacterProfile({ params }: { params: Promise<{ i
         <Avatar name={p.name} size={72} />
         <div style={S.headText}>
           <h1 style={S.name}>{p.name}</h1>
+          <p style={S.by}>by {p.creator}</p>
           {p.look ? <p style={S.look}>{p.look}</p> : null}
           {p.tags.length ? <div style={S.tags}>{p.tags.map((t) => <span key={t} style={S.tag}>{t}</span>)}</div> : null}
         </div>
@@ -108,7 +122,7 @@ export default async function CharacterProfile({ params }: { params: Promise<{ i
             <a key={s.id} href={`/story/${s.id}`} style={S.card}>
               <div style={S.cardTitle}>{s.title}</div>
               <p style={S.cardSnip}>{s.snippet}…</p>
-              <span style={S.cardMeta}>{s.chapters} chapter{s.chapters === 1 ? "" : "s"}</span>
+              <span style={S.cardMeta}>{s.chapters} chapter{s.chapters === 1 ? "" : "s"} · {s.reads} read{s.reads === 1 ? "" : "s"}</span>
             </a>
           ))}
         </div>
@@ -124,6 +138,7 @@ const S: Record<string, React.CSSProperties> = {
   head: { display: "flex", alignItems: "center", gap: 18, margin: "24px 0 20px" },
   headText: { display: "flex", flexDirection: "column", gap: 8 },
   name: { fontFamily: "Georgia, serif", fontSize: 36, margin: 0, lineHeight: 1.1 },
+  by: { color: "#8A7A90", margin: 0, fontSize: 13.5 },
   look: { color: "#AC9CB0", margin: 0, fontSize: 14.5 },
   tags: { display: "flex", flexWrap: "wrap", gap: 6 },
   tag: { fontSize: 11.5, color: "#E9A06B", border: "1px solid #4a3a50", borderRadius: 999, padding: "2px 9px" },

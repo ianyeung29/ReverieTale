@@ -9,6 +9,6 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const userId = await getCurrentUserId();
   if (!userId) return NextResponse.json({ user: null });
-  const [u] = await db.select({ email: users.email }).from(users).where(eq(users.id, userId)).limit(1);
-  return NextResponse.json({ user: u ? { email: u.email } : null });
+  const [u] = await db.select({ email: users.email, displayName: users.displayName }).from(users).where(eq(users.id, userId)).limit(1);
+  return NextResponse.json({ user: u ? { email: u.email, displayName: u.displayName ?? "" } : null });
 }

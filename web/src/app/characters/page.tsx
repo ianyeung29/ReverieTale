@@ -10,10 +10,26 @@ export default function MyCharactersPage() {
   const [authEmail, setAuthEmail] = useState<string | null | undefined>(undefined);
   const [items, setItems] = useState<Char[] | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState("");
+  const [savedName, setSavedName] = useState("");
+  const [savingName, setSavingName] = useState(false);
 
   useEffect(() => {
-    fetch("/api/auth/me").then((r) => r.json()).then((d) => setAuthEmail(d.user?.email ?? null)).catch(() => setAuthEmail(null));
+    fetch("/api/auth/me").then((r) => r.json()).then((d) => {
+      setAuthEmail(d.user?.email ?? null);
+      setDisplayName(d.user?.displayName ?? "");
+      setSavedName(d.user?.displayName ?? "");
+    }).catch(() => setAuthEmail(null));
   }, []);
+
+  async function saveName() {
+    if (savingName || displayName === savedName) return;
+    setSavingName(true);
+    try {
+      const res = await fetch("/api/profile", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ displayName: displayName.trim() }) });
+      if (res.ok) setSavedName(displayName.trim());
+    } catch {} finally { setSavingName(false); }
+  }
 
   function load() {
     fetch("/api/characters/mine").then((r) => (r.ok ? r.json() : [])).then((d: Char[]) => setItems(Array.isArray(d) ? d : [])).catch(() => setItems([]));
@@ -45,6 +61,15 @@ export default function MyCharactersPage() {
         <a href="/create" style={S.newBtn}>＋ Create a companion</a>
       </div>
       <p style={S.sub}>Every published companion can be met in stories and chats — and earns you credits when readers talk to them.</p>
+
+      <div style={S.nameBox}>
+        <label style={S.nameLabel}>Displayed as</label>
+        <input style={S.nameInput} value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="a public creator name (optional)" maxLength={40} />
+        <button style={{ ...S.nameSave, opacity: savingName || displayName.trim() === savedName.trim() ? 0.5 : 1 }} onClick={saveName} disabled={savingName || displayName.trim() === savedName.trim()}>
+          {savingName ? "Saving…" : displayName.trim() === savedName.trim() ? "Saved" : "Save"}
+        </button>
+        <span style={S.nameHint}>Shown as the creator on your companions&apos; profiles. Blank = &quot;Anonymous creator.&quot; Your email is never shown.</span>
+      </div>
 
       {items === null ? (
         <p style={S.muted}>Loading…</p>
@@ -87,7 +112,12 @@ const S: Record<string, React.CSSProperties> = {
   titleRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", margin: "22px 0 6px" },
   h1: { fontFamily: "Georgia, serif", fontSize: 38, margin: 0 },
   newBtn: { color: "#1A1220", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", padding: "10px 16px", borderRadius: 10, fontWeight: 650, textDecoration: "none", fontSize: 14, whiteSpace: "nowrap" },
-  sub: { color: "#AC9CB0", margin: "0 0 26px", fontSize: 14.5 },
+  sub: { color: "#AC9CB0", margin: "0 0 20px", fontSize: 14.5 },
+  nameBox: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, background: "#1C1422", border: "1px solid #3A2E44", borderRadius: 12, padding: "14px 16px", margin: "0 0 28px" },
+  nameLabel: { fontSize: 12, letterSpacing: ".1em", textTransform: "uppercase", color: "#8A7A90", fontWeight: 700 },
+  nameInput: { flex: "1 1 200px", background: "#1A121F", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 9, padding: "9px 12px", fontSize: 14 },
+  nameSave: { color: "#1A1220", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", border: 0, borderRadius: 9, padding: "9px 16px", cursor: "pointer", fontWeight: 650, fontSize: 13.5 },
+  nameHint: { flexBasis: "100%", color: "#6f6276", fontSize: 12.5 },
   muted: { color: "#AC9CB0" },
   link: { color: "#E9A06B" },
   grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))", gap: 16 },

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { characters } from "@/db/schema";
+import { characters, stories } from "@/db/schema";
 import { screen } from "@/lib/moderation";
 import { getCurrentUserId } from "@/lib/session";
 
@@ -10,18 +10,34 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   const rows = await db
-    .select({ id: characters.id, definition: characters.definition })
+    .select({ id: characters.id, definition: characters.definition, createdAt: characters.createdAt })
     .from(characters)
     .where(eq(characters.status, "published"));
 
+  // Per-character engagement from public stories: total reads + story count.
+  const agg = await db
+    .select({
+      cid: stories.characterId,
+      reads: sql<number>`coalesce(sum(${stories.reads}), 0)::int`,
+      stories: sql<number>`count(*)::int`,
+    })
+    .from(stories)
+    .where(eq(stories.isPublic, true))
+    .groupBy(stories.characterId);
+  const byChar = new Map(agg.map((a) => [a.cid, a]));
+
   const list = rows.map((r) => {
     const def = (r.definition ?? {}) as Record<string, unknown>;
+    const a = byChar.get(r.id);
     return {
       id: r.id,
       name: (def.name as string) ?? "Unknown",
       tagline: (def.backstory as string) ?? "",
       persona: (def.persona as string) ?? "",
       tags: Array.isArray(def.tags) ? (def.tags as string[]) : [],
+      reads: a?.reads ?? 0,
+      stories: a?.stories ?? 0,
+      createdAt: r.createdAt,
     };
   });
   return NextResponse.json(list);

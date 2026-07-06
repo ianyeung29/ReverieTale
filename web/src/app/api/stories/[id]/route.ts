@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { characters, stories } from "@/db/schema";
 import { getCurrentUserId } from "@/lib/session";
@@ -29,6 +29,14 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const def = (row.definition ?? {}) as Record<string, string>;
   const userId = await getCurrentUserId();
   const isOwner = Boolean(row.ownerId && userId && row.ownerId === userId);
+  // Count reads by anyone other than the creator (powers the "most read" sort).
+  if (!isOwner) {
+    try {
+      await db.update(stories).set({ reads: sql`${stories.reads} + 1` }).where(eq(stories.id, id));
+    } catch {
+      /* read counting must never break reading */
+    }
+  }
   return NextResponse.json({
     id: row.id,
     title: row.title,

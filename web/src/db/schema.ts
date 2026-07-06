@@ -22,6 +22,9 @@ const EMBED_DIM = 1536;
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   email: text("email").notNull().unique(),
+  // Public creator handle (optional). Shown as attribution on character profiles;
+  // never the email, which stays private.
+  displayName: text("display_name"),
   // Age gate: attestation now, verification-vendor token later (see exec-3 sec 3).
   ageVerified: boolean("age_verified").notNull().default(false),
   verifiedJurisdiction: text("verified_jurisdiction"),
@@ -65,6 +68,8 @@ export const stories = pgTable(
     content: text("content").notNull(),
     elements: jsonb("elements"), // { setting, tone, ... }
     isPublic: boolean("is_public").notNull().default(true),
+    // Read counter (page views by non-owners) - powers the "most read" sort.
+    reads: integer("reads").notNull().default(0),
     // One-level undo: the full content from before the most recent rewrite.
     backup: text("backup"),
     backupAt: timestamp("backup_at", { withTimezone: true }),
