@@ -76,6 +76,7 @@ export default function StoryPage() {
   const [chapterPrice, setChapterPrice] = useState(10);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [paywall, setPaywall] = useState(false);
   const [authEmail, setAuthEmail] = useState<string | null | undefined>(undefined);
   const [opts, setOpts] = useState<OptionSet>(() => buildOptions(firstOptions));
 
@@ -108,7 +109,7 @@ export default function StoryPage() {
 
   async function generate() {
     if (!charId || busy) return;
-    setBusy(true); setError("");
+    setBusy(true); setError(""); setPaywall(false);
     try {
       const res = await fetch("/api/story", {
         method: "POST",
@@ -128,7 +129,7 @@ export default function StoryPage() {
       const d = await res.json();
       if (res.ok && d.storyId) { window.location.href = `/story/${d.storyId}`; return; }
       if (res.status === 401) { setAuthEmail(null); setBusy(false); return; }
-      if (res.status === 402) { setError(`You need ${d.price ?? 10} credits to write a chapter — you have ${d.balance?.total ?? 0}. Come back tomorrow for your daily credits, or add more.`); setBusy(false); return; }
+      if (res.status === 402) { setError(`You need ${d.price ?? 10} credits to write a chapter — you have ${d.balance?.total ?? 0}. Free credits refresh daily.`); setPaywall(true); setBusy(false); return; }
       setError(d.error === "blocked" ? "That prompt isn't allowed." : d.error || "Something went wrong.");
       setBusy(false);
     } catch {
@@ -203,7 +204,7 @@ export default function StoryPage() {
         {busy ? "Writing…" : `Write my first chapter with ${active?.name ?? "…"}`}
       </button>
       <p style={S.cost}>Costs {chapterPrice} credits · reading is always free</p>
-      {error ? <p style={S.err}>{error}</p> : null}
+      {error ? <p style={S.err}>{error}{paywall ? <> <a href="/credits" style={S.errLink}>Get credits →</a></> : null}</p> : null}
     </main>
   );
 }
@@ -252,6 +253,7 @@ const S: Record<string, React.CSSProperties> = {
   cta: { marginTop: 30, border: 0, cursor: "pointer", color: "#1A1220", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", borderRadius: 12, padding: "15px 24px", fontWeight: 650, fontSize: 16, width: "100%" },
   cost: { color: "#8A7A90", fontSize: 13, textAlign: "center", margin: "10px 0 0" },
   err: { color: "#E88", marginTop: 14 },
+  errLink: { color: "#E9A06B", fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" },
   story: { marginTop: 44, borderTop: "1px solid #3A2E44", paddingTop: 32 },
   storyTitle: { fontFamily: "Georgia, serif", fontSize: 30, margin: "0 0 18px", textAlign: "center" },
   para: { margin: "0 0 16px", color: "#EadFe6" },

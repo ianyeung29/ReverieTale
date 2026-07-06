@@ -13,6 +13,7 @@ export function ChatDock({ characterId, characterName, storyId, chapter }: { cha
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [needAuth, setNeedAuth] = useState(false);
+  const [broke, setBroke] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, busy, open]);
@@ -22,7 +23,7 @@ export function ChatDock({ characterId, characterName, storyId, chapter }: { cha
     if (!text || busy) return;
     setInput("");
     setMessages((m) => [...m, { role: "user", content: text }]);
-    setBusy(true);
+    setBusy(true); setBroke(false);
     try {
       const body: Record<string, unknown> = { characterId, threadId, message: text };
       // Send the story + current chapter every turn so her memory refreshes (and
@@ -36,7 +37,8 @@ export function ChatDock({ characterId, characterName, storyId, chapter }: { cha
       } else if (res.status === 401) {
         setNeedAuth(true);
       } else if (res.status === 402) {
-        setMessages((m) => [...m, { role: "system", content: "You're out of credits - open full chat to top up." }]);
+        setBroke(true);
+        setMessages((m) => [...m, { role: "system", content: "You're out of credits." }]);
       } else {
         setMessages((m) => [...m, { role: "system", content: `[${data.error || "error"}]` }]);
       }
@@ -75,6 +77,7 @@ export function ChatDock({ characterId, characterName, storyId, chapter }: { cha
         )}
         {busy ? <div style={{ ...D.row, justifyContent: "flex-start" }}><div style={{ ...D.bubble, ...D.bot, color: "#8A7A90" }}>…</div></div> : null}
         {needAuth ? <a href={`/chat?characterId=${characterId}${storyId ? `&fromStory=${storyId}` : ""}`} style={D.signin}>Sign in to talk to {characterName} →</a> : null}
+        {broke ? <a href="/credits" style={D.signin}>Get more credits →</a> : null}
         <div ref={endRef} />
       </div>
       {!needAuth ? (

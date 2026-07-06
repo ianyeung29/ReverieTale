@@ -108,13 +108,6 @@ export default function ChatPage() {
     } catch { setMessages([]); }
   }
 
-  async function topUp() {
-    try {
-      const d = await fetch("/api/credits", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ credits: 100 }) }).then((r) => r.json());
-      if (d.balance) { setCredits(d.balance.total); setBroke(false); }
-    } catch {}
-  }
-
   function setLast(content: string, role: Msg["role"] = "character") {
     setMessages((m) => { const c = m.slice(); c[c.length - 1] = { role, content }; return c; });
   }
@@ -251,7 +244,7 @@ export default function ChatPage() {
       </div>
 
       <div style={S.barWrap}>
-        {broke ? <button style={S.topup} onClick={topUp}>Top up 100 credits (dev)</button> : null}
+        {broke ? <a href="/credits" style={S.topup}>Out of credits — get more →</a> : null}
         <div style={S.bar}>
           <input style={S.input} value={input} onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
@@ -299,7 +292,7 @@ const S: Record<string, React.CSSProperties> = {
   user: { background: "linear-gradient(100deg,#E9A06B,#D46A8B)", color: "#1A1220", borderBottomRightRadius: 4 },
   bot: { background: "#231A2B", border: "1px solid #3A2E44", color: "#F4EAF0", borderBottomLeftRadius: 4 },
   barWrap: { padding: "14px 20px 22px", borderTop: "1px solid #3A2E44", display: "flex", flexDirection: "column", gap: 10 },
-  topup: { alignSelf: "center", border: "1px solid #E9A06B", color: "#E9A06B", background: "transparent", borderRadius: 10, padding: "8px 16px", cursor: "pointer", fontSize: 14 },
+  topup: { alignSelf: "center", border: "1px solid #E9A06B", color: "#E9A06B", background: "transparent", borderRadius: 10, padding: "8px 16px", cursor: "pointer", fontSize: 14, textDecoration: "none" },
   bar: { display: "flex", gap: 10 },
   input: { flex: 1, background: "#1A121F", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 12, padding: "13px 15px", fontSize: 15 },
   send: { border: 0, cursor: "pointer", color: "#1A1220", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", borderRadius: 12, padding: "0 22px", fontWeight: 650, fontSize: 15 },

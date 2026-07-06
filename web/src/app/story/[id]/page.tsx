@@ -182,7 +182,7 @@ export default function StoryReadPage() {
         )}
       </div>
 
-      {notice ? <p style={S.notice}>{notice}</p> : null}
+      {notice ? <p style={S.notice}>{notice} <a href="/credits" style={S.noticeLink}>Get credits →</a></p> : null}
 
       {last && showForm ? (
         <div style={S.form}>
@@ -293,6 +293,7 @@ const S: Record<string, React.CSSProperties> = {
   write: { border: 0, cursor: "pointer", color: "#1A1220", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", borderRadius: 10, padding: "12px 20px", fontWeight: 650, fontSize: 15 },
   cancel: { background: "transparent", border: 0, color: "#8A7A90", cursor: "pointer", fontSize: 14 },
   notice: { marginTop: 14, background: "#2A1A1E", border: "1px solid #6b3a44", borderRadius: 10, padding: "10px 14px", color: "#F0C9B0", fontSize: 14 },
+  noticeLink: { color: "#E9A06B", fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" },
   talkRow: { marginTop: 22, textAlign: "center" },
   talk: { color: "#AC9CB0", textDecoration: "none", fontSize: 14 },
 };
