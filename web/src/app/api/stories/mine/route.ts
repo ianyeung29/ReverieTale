@@ -16,6 +16,7 @@ export async function GET() {
       id: stories.id,
       title: stories.title,
       content: stories.content,
+      characterId: stories.characterId,
       name: sql<string>`${characters.definition}->>'name'`,
       createdAt: stories.createdAt,
     })
@@ -30,6 +31,7 @@ export async function GET() {
       id: r.id,
       title: r.title,
       name: r.name,
+      characterId: r.characterId,
       chapters: (r.content.match(/\n{2,}·\s·\s·\n{2,}/g)?.length ?? 0) + 1,
     })),
   );

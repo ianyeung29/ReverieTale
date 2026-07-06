@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { characters, stories, users } from "@/db/schema";
@@ -5,6 +6,20 @@ import { CharacterAvatar } from "@/components/CharacterAvatar";
 import { getCurrentUserId } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  try {
+    const [row] = await db.select({ definition: characters.definition, status: characters.status }).from(characters).where(eq(characters.id, id)).limit(1);
+    if (!row || row.status !== "published") return { title: "Companion · Reverie" };
+    const def = (row.definition ?? {}) as Record<string, unknown>;
+    const name = (def.name as string) || "Companion";
+    const desc = String((def.persona as string) || (def.backstory as string) || "An AI companion who remembers you.").slice(0, 155);
+    return { title: `${name} · Reverie`, description: desc, openGraph: { title: `${name} · Reverie`, description: desc } };
+  } catch {
+    return { title: "Companion · Reverie" };
+  }
+}
 
 function chapterCount(content: string): number {
   const n = content.split(/\n{2,}·\s·\s·\n{2,}/).map((s) => s.trim()).filter(Boolean).length;

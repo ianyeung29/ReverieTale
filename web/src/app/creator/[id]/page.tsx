@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
@@ -5,6 +6,17 @@ import { CharacterAvatar } from "@/components/CharacterAvatar";
 import { listCharacters } from "@/lib/discovery";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  try {
+    const [u] = await db.select({ dn: users.displayName }).from(users).where(eq(users.id, id)).limit(1);
+    const name = u?.dn?.trim() || "Creator";
+    return { title: `${name} · Reverie`, description: `Companions by ${name} on Reverie.` };
+  } catch {
+    return { title: "Creator · Reverie" };
+  }
+}
 
 export default async function CreatorPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

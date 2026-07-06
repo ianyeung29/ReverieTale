@@ -1,7 +1,14 @@
+import type { Metadata } from "next";
 import { CharacterAvatar } from "@/components/CharacterAvatar";
 import { listCharacters, trendingScore } from "@/lib/discovery";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: { params: Promise<{ tag: string }> }): Promise<Metadata> {
+  const { tag } = await params;
+  const t = decodeURIComponent(tag);
+  return { title: `#${t} companions · Reverie`, description: `Browse companions tagged ${t} on Reverie.` };
+}
 
 export default async function TagPage({ params }: { params: Promise<{ tag: string }> }) {
   const { tag: raw } = await params;

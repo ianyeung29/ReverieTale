@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Avatar } from "@/components/Avatar";
+import { CharacterAvatar } from "@/components/CharacterAvatar";
 
-type Item = { id: string; title: string; name: string; chapters: number };
+type Item = { id: string; title: string; name: string; chapters: number; characterId: string };
 
 export default function LibraryPage() {
   const [items, setItems] = useState<Item[] | null>(null);
@@ -43,7 +43,7 @@ export default function LibraryPage() {
         <div style={S.grid}>
           {items.map((s) => (
             <a key={s.id} href={`/story/${s.id}`} style={S.card}>
-              <div style={S.head}><Avatar name={s.name} size={34} /><div style={S.title}>{s.title}</div></div>
+              <div style={S.head}><CharacterAvatar characterId={s.characterId} name={s.name} size={34} /><div style={S.title}>{s.title}</div></div>
               <span style={S.meta}>with {s.name} · {s.chapters} chapter{s.chapters === 1 ? "" : "s"}</span>
             </a>
           ))}

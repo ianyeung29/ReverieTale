@@ -1,7 +1,6 @@
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { characters, stories } from "@/db/schema";
-import { Avatar } from "@/components/Avatar";
 import { CharacterAvatar } from "@/components/CharacterAvatar";
 import { listCharacters, trendingScore } from "@/lib/discovery";
 
@@ -25,6 +24,7 @@ async function recentStories() {
         id: stories.id,
         title: stories.title,
         content: stories.content,
+        characterId: stories.characterId,
         name: sql<string>`${characters.definition}->>'name'`,
       })
       .from(stories)
@@ -32,7 +32,7 @@ async function recentStories() {
       .where(and(eq(stories.isPublic, true), eq(characters.status, "published")))
       .orderBy(desc(stories.createdAt))
       .limit(9);
-    return rows.map((r) => ({ id: r.id, title: r.title, name: r.name, snippet: r.content.replace(/\s+/g, " ").slice(0, 150) }));
+    return rows.map((r) => ({ id: r.id, title: r.title, name: r.name, characterId: r.characterId, snippet: r.content.replace(/\s+/g, " ").slice(0, 150) }));
   } catch {
     return [];
   }
@@ -94,7 +94,7 @@ export default async function Home() {
           <div style={S.grid}>
             {feed.map((s) => (
               <a key={s.id} href={`/story/${s.id}`} style={S.card}>
-                <div style={S.cardHead}><Avatar name={s.name} size={34} /><div style={S.cardName}>{s.title}</div></div>
+                <div style={S.cardHead}><CharacterAvatar characterId={s.characterId} name={s.name} size={34} /><div style={S.cardName}>{s.title}</div></div>
                 <p style={S.cardSnip}>{s.snippet}…</p>
                 <span style={S.with}>with {s.name}</span>
               </a>
