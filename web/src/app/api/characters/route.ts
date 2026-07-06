@@ -88,7 +88,15 @@ export async function POST(req: Request) {
 
   const [char] = await db
     .insert(characters)
-    .values({ creatorId: userId, status, reviewNote: mod.reason, definition, image: body.image ?? null, imageMime: body.imageMime ?? null })
+    .values({
+      creatorId: userId,
+      status,
+      reviewNote: mod.reason,
+      definition,
+      // Only touch image columns when a portrait was actually attached, so the
+      // core create flow works even if migration 0006 hasn't been applied.
+      ...(body.image ? { image: body.image, imageMime: body.imageMime ?? null } : {}),
+    })
     .returning({ id: characters.id });
 
   return NextResponse.json({ id: char.id, name: body.name, status });

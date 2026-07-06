@@ -17,23 +17,28 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const [row] = await db
-    .select({
-      creatorId: characters.creatorId,
-      definition: characters.definition,
-      status: characters.status,
-      hasImage: sql<boolean>`(${characters.image} is not null)`,
-    })
+    .select({ creatorId: characters.creatorId, definition: characters.definition, status: characters.status })
     .from(characters)
     .where(eq(characters.id, id))
     .limit(1);
   if (!row) return NextResponse.json({ error: "not found" }, { status: 404 });
   if (row.creatorId !== userId) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
+  // Image columns are optional (migration 0006). Check separately so a missing
+  // column never breaks loading the character for editing.
+  let hasImage = false;
+  try {
+    const [img] = await db.select({ h: sql<boolean>`(${characters.image} is not null)` }).from(characters).where(eq(characters.id, id)).limit(1);
+    hasImage = Boolean(img?.h);
+  } catch {
+    /* image column not migrated yet */
+  }
+
   const def = (row.definition ?? {}) as Record<string, unknown>;
   return NextResponse.json({
     id,
     status: row.status,
-    hasImage: Boolean(row.hasImage),
+    hasImage,
     name: (def.name as string) ?? "",
     look: (def.look as string) ?? "",
     persona: (def.persona as string) ?? "",

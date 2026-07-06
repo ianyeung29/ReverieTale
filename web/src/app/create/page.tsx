@@ -37,6 +37,7 @@ export default function CreateCharacterPage() {
   const [portraitErr, setPortraitErr] = useState("");
   const [previewErr, setPreviewErr] = useState("");
   const [genErr, setGenErr] = useState<{ where: string; msg: string } | null>(null);
+  const [loadErr, setLoadErr] = useState(false);
 
   useEffect(() => {
     fetch("/api/auth/me").then((r) => r.json()).then((d) => { setAuthEmail(d.user?.email ?? null); if (d.user) setPortraitFree(d.user.portraitFreeRemaining ?? null); }).catch(() => setAuthEmail(null));
@@ -44,12 +45,11 @@ export default function CreateCharacterPage() {
     const id = new URLSearchParams(window.location.search).get("id");
     if (!id) return;
     setEditId(id);
-    fetch(`/api/characters/${id}`).then((r) => (r.ok ? r.json() : null)).then((d) => {
-      if (!d) return;
+    fetch(`/api/characters/${id}`).then((r) => (r.ok ? r.json() : Promise.reject(r.status))).then((d) => {
       setName(d.name || ""); setLook(d.look || ""); setPersona(d.persona || "");
       setBackstory(d.backstory || ""); setVoice(d.voice || ""); setTags(Array.isArray(d.tags) ? d.tags : []);
       setHasImage(!!d.hasImage);
-    }).catch(() => {});
+    }).catch(() => setLoadErr(true));
   }, []);
 
   async function generatePortrait() {
@@ -238,6 +238,8 @@ export default function CreateCharacterPage() {
         </div>
       </div>
       <p style={S.sub}>{editId ? "Update how they look, sound, and behave. Changes apply to new chats and stories." : "Build them once. Every story you write and every reader who chats with them earns you credits."}</p>
+
+      {loadErr ? <p style={S.fieldErr}>Couldn&apos;t load this companion&apos;s details. Refresh to try again.</p> : null}
 
       {imageEnabled ? (
         <div style={S.portraitRow}>
