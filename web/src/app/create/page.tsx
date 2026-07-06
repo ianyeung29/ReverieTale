@@ -16,9 +16,18 @@ export default function CreateCharacterPage() {
   const [tags, setTags] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [editId, setEditId] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/auth/me").then((r) => r.json()).then((d) => setAuthEmail(d.user?.email ?? null)).catch(() => setAuthEmail(null));
+    const id = new URLSearchParams(window.location.search).get("id");
+    if (!id) return;
+    setEditId(id);
+    fetch(`/api/characters/${id}`).then((r) => (r.ok ? r.json() : null)).then((d) => {
+      if (!d) return;
+      setName(d.name || ""); setLook(d.look || ""); setPersona(d.persona || "");
+      setBackstory(d.backstory || ""); setVoice(d.voice || ""); setTags(Array.isArray(d.tags) ? d.tags : []);
+    }).catch(() => {});
   }, []);
 
   function toggleTag(t: string) {
@@ -28,18 +37,34 @@ export default function CreateCharacterPage() {
   async function create() {
     if (!name.trim() || busy) return;
     setBusy(true); setError("");
+    const payload = {
+      name: name.trim(),
+      look: look.trim() || undefined,
+      persona: persona.trim() || undefined,
+      backstory: backstory.trim() || undefined,
+      voice: voice.trim() || undefined,
+      tags: tags.length ? tags : undefined,
+    };
     try {
+      if (editId) {
+        // Editing an existing companion: save in place and return to management.
+        const res = await fetch(`/api/characters/${editId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const d = await res.json();
+        if (res.ok) { window.location.href = "/characters"; return; }
+        if (res.status === 401) { setAuthEmail(null); setBusy(false); return; }
+        setError(d.error === "blocked" ? "That description isn't allowed." : d.error || "Something went wrong.");
+        setBusy(false);
+        return;
+      }
+
       const res = await fetch("/api/characters", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: name.trim(),
-          look: look.trim() || undefined,
-          persona: persona.trim() || undefined,
-          backstory: backstory.trim() || undefined,
-          voice: voice.trim() || undefined,
-          tags: tags.length ? tags : undefined,
-        }),
+        body: JSON.stringify(payload),
       });
       const d = await res.json();
       // Combined flow: hand off to the story creator with her preselected, so the
@@ -64,11 +89,11 @@ export default function CreateCharacterPage() {
       <div style={S.head}>
         <Avatar name={name || "?"} size={54} />
         <div>
-          <p style={S.mark}>Create a companion</p>
+          <p style={S.mark}>{editId ? "Edit companion" : "Create a companion"}</p>
           <h1 style={S.h1}>{name.trim() || "Your character"}</h1>
         </div>
       </div>
-      <p style={S.sub}>Build them once. Every story you write and every reader who chats with them earns you credits.</p>
+      <p style={S.sub}>{editId ? "Update how they look, sound, and behave. Changes apply to new chats and stories." : "Build them once. Every story you write and every reader who chats with them earns you credits."}</p>
 
       <label style={S.label}>Name</label>
       <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Mara, Kai, Sable…" style={S.input} maxLength={60} />
@@ -96,11 +121,11 @@ export default function CreateCharacterPage() {
 
       <div style={S.actions}>
         <button style={{ ...S.primary, opacity: !name.trim() || busy ? 0.55 : 1 }} onClick={create} disabled={!name.trim() || busy}>
-          {busy ? "Creating…" : "Create & write her first story →"}
+          {busy ? (editId ? "Saving…" : "Creating…") : editId ? "Save changes" : "Create & write her first story →"}
         </button>
-        <a href="/" style={S.cancel}>Cancel</a>
+        <a href={editId ? "/characters" : "/"} style={S.cancel}>Cancel</a>
       </div>
-      <p style={S.foot}>Next you&apos;ll set the scene for her opening story. Writing a chapter costs credits; reading is always free.</p>
+      {editId ? null : <p style={S.foot}>Next you&apos;ll set the scene for her opening story. Writing a chapter costs credits; reading is always free.</p>}
     </main>
   );
 }
