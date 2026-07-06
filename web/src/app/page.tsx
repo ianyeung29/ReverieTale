@@ -2,8 +2,20 @@ import { desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { characters, stories } from "@/db/schema";
 import { Avatar } from "@/components/Avatar";
+import { listCharacters, trendingScore } from "@/lib/discovery";
 
 export const dynamic = "force-dynamic";
+
+async function trendingCompanions() {
+  try {
+    const cs = await listCharacters();
+    return cs
+      .sort((a, b) => trendingScore(b.reads, b.createdAt) - trendingScore(a.reads, a.createdAt))
+      .slice(0, 6);
+  } catch {
+    return [];
+  }
+}
 
 async function recentStories() {
   try {
@@ -26,7 +38,7 @@ async function recentStories() {
 }
 
 export default async function Home() {
-  const feed = await recentStories();
+  const [feed, trending] = await Promise.all([recentStories(), trendingCompanions()]);
 
   return (
     <main style={S.wrap}>
@@ -41,6 +53,21 @@ export default async function Home() {
         <a href="/library" style={btn(false)}>Your stories</a>
         <a href="/chat" style={btn(false)}>Skip to chat</a>
       </div>
+
+      {trending.length > 0 ? (
+        <>
+          <p style={S.section}>Trending companions</p>
+          <div style={S.grid}>
+            {trending.map((c) => (
+              <a key={c.id} href={`/c/${c.id}`} style={S.card}>
+                <div style={S.cardHead}><Avatar name={c.name} size={34} /><div style={S.cardName}>{c.name}</div></div>
+                {c.persona ? <p style={S.cardSnip}>{c.persona.slice(0, 120)}…</p> : null}
+                <span style={S.with}>{c.reads} read{c.reads === 1 ? "" : "s"} · {c.stories} stor{c.stories === 1 ? "y" : "ies"}</span>
+              </a>
+            ))}
+          </div>
+        </>
+      ) : null}
 
       {feed.length > 0 ? (
         <>

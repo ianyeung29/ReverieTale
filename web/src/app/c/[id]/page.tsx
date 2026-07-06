@@ -20,6 +20,7 @@ type Profile = {
   tags: string[];
   isOwner: boolean;
   creator: string; // display attribution ("Reverie" for first-party)
+  creatorId: string | null; // links to the creator catalog; null = first-party
   stories: { id: string; title: string; snippet: string; chapters: number; reads: number }[];
 };
 
@@ -64,6 +65,7 @@ async function loadProfile(id: string): Promise<Profile | null> {
       tags: Array.isArray(def.tags) ? (def.tags as string[]) : [],
       isOwner,
       creator,
+      creatorId: char.creatorId ?? null,
       stories: rows.map((r) => ({
         id: r.id,
         title: r.title,
@@ -98,9 +100,9 @@ export default async function CharacterProfile({ params }: { params: Promise<{ i
         <Avatar name={p.name} size={72} />
         <div style={S.headText}>
           <h1 style={S.name}>{p.name}</h1>
-          <p style={S.by}>by {p.creator}</p>
+          <p style={S.by}>by {p.creatorId ? <a href={`/creator/${p.creatorId}`} style={S.byLink}>{p.creator}</a> : p.creator}</p>
           {p.look ? <p style={S.look}>{p.look}</p> : null}
-          {p.tags.length ? <div style={S.tags}>{p.tags.map((t) => <span key={t} style={S.tag}>{t}</span>)}</div> : null}
+          {p.tags.length ? <div style={S.tags}>{p.tags.map((t) => <a key={t} href={`/tag/${encodeURIComponent(t)}`} style={S.tag}>{t}</a>)}</div> : null}
         </div>
       </div>
 
@@ -139,9 +141,10 @@ const S: Record<string, React.CSSProperties> = {
   headText: { display: "flex", flexDirection: "column", gap: 8 },
   name: { fontFamily: "Georgia, serif", fontSize: 36, margin: 0, lineHeight: 1.1 },
   by: { color: "#8A7A90", margin: 0, fontSize: 13.5 },
+  byLink: { color: "#E9A06B", textDecoration: "none" },
   look: { color: "#AC9CB0", margin: 0, fontSize: 14.5 },
   tags: { display: "flex", flexWrap: "wrap", gap: 6 },
-  tag: { fontSize: 11.5, color: "#E9A06B", border: "1px solid #4a3a50", borderRadius: 999, padding: "2px 9px" },
+  tag: { fontSize: 11.5, color: "#E9A06B", border: "1px solid #4a3a50", borderRadius: 999, padding: "2px 9px", textDecoration: "none" },
   cta: { display: "flex", flexWrap: "wrap", gap: 10, margin: "0 0 30px" },
   primary: { color: "#1A1220", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", padding: "12px 20px", borderRadius: 11, fontWeight: 650, textDecoration: "none", fontSize: 15 },
   secondary: { color: "#F4EAF0", background: "#231A2B", border: "1px solid #3A2E44", padding: "12px 18px", borderRadius: 11, fontWeight: 600, textDecoration: "none", fontSize: 15 },

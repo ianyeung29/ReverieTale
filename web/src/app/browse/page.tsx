@@ -4,13 +4,20 @@ import { useEffect, useMemo, useState } from "react";
 import { Avatar } from "@/components/Avatar";
 
 type Char = { id: string; name: string; tagline: string; persona: string; tags: string[]; reads: number; stories: number; createdAt: string };
-type Sort = "newest" | "read";
+type Sort = "trend" | "newest" | "read";
+
+// Same gravity formula as lib/discovery.trendingScore (kept inline so this client
+// component doesn't import the server-only discovery module).
+function trending(reads: number, createdAt: string): number {
+  const hours = Math.max(0, (Date.now() - new Date(createdAt).getTime()) / 3.6e6);
+  return (reads + 1) / Math.pow(hours + 2, 1.5);
+}
 
 export default function BrowsePage() {
   const [chars, setChars] = useState<Char[]>([]);
   const [q, setQ] = useState("");
   const [activeTags, setActiveTags] = useState<string[]>([]);
-  const [sort, setSort] = useState<Sort>("newest");
+  const [sort, setSort] = useState<Sort>("trend");
 
   useEffect(() => {
     fetch("/api/characters").then((r) => r.json()).then((c: Char[]) => setChars(Array.isArray(c) ? c : [])).catch(() => {});
@@ -34,9 +41,11 @@ export default function BrowsePage() {
       const matchesTags = activeTags.every((t) => c.tags.includes(t)); // AND across selected tags
       return matchesText && matchesTags;
     });
-    list = list.slice().sort((a, b) =>
-      sort === "read" ? b.reads - a.reads || b.stories - a.stories : new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    );
+    list = list.slice().sort((a, b) => {
+      if (sort === "read") return b.reads - a.reads || b.stories - a.stories;
+      if (sort === "trend") return trending(b.reads, b.createdAt) - trending(a.reads, a.createdAt);
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
     return list;
   }, [chars, q, activeTags, sort]);
 
@@ -49,6 +58,7 @@ export default function BrowsePage() {
       <div style={S.controls}>
         <input style={S.search} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name, personality, or tag…" />
         <div style={S.sortWrap}>
+          <button style={{ ...S.sortBtn, ...(sort === "trend" ? S.sortOn : {}) }} onClick={() => setSort("trend")}>Trending</button>
           <button style={{ ...S.sortBtn, ...(sort === "newest" ? S.sortOn : {}) }} onClick={() => setSort("newest")}>Newest</button>
           <button style={{ ...S.sortBtn, ...(sort === "read" ? S.sortOn : {}) }} onClick={() => setSort("read")}>Most read</button>
         </div>
