@@ -80,7 +80,12 @@ export default function MyCharactersPage() {
       {items === null ? (
         <p style={S.muted}>Loading…</p>
       ) : items.length === 0 ? (
-        <p style={S.muted}>You haven&apos;t created a companion yet. <a href="/create" style={S.link}>Create your first →</a></p>
+        <div style={S.emptyPanel}>
+          <div style={S.emptyIcon}>🎭</div>
+          <p style={S.emptyTitle}>No companions yet</p>
+          <p style={S.emptyBody}>Create your first companion — give them a look, a voice, and a story. Readers who chat with them earn you credits.</p>
+          <a href="/create" style={S.emptyBtn}>Create a companion →</a>
+        </div>
       ) : (
         <div style={S.grid}>
           {items.map((c) => {
@@ -133,6 +138,11 @@ const S: Record<string, React.CSSProperties> = {
   nameHint: { flexBasis: "100%", color: "#6f6276", fontSize: 12.5 },
   muted: { color: "#AC9CB0" },
   link: { color: "#E9A06B" },
+  emptyPanel: { textAlign: "center", background: "#1A1420", border: "1px solid #2f2438", borderRadius: 18, padding: "44px 24px" },
+  emptyIcon: { fontSize: 34 },
+  emptyTitle: { fontFamily: "Georgia, serif", fontSize: 24, margin: "10px 0 6px", color: "#F4EAF0" },
+  emptyBody: { color: "#AC9CB0", fontSize: 15, margin: "0 auto 20px", maxWidth: 440 },
+  emptyBtn: { color: "#1A1220", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", padding: "12px 20px", borderRadius: 11, fontWeight: 650, textDecoration: "none", fontSize: 14.5 },
   grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))", gap: 16 },
   card: { display: "flex", flexDirection: "column", gap: 11, background: "#1C1422", border: "1px solid #3A2E44", borderRadius: 14, padding: 17 },
   head: { display: "flex", alignItems: "center", gap: 11 },

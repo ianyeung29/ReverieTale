@@ -30,7 +30,15 @@ export default function LibraryPage() {
       {items === null ? (
         <p style={S.muted}>Loading…</p>
       ) : items.length === 0 ? (
-        <p style={S.muted}>You haven't created a story yet. <a href="/story" style={S.link}>Begin one →</a><br /><span style={S.hint}>(Sign in first from the chat so your stories are saved to your account.)</span></p>
+        <div style={S.emptyPanel}>
+          <div style={S.emptyIcon}>📖</div>
+          <p style={S.emptyTitle}>No stories yet</p>
+          <p style={S.emptyBody}>Pick a companion and write your first chapter — it&apos;ll live here so you can pick up any time.</p>
+          <div style={S.emptyCta}>
+            <a href="/story" style={S.primary}>Begin a story →</a>
+            <a href="/browse" style={S.secondary}>Browse companions</a>
+          </div>
+        </div>
       ) : (
         <div style={S.grid}>
           {items.map((s) => (
@@ -50,6 +58,13 @@ const S: Record<string, React.CSSProperties> = {
   back: { color: "#8A7A90", textDecoration: "none", fontSize: 14 },
   h1: { fontFamily: "Georgia, serif", fontSize: 40, margin: "22px 0 8px" },
   sub: { color: "#AC9CB0", margin: "0 0 28px" },
+  emptyPanel: { textAlign: "center", background: "#1A1420", border: "1px solid #2f2438", borderRadius: 18, padding: "44px 24px" },
+  emptyIcon: { fontSize: 34 },
+  emptyTitle: { fontFamily: "Georgia, serif", fontSize: 24, margin: "10px 0 6px", color: "#F4EAF0" },
+  emptyBody: { color: "#AC9CB0", fontSize: 15, margin: "0 auto 20px", maxWidth: 420 },
+  emptyCta: { display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" },
+  primary: { color: "#1A1220", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", padding: "12px 20px", borderRadius: 11, fontWeight: 650, textDecoration: "none", fontSize: 14.5 },
+  secondary: { color: "#F4EAF0", background: "#231A2B", border: "1px solid #3A2E44", padding: "12px 18px", borderRadius: 11, fontWeight: 600, textDecoration: "none", fontSize: 14.5 },
   earn: { display: "flex", alignItems: "center", gap: 10, background: "#241826", border: "1px solid #4a3350", borderRadius: 12, padding: "12px 16px", margin: "0 0 24px", color: "#EadFe6", fontSize: 14.5 },
   earnStar: { color: "#D46A8B", fontSize: 18 },
   earnNum: { color: "#E9A06B" },
