@@ -1,10 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { z } from "zod";
 import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { characters, stories } from "@/db/schema";
 import { buildPortraitPrompt, generateImage, imageConfigured } from "@/lib/image";
 import { moderateContent, screenImagePrompt } from "@/lib/moderation";
+import { ratingAggregates } from "@/lib/ratings";
 import { getCurrentUserId } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -27,10 +28,12 @@ export async function GET() {
     .where(eq(stories.isPublic, true))
     .groupBy(stories.characterId);
   const byChar = new Map(agg.map((a) => [a.cid, a]));
+  const ratingByChar = await ratingAggregates("character", rows.map((r) => r.id));
 
   const list = rows.map((r) => {
     const def = (r.definition ?? {}) as Record<string, unknown>;
     const a = byChar.get(r.id);
+    const rating = ratingByChar.get(r.id) ?? { average: 0, count: 0 };
     return {
       id: r.id,
       name: (def.name as string) ?? "Unknown",
@@ -39,6 +42,8 @@ export async function GET() {
       tags: Array.isArray(def.tags) ? (def.tags as string[]) : [],
       reads: a?.reads ?? 0,
       stories: a?.stories ?? 0,
+      rating: rating.average,
+      ratingCount: rating.count,
       createdAt: r.createdAt,
     };
   });
@@ -90,25 +95,6 @@ export async function POST(req: Request) {
     tags: body.tags ?? [],
   };
 
-  // Auto-generate the free default portrait from the details the user entered.
-  // Best-effort: if image generation isn't configured, the prompt is blocked, or
-  // the provider fails, we still create the character (portrait-less) — the user
-  // can generate one later on the edit page. A client-supplied image wins.
-  let image = body.image;
-  let imageMime = body.imageMime ?? null;
-  if (!image && imageConfigured()) {
-    const prompt = buildPortraitPrompt({ name: body.name, age: body.age, look: body.look, persona: body.persona, tags: body.tags });
-    if (!screenImagePrompt(prompt).blocked) {
-      try {
-        const gen = await generateImage(prompt);
-        image = gen.base64;
-        imageMime = gen.mime;
-      } catch (e) {
-        console.error("[characters] default portrait failed:", e instanceof Error ? e.message : e);
-      }
-    }
-  }
-
   const [char] = await db
     .insert(characters)
     .values({
@@ -117,11 +103,30 @@ export async function POST(req: Request) {
       reviewNote: mod.reason,
       definition,
       // Only touch image columns when a portrait was actually attached, so the
-      // core create flow works even if migration 0006 hasn't been applied.
-      // portraitGens=1 marks the free default as used, so edit-page regens are paid.
-      ...(image ? { image, imageMime, portraitGens: 1 } : {}),
+      // core create flow works even if migration 0006 hasn't been applied. A
+      // client-supplied image (rare) wins; otherwise it's drawn in the background
+      // below. portraitGens=1 marks the free default used so edit-page regens pay.
+      ...(body.image ? { image: body.image, imageMime: body.imageMime ?? null, portraitGens: 1 } : {}),
     })
     .returning({ id: characters.id });
+
+  // Draw the default portrait in the BACKGROUND so create returns immediately and
+  // the user can proceed. after() keeps the request alive past the response; the
+  // row is updated when the image lands (best-effort — the character exists either
+  // way, and the user can regenerate from the edit page if it never arrives).
+  if (!body.image && imageConfigured()) {
+    const prompt = buildPortraitPrompt({ name: body.name, age: body.age, look: body.look, persona: body.persona, tags: body.tags });
+    if (!screenImagePrompt(prompt).blocked) {
+      after(async () => {
+        try {
+          const gen = await generateImage(prompt);
+          await db.update(characters).set({ image: gen.base64, imageMime: gen.mime, portraitGens: 1 }).where(eq(characters.id, char.id));
+        } catch (e) {
+          console.error("[characters] background portrait failed:", e instanceof Error ? e.message : e);
+        }
+      });
+    }
+  }
 
   return NextResponse.json({ id: char.id, name: body.name, status });
 }

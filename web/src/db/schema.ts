@@ -90,6 +90,27 @@ export const stories = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// Ratings. A reader gives a 1-5 star rating to a character or a story. One rating
+// per (user, target); re-rating overwrites. Averages power social proof + sorting.
+// ---------------------------------------------------------------------------
+export const ratings = pgTable(
+  "ratings",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    targetType: text("target_type").notNull(), // character | story
+    targetId: uuid("target_id").notNull(),
+    rating: integer("rating").notNull(), // 1..5
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    userTarget: uniqueIndex("ratings_user_target_uniq").on(t.userId, t.targetType, t.targetId),
+    byTarget: index("ratings_target_idx").on(t.targetType, t.targetId),
+  }),
+);
+
+// ---------------------------------------------------------------------------
 // Per-(character x reader) memory (exec-3 sec 6). Raw chat is transient (sec 8.1),
 // distilled memory is durable.
 // ---------------------------------------------------------------------------

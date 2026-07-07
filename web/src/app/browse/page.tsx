@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { CharacterAvatar } from "@/components/CharacterAvatar";
+import { StarRating } from "@/components/StarRating";
 
-type Char = { id: string; name: string; tagline: string; persona: string; tags: string[]; reads: number; stories: number; createdAt: string };
-type Sort = "trend" | "newest" | "read";
+type Char = { id: string; name: string; tagline: string; persona: string; tags: string[]; reads: number; stories: number; rating: number; ratingCount: number; createdAt: string };
+type Sort = "trend" | "newest" | "read" | "rated";
 
 // Same gravity formula as lib/discovery.trendingScore (kept inline so this client
 // component doesn't import the server-only discovery module).
@@ -43,6 +44,7 @@ export default function BrowsePage() {
     });
     list = list.slice().sort((a, b) => {
       if (sort === "read") return b.reads - a.reads || b.stories - a.stories;
+      if (sort === "rated") return b.rating - a.rating || b.ratingCount - a.ratingCount;
       if (sort === "trend") return trending(b.reads, b.createdAt) - trending(a.reads, a.createdAt);
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
@@ -61,6 +63,7 @@ export default function BrowsePage() {
           <button style={{ ...S.sortBtn, ...(sort === "trend" ? S.sortOn : {}) }} onClick={() => setSort("trend")}>Trending</button>
           <button style={{ ...S.sortBtn, ...(sort === "newest" ? S.sortOn : {}) }} onClick={() => setSort("newest")}>Newest</button>
           <button style={{ ...S.sortBtn, ...(sort === "read" ? S.sortOn : {}) }} onClick={() => setSort("read")}>Most read</button>
+          <button style={{ ...S.sortBtn, ...(sort === "rated" ? S.sortOn : {}) }} onClick={() => setSort("rated")}>Top rated</button>
         </div>
       </div>
 
@@ -86,7 +89,10 @@ export default function BrowsePage() {
               </a>
               <p style={S.persona}>{c.persona}</p>
               <p style={S.tagline}>{c.tagline}</p>
-              <div style={S.meta}>{c.reads} read{c.reads === 1 ? "" : "s"} · {c.stories} stor{c.stories === 1 ? "y" : "ies"}</div>
+              <div style={S.meta}>
+                {c.reads} read{c.reads === 1 ? "" : "s"} · {c.stories} stor{c.stories === 1 ? "y" : "ies"}
+                {c.ratingCount ? <> · <StarRating value={c.rating} count={c.ratingCount} size={12} showNumber={false} /> {c.rating.toFixed(1)} ({c.ratingCount})</> : null}
+              </div>
               <div style={S.actions}>
                 <a className="rv-btn rv-btn-primary" style={S.primary} href={`/story?characterId=${c.id}`}>Begin a story</a>
                 <a className="rv-btn" style={S.secondary} href={`/chat?characterId=${c.id}`}>Chat</a>
@@ -124,7 +130,7 @@ const S: Record<string, React.CSSProperties> = {
   tag: { fontSize: 11, color: "#E9A06B", border: "1px solid #4a3a50", borderRadius: 999, padding: "2px 9px" },
   persona: { color: "#CBBBD0", fontSize: 14.5, margin: 0, lineHeight: 1.5 },
   tagline: { color: "#8A7A90", fontSize: 13.5, margin: 0, fontStyle: "italic" },
-  meta: { color: "#8A7A90", fontSize: 12.5, fontVariantNumeric: "tabular-nums" },
+  meta: { color: "#8A7A90", fontSize: 12.5, fontVariantNumeric: "tabular-nums", display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" },
   actions: { display: "flex", gap: 10, marginTop: 6 },
   primary: { flex: 1, textAlign: "center", color: "#1A1220", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", padding: "11px", borderRadius: 10, fontWeight: 650, textDecoration: "none", fontSize: 14 },
   secondary: { flex: 1, textAlign: "center", color: "#F4EAF0", background: "#231A2B", border: "1px solid #3A2E44", padding: "11px", borderRadius: 10, fontWeight: 600, textDecoration: "none", fontSize: 14 },

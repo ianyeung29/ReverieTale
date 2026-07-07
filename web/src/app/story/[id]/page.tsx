@@ -4,8 +4,13 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { CharacterAvatar } from "@/components/CharacterAvatar";
 import { ChatDock } from "@/components/ChatDock";
+import { RatingBar } from "@/components/RatingBar";
 
-type Story = { id: string; title: string; content: string; characterId: string; characterName: string; isOwner: boolean; hasBackup: boolean };
+type Story = {
+  id: string; title: string; content: string; characterId: string; characterName: string;
+  isOwner: boolean; hasBackup: boolean;
+  reads: number; rating: number; ratingCount: number; myRating: number | null; canRate: boolean;
+};
 
 const MOODS = ["sweet", "playful", "flirty", "tender", "tense", "mysterious", "dramatic"];
 const TWISTS = ["a confession", "an interruption", "a secret revealed", "they almost kiss", "a misunderstanding", "a bold move", "someone arrives"];
@@ -135,7 +140,7 @@ export default function StoryReadPage() {
         <CharacterAvatar characterId={story.characterId} name={story.characterName} size={46} />
         <div>
           <h1 style={S.title}>{story.title}</h1>
-          <p style={S.by}>with <a href={`/c/${story.characterId}`} style={S.byLink}>{story.characterName}</a> · chapter {idx + 1} of {chapters.length} · ~{readMin} min</p>
+          <p style={S.by}>with <a href={`/c/${story.characterId}`} style={S.byLink}>{story.characterName}</a> · chapter {idx + 1} of {chapters.length} · ~{readMin} min · {story.reads} view{story.reads === 1 ? "" : "s"}</p>
         </div>
       </div>
 
@@ -209,6 +214,19 @@ export default function StoryReadPage() {
           </div>
         </div>
       ) : null}
+
+      <div style={S.ratingRow}>
+        <span style={S.ratingLabel}>{story.isOwner ? "Reader ratings" : "How was this story?"}</span>
+        <RatingBar
+          targetType="story"
+          targetId={story.id}
+          average={story.rating}
+          count={story.ratingCount}
+          mine={story.myRating}
+          canRate={story.canRate}
+          label="Rate this story"
+        />
+      </div>
 
       <div style={S.talkRow}>
         <a style={S.talk} href={`/chat?characterId=${story.characterId}&fromStory=${story.id}&chapter=${idx + 1}`}>Open full chat with {story.characterName} →</a>
@@ -294,6 +312,8 @@ const S: Record<string, React.CSSProperties> = {
   cancel: { background: "transparent", border: 0, color: "#8A7A90", cursor: "pointer", fontSize: 14 },
   notice: { marginTop: 14, background: "#2A1A1E", border: "1px solid #6b3a44", borderRadius: 10, padding: "10px 14px", color: "#F0C9B0", fontSize: 14 },
   noticeLink: { color: "#E9A06B", fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" },
+  ratingRow: { marginTop: 26, paddingTop: 22, borderTop: "1px solid #241a2b", display: "flex", flexDirection: "column", gap: 10 },
+  ratingLabel: { fontSize: 12, letterSpacing: ".14em", textTransform: "uppercase", color: "#8A7A90", fontWeight: 700 },
   talkRow: { marginTop: 22, textAlign: "center" },
   talk: { color: "#AC9CB0", textDecoration: "none", fontSize: 14 },
 };
