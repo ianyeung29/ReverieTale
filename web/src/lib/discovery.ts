@@ -13,6 +13,7 @@ export type DiscoverChar = {
   stories: number;
   rating: number;
   ratingCount: number;
+  hasImage: boolean;
   createdAt: string;
   creatorId: string | null;
 };
@@ -46,6 +47,16 @@ export async function listCharacters(opts?: { creatorId?: string; tag?: string }
     /* ratings table not migrated yet */
   }
 
+  // Image column is optional (migration 0006); probe separately so a missing
+  // column never breaks discovery.
+  let imageByChar = new Map<string, boolean>();
+  try {
+    const imgRows = await db.select({ id: characters.id, h: sql<boolean>`(${characters.image} is not null)` }).from(characters).where(eq(characters.status, "published"));
+    imageByChar = new Map(imgRows.map((r) => [r.id, r.h]));
+  } catch {
+    /* image column not migrated yet */
+  }
+
   let list: DiscoverChar[] = rows.map((r) => {
     const def = (r.definition ?? {}) as Record<string, unknown>;
     const a = byChar.get(r.id);
@@ -60,6 +71,7 @@ export async function listCharacters(opts?: { creatorId?: string; tag?: string }
       stories: a?.stories ?? 0,
       rating: rt.average,
       ratingCount: rt.count,
+      hasImage: imageByChar.get(r.id) ?? false,
       createdAt: r.createdAt instanceof Date ? r.createdAt.toISOString() : String(r.createdAt),
       creatorId: r.creatorId ?? null,
     };

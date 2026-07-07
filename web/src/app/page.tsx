@@ -65,15 +65,38 @@ export default async function Home() {
   const empty = trending.length === 0 && feed.length === 0;
   const hasStats = companions > 0 || storyTotal > 0;
 
+  // Hero spotlight: the single highest-trending companion who actually has a
+  // portrait, so the hero shows real art instead of only gradient decoration.
+  const spotlight = trending.find((c) => c.hasImage) ?? null;
+
+  // "Pick tonight's mood": the most common tags across the live catalog, so every
+  // chip is guaranteed to lead somewhere populated.
+  const moodCounts = new Map<string, number>();
+  for (const c of allChars) for (const t of c.tags) moodCounts.set(t, (moodCounts.get(t) ?? 0) + 1);
+  const moods = [...moodCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([t]) => t);
+
   return (
     <main style={S.wrap}>
       <div style={S.auroraA} />
       <div style={S.auroraB} />
 
       <section style={S.hero} className="rv-reveal">
+        {spotlight ? (
+          <div aria-hidden style={S.heroBgLayer}>
+            <div style={{ ...S.heroBgImage, backgroundImage: `url(/api/characters/${spotlight.id}/image)` }} />
+            <div style={S.heroScrim} />
+          </div>
+        ) : null}
         <p style={S.eyebrow}>18+ · companions who remember you</p>
         <h1 style={S.h1}><span className="rv-title">Reverie</span></h1>
         <p style={S.sub}>Begin with a story. Meet a character. Then stay and talk to someone who remembers every word.</p>
+        {spotlight ? (
+          <a href={`/c/${spotlight.id}`} style={S.spotlight} className="rv-reveal rv-d1">
+            <CharacterAvatar characterId={spotlight.id} name={spotlight.name} size={30} />
+            <span>Tonight&apos;s spotlight: <strong style={S.spotlightName}>{spotlight.name}</strong></span>
+            <span style={S.spotlightArrow}>→</span>
+          </a>
+        ) : null}
         {hasStats ? (
           <p style={S.stat}>{companions} companion{companions === 1 ? "" : "s"} · {storyTotal} stor{storyTotal === 1 ? "y" : "ies"} · always remembering</p>
         ) : null}
@@ -83,6 +106,15 @@ export default async function Home() {
           <a href="/create" className="rv-btn" style={btn(false)}>Create your own</a>
         </div>
       </section>
+
+      {moods.length ? (
+        <div style={S.moodRow} className="rv-reveal rv-d1">
+          <span style={S.moodLabel}>Tonight&apos;s mood:</span>
+          {moods.map((t) => (
+            <a key={t} href={`/tag/${encodeURIComponent(t)}`} style={S.moodChip}>{t}</a>
+          ))}
+        </div>
+      ) : null}
 
       <div style={S.steps} className="rv-reveal rv-d1">
         {STEPS.map((s) => (
@@ -170,12 +202,21 @@ const S: Record<string, React.CSSProperties> = {
   wrap: { maxWidth: 940, margin: "0 auto", padding: "68px 24px 40px", lineHeight: 1.6, position: "relative", overflow: "hidden" },
   auroraA: { position: "absolute", top: -180, left: "18%", width: 520, height: 420, background: "radial-gradient(closest-side, rgba(233,160,107,.18), transparent)", pointerEvents: "none", zIndex: 0, filter: "blur(6px)" },
   auroraB: { position: "absolute", top: -120, right: "10%", width: 480, height: 400, background: "radial-gradient(closest-side, rgba(212,106,139,.20), transparent)", pointerEvents: "none", zIndex: 0, filter: "blur(6px)" },
-  hero: { position: "relative", zIndex: 1 },
-  eyebrow: { letterSpacing: ".22em", textTransform: "uppercase", fontSize: 12, color: "#E9A06B", fontWeight: 700, margin: 0 },
-  h1: { fontFamily: "Georgia, serif", fontSize: 66, margin: "14px 0 16px", letterSpacing: "-.015em", lineHeight: 1 },
-  sub: { color: "#C6B7CC", fontSize: 19, maxWidth: 560, lineHeight: 1.55, margin: 0 },
-  stat: { color: "#8A7A90", fontSize: 13.5, margin: "16px 0 0", letterSpacing: ".02em", fontVariantNumeric: "tabular-nums" },
-  cta: { display: "flex", gap: 12, marginTop: 26, flexWrap: "wrap" },
+  hero: { position: "relative", zIndex: 1, padding: 4, borderRadius: 24, overflow: "hidden" },
+  heroBgLayer: { position: "absolute", inset: 0, zIndex: 0, overflow: "hidden", pointerEvents: "none" },
+  heroBgImage: { position: "absolute", inset: -30, backgroundSize: "cover", backgroundPosition: "center 25%", filter: "blur(9px) brightness(.5) saturate(1.15)", transform: "scale(1.08)" },
+  heroScrim: { position: "absolute", inset: 0, background: "radial-gradient(85% 70% at 22% 30%, rgba(21,15,26,.35), rgba(21,15,26,.88) 72%), linear-gradient(100deg, rgba(21,15,26,.55), rgba(21,15,26,.75))" },
+  eyebrow: { position: "relative", letterSpacing: ".22em", textTransform: "uppercase", fontSize: 12, color: "#E9A06B", fontWeight: 700, margin: 0 },
+  h1: { position: "relative", fontFamily: "Georgia, serif", fontSize: 66, margin: "14px 0 16px", letterSpacing: "-.015em", lineHeight: 1 },
+  sub: { position: "relative", color: "#C6B7CC", fontSize: 19, maxWidth: 560, lineHeight: 1.55, margin: 0 },
+  spotlight: { position: "relative", display: "inline-flex", alignItems: "center", gap: 9, marginTop: 20, background: "rgba(35,26,43,.55)", border: "1px solid #4a3a50", borderRadius: 999, padding: "6px 16px 6px 6px", textDecoration: "none", color: "#EadFe6", fontSize: 13.5, backdropFilter: "blur(6px)" },
+  spotlightName: { color: "#F4EAF0" },
+  spotlightArrow: { color: "#E9A06B", fontWeight: 700 },
+  stat: { position: "relative", color: "#8A7A90", fontSize: 13.5, margin: "16px 0 0", letterSpacing: ".02em", fontVariantNumeric: "tabular-nums" },
+  cta: { position: "relative", display: "flex", gap: 12, marginTop: 26, flexWrap: "wrap" },
+  moodRow: { display: "flex", flexWrap: "wrap", gap: 9, alignItems: "center", margin: "22px 2px 0", position: "relative", zIndex: 1 },
+  moodLabel: { color: "#6f6276", fontSize: 12.5, letterSpacing: ".04em", marginRight: 2 },
+  moodChip: { fontSize: 12.5, color: "#CBBBD0", background: "#1C1422", border: "1px solid #3A2E44", borderRadius: 999, padding: "6px 13px", textDecoration: "none", textTransform: "capitalize" },
   steps: { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 14, margin: "52px 0 8px", position: "relative", zIndex: 1 },
   step: { background: "linear-gradient(180deg,#1C1524,#171120)", border: "1px solid #2f2438", borderRadius: 16, padding: "18px 18px 20px" },
   stepTop: { display: "flex", alignItems: "center", justifyContent: "space-between" },
