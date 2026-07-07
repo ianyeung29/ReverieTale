@@ -94,16 +94,17 @@ async function generateModelsLab(prompt: string): Promise<{ base64: string; mime
   if (data.status === "processing" && data.fetch_result) {
     data = await pollModelsLab(data.fetch_result, key);
   }
-  if (data.status !== "success") {
-    throw new Error(`modelslab: ${data.message || data.messege || data.status || "generation failed"}`);
-  }
   const imgUrl = data.output?.[0];
-  if (!imgUrl) throw new Error("modelslab: no image in response");
+  if (!imgUrl) {
+    throw new Error(`modelslab: ${data.message || data.messege || (data.status === "processing" ? "still processing after wait — try again" : data.status) || "no image in response"}`);
+  }
   return urlToImage(imgUrl);
 }
 
 async function pollModelsLab(fetchUrl: string, key: string): Promise<MlResp> {
-  for (let i = 0; i < 12; i++) {
+  let last: MlResp = { status: "processing" };
+  // ~90s total; ModelsLab queue + generation can take a while on first use.
+  for (let i = 0; i < 30; i++) {
     await new Promise((r) => setTimeout(r, 3000));
     const res = await fetch(fetchUrl, {
       method: "POST",
@@ -111,11 +112,11 @@ async function pollModelsLab(fetchUrl: string, key: string): Promise<MlResp> {
       body: JSON.stringify({ key }),
     });
     if (!res.ok) continue;
-    const data = (await res.json()) as MlResp;
-    if (data.status === "success" && data.output?.[0]) return data;
-    if (data.status === "error" || data.status === "failed") return data;
+    last = (await res.json()) as MlResp;
+    if (last.output?.[0]) return last; // ready (regardless of exact status string)
+    if (last.status === "error" || last.status === "failed") return last;
   }
-  throw new Error("modelslab: timed out waiting for the image");
+  return last; // still processing; caller throws with context
 }
 
 // ---- fal.ai (FLUX.1 [dev]) ---------------------------------------------------

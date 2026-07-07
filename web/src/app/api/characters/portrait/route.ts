@@ -9,7 +9,7 @@ import { spend, userBalance } from "@/lib/ledger";
 import { getCurrentUserId } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 120; // ModelsLab async generation can take a while
 
 // Anti-spam pool for pre-save (new-character) generations; a saved character's
 // first portrait is free and regens cost PORTRAIT_PRICE (metered per character).

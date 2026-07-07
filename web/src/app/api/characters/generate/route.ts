@@ -75,22 +75,35 @@ export async function POST(req: Request) {
       ],
       { temperature: 0.9, maxTokens: 500 },
     );
-    const json = res.text.match(/\{[\s\S]*\}/)?.[0];
-    const parsed = json ? (JSON.parse(json) as Record<string, unknown>) : {};
+    let parsed: Record<string, unknown> = {};
+    try {
+      const json = res.text.match(/\{[\s\S]*\}/)?.[0];
+      if (json) parsed = JSON.parse(json) as Record<string, unknown>;
+    } catch {
+      /* fall through - handled below via the single-field fallback */
+    }
 
     // Case-insensitive lookup so key casing/synonyms don't drop a field.
     const lower: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(parsed)) lower[k.toLowerCase()] = v;
+    const stringValues = Object.values(lower).filter((v): v is string => typeof v === "string" && v.trim().length > 0);
 
     const fields: Partial<Record<Target, string>> = {};
     for (const t of body.targets) {
       const key = ALIASES[t].find((a) => typeof lower[a] === "string" && (lower[a] as string).trim());
-      const v = key ? (lower[key] as string) : undefined;
-      if (v && !screen(v).blocked) fields[t] = v.trim();
+      let v = key ? (lower[key] as string) : undefined;
+      // Single-field request with an unexpected key -> take the only value present,
+      // or, if JSON didn't parse, the raw text itself. Keeps one-field Suggest robust.
+      if (!v && body.targets.length === 1) v = stringValues.length === 1 ? stringValues[0] : res.text.trim() || undefined;
+      if (v && !screen(v).blocked) fields[t] = v.trim().slice(0, 600);
     }
-    if (Object.keys(fields).length === 0) return NextResponse.json({ error: "generation failed" }, { status: 502 });
+    if (Object.keys(fields).length === 0) {
+      console.error("[generate] no usable fields for", body.targets, "raw:", res.text.slice(0, 300));
+      return NextResponse.json({ error: "generation failed" }, { status: 502 });
+    }
     return NextResponse.json({ fields });
   } catch (e) {
+    console.error("[generate] failed:", e instanceof Error ? e.message : e);
     return NextResponse.json({ error: e instanceof Error ? e.message : "generation failed" }, { status: 500 });
   }
 }
