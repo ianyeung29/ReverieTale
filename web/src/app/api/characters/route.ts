@@ -97,7 +97,8 @@ export async function POST(req: Request) {
       definition,
       // Only touch image columns when a portrait was actually attached, so the
       // core create flow works even if migration 0006 hasn't been applied.
-      ...(body.image ? { image: body.image, imageMime: body.imageMime ?? null } : {}),
+      // portraitGens=1 marks the free default as used, so edit-page regens are paid.
+      ...(body.image ? { image: body.image, imageMime: body.imageMime ?? null, portraitGens: 1 } : {}),
     })
     .returning({ id: characters.id });
 

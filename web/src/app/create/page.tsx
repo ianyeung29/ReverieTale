@@ -62,7 +62,7 @@ export default function CreateCharacterPage() {
       const res = await fetch("/api/characters/portrait", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim() || undefined, age: ageOk ? ageNum : undefined, outfit: outfit.trim() || undefined, look: look.trim() || undefined, persona: persona.trim() || undefined, tags: tags.length ? tags : undefined }),
+        body: JSON.stringify({ characterId: editId || undefined, name: name.trim() || undefined, age: ageOk ? ageNum : undefined, outfit: outfit.trim() || undefined, look: look.trim() || undefined, persona: persona.trim() || undefined, tags: tags.length ? tags : undefined }),
       });
       const d = await res.json();
       if (res.status === 401) { setAuthEmail(null); return; }
@@ -259,8 +259,12 @@ export default function CreateCharacterPage() {
               {portraitBusy ? "🎨 Generating…" : portraitSrc ? "🎨 Regenerate portrait" : "🎨 Generate portrait"}
             </button>
             <p style={S.genHint}>
-              {portraitFree != null && portraitFree > 0
-                ? `${portraitFree} free portrait${portraitFree === 1 ? "" : "s"} left, then ${portraitPrice} credits each.`
+              {editId
+                ? hasImage || portrait
+                  ? `Regenerating costs ${portraitPrice} credits.`
+                  : "This character's first portrait is free."
+                : portraitFree != null && portraitFree > 0
+                ? `${portraitFree} free portrait${portraitFree === 1 ? "" : "s"} left while creating, then ${portraitPrice} credits each.`
                 : `Costs ${portraitPrice} credits per portrait.`}
             </p>
             {portraitErr ? <p style={S.fieldErr}>{portraitErr}{portraitPaywall ? <> <a href="/credits" style={S.errLink}>Get credits →</a></> : null}</p> : null}

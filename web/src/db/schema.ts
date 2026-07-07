@@ -57,6 +57,8 @@ export const characters = pgTable("characters", {
   // /api/characters/:id/image. (Object storage is the scale-path later.)
   image: text("image"),
   imageMime: text("image_mime"),
+  // Portrait generations for this character: first is free, regens cost credits.
+  portraitGens: integer("portrait_gens").notNull().default(0),
   // { name, persona, look, backstory, voice, tags }
   definition: jsonb("definition").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
