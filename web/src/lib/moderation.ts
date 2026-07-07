@@ -18,6 +18,37 @@ export function screen(text: string): { blocked: boolean; reason?: string } {
 }
 
 // ---------------------------------------------------------------------------
+// Image-prompt gate. Run this BEFORE calling the paid image provider so we
+// reject generations that the provider would only black out (or that we simply
+// don't allow) — saving API credits and giving the user a clear message instead
+// of a censored image. Covers the minor-safety bright line plus explicit
+// nudity/sex-act requests. Tasteful, suggestive-but-clothed adult prompts pass.
+// ---------------------------------------------------------------------------
+const EXPLICIT_IMAGE_SIGNALS: RegExp[] = [
+  /\b(nude|nudes|naked|nudity|topless|bottomless|undress(?:ed|ing)?|unclothed)\b/i,
+  /\b(nsfw|porn|porno|pornographic|hardcore|xxx|hentai)\b/i,
+  /\b(genital|genitalia|penis|vagina|vulva|pussy|cock|dick|clit|labia|scrotum|testicles?)\b/i,
+  /\b(nipples?|areola|breasts? (?:out|exposed|bare)|bare breasts?|exposed breasts?)\b/i,
+  /\b(cum|cumshot|semen|ejaculat\w*|creampie)\b/i,
+  /\b(sex act|sexual intercourse|penetrat\w*|blowjob|handjob|fellatio|cunnilingus|masturbat\w*|orgasm)\b/i,
+  /\b(spread (?:legs|pussy)|bent over exposed|full frontal)\b/i,
+];
+
+// Returns { blocked, reason } for a would-be image prompt. reason is a short,
+// user-facing string safe to surface in the UI.
+export function screenImagePrompt(text: string): { blocked: boolean; reason?: string } {
+  if (screen(text).blocked) {
+    return { blocked: true, reason: "Portraits can't depict or imply minors." };
+  }
+  for (const re of EXPLICIT_IMAGE_SIGNALS) {
+    if (re.test(text)) {
+      return { blocked: true, reason: "Keep portraits tasteful — no explicit nudity or sexual content." };
+    }
+  }
+  return { blocked: false };
+}
+
+// ---------------------------------------------------------------------------
 // Hybrid pre-publish moderation for user-created characters.
 // Layer 1 (hard filter): the screen() regex above -> instant reject.
 // Layer 2 (classifier): an LLM safety pass that auto-approves clearly-fine

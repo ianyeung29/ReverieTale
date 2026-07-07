@@ -78,7 +78,9 @@ async function generateModelsLab(prompt: string): Promise<{ base64: string; mime
     height: "1024",
     samples: "1",
     num_inference_steps: "25",
-    safety_checker: "yes",
+    // "yes" blacks out images the provider flags as NSFW. Operator-configurable;
+    // default safe. See IMAGE_SAFETY_CHECKER in .env for the compliance caveat.
+    safety_checker: process.env.IMAGE_SAFETY_CHECKER || "yes",
     enhance_prompt: "no",
     base64: "no",
   };
@@ -136,7 +138,7 @@ async function generateFal(prompt: string): Promise<{ base64: string; mime: stri
   const res = await fetch(`https://fal.run/${model}`, {
     method: "POST",
     headers: { Authorization: `Key ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt, image_size: "portrait_4_3", num_images: 1, output_format: "jpeg", enable_safety_checker: true }),
+    body: JSON.stringify({ prompt, image_size: "portrait_4_3", num_images: 1, output_format: "jpeg", enable_safety_checker: (process.env.IMAGE_SAFETY_CHECKER || "yes") !== "no" }),
   });
   if (!res.ok) throw new Error(`fal ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
 

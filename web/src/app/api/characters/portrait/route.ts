@@ -4,7 +4,7 @@ import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { characters, users } from "@/db/schema";
 import { generateImage, imageConfigured } from "@/lib/image";
-import { screen } from "@/lib/moderation";
+import { screenImagePrompt } from "@/lib/moderation";
 import { spend, userBalance } from "@/lib/ledger";
 import { getCurrentUserId } from "@/lib/session";
 
@@ -39,8 +39,9 @@ function buildPrompt(b: z.infer<typeof Body>): string {
 }
 
 // POST /api/characters/portrait -> a generated portrait (base64) for the current
-// draft. The client holds it and submits it with create/edit. SFW; the provider's
-// safety checker + the minor-safety screen apply.
+// draft. The client holds it and submits it with create/edit. SFW; our own image
+// gate (screenImagePrompt) rejects disallowed prompts before we spend a provider
+// credit, and the provider's safety checker still applies as a backstop.
 export async function POST(req: Request) {
   const userId = await getCurrentUserId();
   if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -53,8 +54,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid request body" }, { status: 400 });
   }
 
-  const blob = [body.name, body.outfit, body.look, body.persona, ...(body.tags ?? [])].filter(Boolean).join(" ");
-  if (screen(blob).blocked) return NextResponse.json({ error: "blocked", reason: "safety_minor" }, { status: 422 });
+  // Our own gatekeeper: reject disallowed prompts up front, before any metering
+  // or a (paid) provider call, so we don't burn image credits on a generation the
+  // provider would only black out. Screens the full prompt, not just raw inputs.
+  const prompt = buildPrompt(body);
+  const gate = screenImagePrompt(prompt);
+  if (gate.blocked) return NextResponse.json({ error: "blocked", reason: gate.reason }, { status: 422 });
 
   // Metering. Regenerating a SAVED character (characterId): its first portrait is
   // free, then PORTRAIT_PRICE each. Creating a NEW character (no id): drawn from a
@@ -81,7 +86,7 @@ export async function POST(req: Request) {
 
   let base64: string, mime: string;
   try {
-    ({ base64, mime } = await generateImage(buildPrompt(body)));
+    ({ base64, mime } = await generateImage(prompt));
   } catch (e) {
     const msg = e instanceof Error ? e.message : "generation failed";
     console.error("[portrait] generation failed:", msg);
