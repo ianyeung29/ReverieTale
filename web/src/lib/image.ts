@@ -69,36 +69,44 @@ async function generateModelsLab(prompt: string): Promise<{ base64: string; mime
   if (!key) throw new Error("MODELSLAB_API_KEY is not set");
   const model = process.env.IMAGE_MODEL || "flux";
   const url = process.env.MODELSLAB_URL || "https://modelslab.com/api/v6/images/text2img";
+  const payload = {
+    key,
+    model_id: model,
+    prompt,
+    negative_prompt: "",
+    width: "768",
+    height: "1024",
+    samples: "1",
+    num_inference_steps: "25",
+    safety_checker: "yes",
+    enhance_prompt: "no",
+    base64: "no",
+  };
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      key,
-      model_id: model,
-      prompt,
-      negative_prompt: "",
-      width: "768",
-      height: "1024",
-      samples: "1",
-      num_inference_steps: "25",
-      safety_checker: "yes",
-      enhance_prompt: "no",
-      base64: "no",
-    }),
-  });
-  if (!res.ok) throw new Error(`modelslab ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
+  // "Try Again" = the model is warming up; ModelsLab wants a resubmit. Retry the
+  // whole request a few times, polling fetch_result when it returns "processing".
+  let lastMsg = "";
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    if (!res.ok) throw new Error(`modelslab ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
 
-  let data = (await res.json()) as MlResp;
-  // Async: the model is still rendering; poll the fetch_result URL until it's ready.
-  if (data.status === "processing" && data.fetch_result) {
-    data = await pollModelsLab(data.fetch_result, key);
+    let data = (await res.json()) as MlResp;
+    if (data.output?.[0]) return urlToImage(data.output[0]); // synchronous (e.g. realtime endpoint)
+
+    if (data.status === "processing" && data.fetch_result) {
+      data = await pollModelsLab(data.fetch_result, key);
+      if (data.output?.[0]) return urlToImage(data.output[0]);
+    }
+
+    lastMsg = String(data.message || data.messege || data.status || "").trim();
+    // Warm-up: wait and resubmit. Anything else is a real error.
+    if (/try again|loading|warming/i.test(lastMsg)) {
+      await new Promise((r) => setTimeout(r, 5000));
+      continue;
+    }
+    throw new Error(`modelslab: ${lastMsg || "no image in response"}`);
   }
-  const imgUrl = data.output?.[0];
-  if (!imgUrl) {
-    throw new Error(`modelslab: ${data.message || data.messege || (data.status === "processing" ? "still processing after wait — try again" : data.status) || "no image in response"}`);
-  }
-  return urlToImage(imgUrl);
+  throw new Error(`modelslab: the model kept warming up (${lastMsg || "Try Again"}) — wait a moment and retry`);
 }
 
 async function pollModelsLab(fetchUrl: string, key: string): Promise<MlResp> {
