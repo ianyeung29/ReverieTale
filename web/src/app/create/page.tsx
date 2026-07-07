@@ -10,6 +10,10 @@ const GENDER_OPTIONS = [
   { value: "non-binary", label: "Non-binary" },
 ];
 
+function cap(s: string): string {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+}
+
 const TAG_SUGGESTIONS = [
   "romance", "flirty", "shy", "confident", "mysterious", "playful", "brooding", "warm", "witty", "protective",
   "adventurous", "artistic", "sarcastic", "gentle", "dominant", "sweet", "cold-but-caring", "nerdy", "rebellious",
@@ -160,7 +164,8 @@ export default function CreateCharacterPage() {
 
   const ageNum = Number(age);
   const ageOk = Number.isFinite(ageNum) && ageNum >= 18 && ageNum <= 120;
-  const canSave = Boolean(name.trim()) && Boolean(gender) && ageOk;
+  // Gender is required when creating, but locked (and not re-required) when editing.
+  const canSave = Boolean(name.trim()) && ageOk && (editId ? true : Boolean(gender));
 
   async function create() {
     if (!canSave || busy) return;
@@ -289,19 +294,23 @@ export default function CreateCharacterPage() {
       <label style={S.label}>Name</label>
       <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Mara, Kai, Sable…" style={S.input} maxLength={60} />
 
-      <label style={S.label}>Gender <span style={S.hint}>(required)</span></label>
-      <div style={S.chips}>
-        {GENDER_OPTIONS.map((g) => (
-          <button
-            key={g.value}
-            type="button"
-            style={{ ...S.chip, ...(gender === g.value ? S.chipOn : {}) }}
-            onClick={() => setGender(gender === g.value ? "" : g.value)}
-          >
-            {g.label}
-          </button>
-        ))}
-      </div>
+      <label style={S.label}>Gender <span style={S.hint}>{editId ? "(set at creation — can't be changed)" : "(required)"}</span></label>
+      {editId ? (
+        <div style={S.lockedField}>{gender ? cap(gender) : "Not specified"}</div>
+      ) : (
+        <div style={S.chips}>
+          {GENDER_OPTIONS.map((g) => (
+            <button
+              key={g.value}
+              type="button"
+              style={{ ...S.chip, ...(gender === g.value ? S.chipOn : {}) }}
+              onClick={() => setGender(gender === g.value ? "" : g.value)}
+            >
+              {g.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       <label style={S.label}>Age <span style={S.hint}>(must be 18+)</span></label>
       <input value={age} onChange={(e) => setAge(e.target.value.replace(/[^0-9]/g, "").slice(0, 3))} placeholder="e.g. 24" style={S.input} inputMode="numeric" />
@@ -423,6 +432,7 @@ const S: Record<string, React.CSSProperties> = {
   previewText: { margin: 0, color: "#EadFe6", fontSize: 14.5, lineHeight: 1.5, background: "#231A2B", border: "1px solid #3A2E44", borderRadius: 12, borderTopLeftRadius: 3, padding: "10px 13px" },
   hint: { color: "#6f6276", letterSpacing: 0, textTransform: "none", fontWeight: 400 },
   input: { width: "100%", background: "#1A121F", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 10, padding: "12px 14px", fontSize: 15, boxSizing: "border-box", fontFamily: "inherit" },
+  lockedField: { display: "inline-block", background: "#150F1A", color: "#AC9CB0", border: "1px dashed #3A2E44", borderRadius: 10, padding: "10px 14px", fontSize: 15 },
   textarea: { width: "100%", minHeight: 74, resize: "vertical", background: "#1A121F", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 10, padding: "12px 14px", fontSize: 15, boxSizing: "border-box", fontFamily: "inherit", lineHeight: 1.5 },
   chips: { display: "flex", flexWrap: "wrap", gap: 8 },
   chip: { background: "#231A2B", color: "#CBBBD0", border: "1px solid #3A2E44", borderRadius: 999, padding: "8px 13px", cursor: "pointer", fontSize: 13.5 },

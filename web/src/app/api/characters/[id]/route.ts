@@ -8,7 +8,8 @@ import { getCurrentUserId } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
-const FIELDS = ["name", "gender", "look", "persona", "backstory", "voice", "tags"] as const;
+// Gender is intentionally NOT here: it's set at creation and immutable thereafter.
+const FIELDS = ["name", "look", "persona", "backstory", "voice", "tags"] as const;
 
 // GET /api/characters/:id -> owner-only detail for editing.
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -54,7 +55,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 // (published <-> disabled). creatorId is never editable.
 const Patch = z.object({
   name: z.string().trim().min(1).max(60).optional(),
-  gender: z.string().trim().min(1).max(30).optional(),
+  // gender is immutable after creation; any value sent here is ignored (stripped).
   age: z.number().int().min(18).max(120).optional(),
   look: z.string().trim().max(400).optional(),
   persona: z.string().trim().max(600).optional(),
