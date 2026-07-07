@@ -1,21 +1,48 @@
 /**
  * Text-to-image adapter for character portraits. Providers:
+ *   - "grok" (xAI Grok image, OpenAI-compatible) — Bearer key, sync.
  *   - "modelslab" (ModelsLab, FLUX) — key in the JSON body, sync or async (poll).
  *   - "fal" (fal.ai, FLUX.1 [dev]) — key in the Authorization header, sync.
  * Select with IMAGE_PROVIDER; the rest of the app is unchanged.
  */
+const grokKey = () => process.env.XAI_IMAGE_KEY || process.env.XAI_API_KEY;
+
 export function imageConfigured(): boolean {
-  const provider = process.env.IMAGE_PROVIDER || "fal";
+  const provider = process.env.IMAGE_PROVIDER || "grok";
+  if (provider === "grok") return Boolean(grokKey());
   if (provider === "modelslab") return Boolean(process.env.MODELSLAB_API_KEY);
   if (provider === "fal") return Boolean(process.env.FAL_KEY);
   return false;
 }
 
 export async function generateImage(prompt: string): Promise<{ base64: string; mime: string }> {
-  const provider = process.env.IMAGE_PROVIDER || "fal";
+  const provider = process.env.IMAGE_PROVIDER || "grok";
+  if (provider === "grok") return generateGrok(prompt);
   if (provider === "modelslab") return generateModelsLab(prompt);
   if (provider === "fal") return generateFal(prompt);
   throw new Error(`unsupported IMAGE_PROVIDER: ${provider}`);
+}
+
+// ---- xAI Grok (OpenAI-compatible images endpoint) ----------------------------
+async function generateGrok(prompt: string): Promise<{ base64: string; mime: string }> {
+  const key = grokKey();
+  if (!key) throw new Error("XAI_IMAGE_KEY (or XAI_API_KEY) is not set");
+  const model = process.env.IMAGE_MODEL || "grok-2-image";
+  const base = (process.env.XAI_IMAGE_BASE_URL || "https://api.x.ai/v1").replace(/\/$/, "");
+
+  const res = await fetch(`${base}/images/generations`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+    // xAI's image endpoint takes model/prompt/n/response_format (no size/quality).
+    body: JSON.stringify({ model, prompt, n: 1, response_format: "b64_json" }),
+  });
+  if (!res.ok) throw new Error(`grok ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
+
+  const data = (await res.json()) as { data?: { b64_json?: string; url?: string }[] };
+  const item = data.data?.[0];
+  if (item?.b64_json) return { base64: item.b64_json, mime: "image/jpeg" };
+  if (item?.url) return urlToImage(item.url);
+  throw new Error("grok: no image in response");
 }
 
 async function urlToImage(url: string): Promise<{ base64: string; mime: string }> {
