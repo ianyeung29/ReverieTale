@@ -1,6 +1,7 @@
 import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { characters, stories } from "@/db/schema";
+import { ratingAggregates } from "@/lib/ratings";
 
 export type DiscoverChar = {
   id: string;
@@ -10,6 +11,8 @@ export type DiscoverChar = {
   tags: string[];
   reads: number;
   stories: number;
+  rating: number;
+  ratingCount: number;
   createdAt: string;
   creatorId: string | null;
 };
@@ -35,9 +38,18 @@ export async function listCharacters(opts?: { creatorId?: string; tag?: string }
     .groupBy(stories.characterId);
   const byChar = new Map(agg.map((a) => [a.cid, a]));
 
+  // Ratings are optional (migration 0009); never let a missing table break discovery.
+  let ratingByChar = new Map<string, { average: number; count: number }>();
+  try {
+    ratingByChar = await ratingAggregates("character", rows.map((r) => r.id));
+  } catch {
+    /* ratings table not migrated yet */
+  }
+
   let list: DiscoverChar[] = rows.map((r) => {
     const def = (r.definition ?? {}) as Record<string, unknown>;
     const a = byChar.get(r.id);
+    const rt = ratingByChar.get(r.id) ?? { average: 0, count: 0 };
     return {
       id: r.id,
       name: (def.name as string) ?? "Unknown",
@@ -46,6 +58,8 @@ export async function listCharacters(opts?: { creatorId?: string; tag?: string }
       tags: Array.isArray(def.tags) ? (def.tags as string[]) : [],
       reads: a?.reads ?? 0,
       stories: a?.stories ?? 0,
+      rating: rt.average,
+      ratingCount: rt.count,
       createdAt: r.createdAt instanceof Date ? r.createdAt.toISOString() : String(r.createdAt),
       creatorId: r.creatorId ?? null,
     };

@@ -2,7 +2,9 @@ import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { characters, stories } from "@/db/schema";
 import { CharacterAvatar } from "@/components/CharacterAvatar";
+import { StarRating } from "@/components/StarRating";
 import { listCharacters, trendingScore } from "@/lib/discovery";
+import { ratingAggregates } from "@/lib/ratings";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +16,7 @@ async function recentStories() {
         title: stories.title,
         content: stories.content,
         characterId: stories.characterId,
+        reads: stories.reads,
         name: sql<string>`${characters.definition}->>'name'`,
       })
       .from(stories)
@@ -21,7 +24,16 @@ async function recentStories() {
       .where(and(eq(stories.isPublic, true), eq(characters.status, "published")))
       .orderBy(desc(stories.createdAt))
       .limit(9);
-    return rows.map((r) => ({ id: r.id, title: r.title, name: r.name, characterId: r.characterId, snippet: r.content.replace(/\s+/g, " ").slice(0, 150) }));
+    let ratingByStory = new Map<string, { average: number; count: number }>();
+    try {
+      ratingByStory = await ratingAggregates("story", rows.map((r) => r.id));
+    } catch {
+      /* ratings table not migrated yet */
+    }
+    return rows.map((r) => {
+      const rt = ratingByStory.get(r.id) ?? { average: 0, count: 0 };
+      return { id: r.id, title: r.title, name: r.name, characterId: r.characterId, reads: r.reads, rating: rt.average, ratingCount: rt.count, snippet: r.content.replace(/\s+/g, " ").slice(0, 150) };
+    });
   } catch {
     return [];
   }
@@ -92,7 +104,10 @@ export default async function Home() {
                   <CharacterAvatar characterId={c.id} name={c.name} size={44} />
                   <div style={S.cardHeadText}>
                     <div style={S.cardName}>{c.name}</div>
-                    <span style={S.with}>{c.reads} read{c.reads === 1 ? "" : "s"} · {c.stories} stor{c.stories === 1 ? "y" : "ies"}</span>
+                    <span style={S.with}>
+                      {c.reads} read{c.reads === 1 ? "" : "s"} · {c.stories} stor{c.stories === 1 ? "y" : "ies"}
+                      {c.ratingCount ? <> · <StarRating value={c.rating} count={c.ratingCount} size={11} showNumber={false} /> {c.rating.toFixed(1)}</> : null}
+                    </span>
                   </div>
                 </div>
                 {c.persona ? <p style={S.cardSnip}>{c.persona.slice(0, 110)}…</p> : null}
@@ -105,13 +120,16 @@ export default async function Home() {
 
       {feed.length > 0 ? (
         <section className="rv-reveal rv-d3">
-          <p style={S.section}>✦ Fresh from the community</p>
+          <div style={S.sectionRow}><p style={{ ...S.section, margin: 0 }}>✦ Fresh from the community</p><a href="/stories" style={S.seeAll}>Browse stories →</a></div>
           <div style={S.grid}>
             {feed.map((s) => (
               <a key={s.id} href={`/story/${s.id}`} className="rv-card" style={S.card}>
                 <div style={S.cardHead}><CharacterAvatar characterId={s.characterId} name={s.name} size={40} /><div style={S.cardName}>{s.title}</div></div>
                 <p style={S.cardSnip}>{s.snippet}…</p>
-                <span style={S.with}>with {s.name}</span>
+                <span style={S.with}>
+                  with {s.name} · {s.reads} view{s.reads === 1 ? "" : "s"}
+                  {s.ratingCount ? <> · <StarRating value={s.rating} count={s.ratingCount} size={11} showNumber={false} /> {s.rating.toFixed(1)}</> : null}
+                </span>
               </a>
             ))}
           </div>
@@ -132,7 +150,8 @@ export default async function Home() {
       <footer style={S.footer}>
         <span>Reverie · 18+ fiction</span>
         <span style={S.footLinks}>
-          <a href="/browse" style={S.footLink}>Browse</a>
+          <a href="/browse" style={S.footLink}>Companions</a>
+          <a href="/stories" style={S.footLink}>Stories</a>
           <a href="/create" style={S.footLink}>Create</a>
           <a href="/credits" style={S.footLink}>Credits</a>
         </span>
@@ -175,7 +194,7 @@ const S: Record<string, React.CSSProperties> = {
   cardSnip: { color: "#AC9CB0", fontSize: 14, margin: 0, lineHeight: 1.5 },
   tags: { display: "flex", flexWrap: "wrap", gap: 6, marginTop: "auto" },
   tag: { fontSize: 11, color: "#E9A06B", border: "1px solid #4a3a50", borderRadius: 999, padding: "2px 9px" },
-  with: { color: "#E9A06B", fontSize: 12.5, letterSpacing: ".03em" },
+  with: { color: "#E9A06B", fontSize: 12.5, letterSpacing: ".03em", display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" },
   emptyPanel: { textAlign: "center", background: "linear-gradient(180deg,#1C1524,#171120)", border: "1px solid #2f2438", borderRadius: 20, padding: "48px 24px", margin: "44px 0 0", position: "relative", zIndex: 1 },
   emptyTitle: { fontFamily: "Georgia, serif", fontSize: 26, margin: "0 0 8px", color: "#F4EAF0" },
   emptyBody: { color: "#AC9CB0", fontSize: 15, margin: "0 auto 4px", maxWidth: 460 },

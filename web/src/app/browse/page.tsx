@@ -55,7 +55,7 @@ export default function BrowsePage() {
     <main style={S.wrap}>
       <p style={S.eyebrow}>Companions</p>
       <h1 style={S.h1}>Choose who to meet</h1>
-      <p style={S.sub}>Everyone here remembers you. Start with a story, or jump straight into a conversation.</p>
+      <p style={S.sub}>Everyone here remembers you. Start with a story, or jump straight into a conversation. <a href="/stories" style={S.crossLink}>Browse stories →</a></p>
 
       <div style={S.controls}>
         <input style={S.search} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name, personality, or tag…" />
@@ -110,6 +110,7 @@ const S: Record<string, React.CSSProperties> = {
   eyebrow: { letterSpacing: ".2em", textTransform: "uppercase", fontSize: 12, color: "#E9A06B", fontWeight: 700, margin: 0 },
   h1: { fontFamily: "Georgia, serif", fontSize: 44, margin: "10px 0 10px" },
   sub: { color: "#AC9CB0", margin: "0 0 24px" },
+  crossLink: { color: "#E9A06B", textDecoration: "none", fontWeight: 600, whiteSpace: "nowrap" },
   controls: { display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center", marginBottom: 14 },
   search: { flex: "1 1 260px", background: "#1A121F", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 11, padding: "12px 15px", fontSize: 15 },
   sortWrap: { display: "flex", gap: 6, background: "#1A121F", border: "1px solid #3A2E44", borderRadius: 11, padding: 4 },
