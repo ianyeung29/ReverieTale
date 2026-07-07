@@ -13,6 +13,8 @@ const TAG_SUGGESTIONS = [
 export default function CreateCharacterPage() {
   const [authEmail, setAuthEmail] = useState<string | null | undefined>(undefined);
   const [name, setName] = useState("");
+  const [age, setAge] = useState("");
+  const [outfit, setOutfit] = useState("");
   const [look, setLook] = useState("");
   const [persona, setPersona] = useState("");
   const [backstory, setBackstory] = useState("");
@@ -48,6 +50,7 @@ export default function CreateCharacterPage() {
     fetch(`/api/characters/${id}`).then((r) => (r.ok ? r.json() : Promise.reject(r.status))).then((d) => {
       setName(d.name || ""); setLook(d.look || ""); setPersona(d.persona || "");
       setBackstory(d.backstory || ""); setVoice(d.voice || ""); setTags(Array.isArray(d.tags) ? d.tags : []);
+      setAge(d.age ? String(d.age) : "");
       setHasImage(!!d.hasImage);
     }).catch(() => setLoadErr(true));
   }, []);
@@ -59,7 +62,7 @@ export default function CreateCharacterPage() {
       const res = await fetch("/api/characters/portrait", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim() || undefined, look: look.trim() || undefined, persona: persona.trim() || undefined, tags: tags.length ? tags : undefined }),
+        body: JSON.stringify({ name: name.trim() || undefined, age: ageOk ? ageNum : undefined, outfit: outfit.trim() || undefined, look: look.trim() || undefined, persona: persona.trim() || undefined, tags: tags.length ? tags : undefined }),
       });
       const d = await res.json();
       if (res.status === 401) { setAuthEmail(null); return; }
@@ -148,11 +151,16 @@ export default function CreateCharacterPage() {
     }
   }
 
+  const ageNum = Number(age);
+  const ageOk = Number.isFinite(ageNum) && ageNum >= 18 && ageNum <= 120;
+  const canSave = Boolean(name.trim()) && ageOk;
+
   async function create() {
-    if (!name.trim() || busy) return;
+    if (!canSave || busy) return;
     setBusy(true); setError("");
     const payload = {
       name: name.trim(),
+      age: ageNum,
       look: look.trim() || undefined,
       persona: persona.trim() || undefined,
       backstory: backstory.trim() || undefined,
@@ -246,6 +254,7 @@ export default function CreateCharacterPage() {
         <div style={S.portraitRow}>
           {portraitSrc ? <img src={portraitSrc} alt="portrait" style={S.portraitBig} /> : <div style={S.portraitPlaceholder}>no portrait yet</div>}
           <div style={S.portraitCol}>
+            <input value={outfit} onChange={(e) => setOutfit(e.target.value)} placeholder="outfit & style (optional) — e.g. red silk dress, cozy knit" style={S.portraitOutfit} maxLength={200} />
             <button type="button" style={{ ...S.portraitBtn, opacity: portraitBusy ? 0.6 : 1 }} onClick={generatePortrait} disabled={portraitBusy}>
               {portraitBusy ? "🎨 Generating…" : portraitSrc ? "🎨 Regenerate portrait" : "🎨 Generate portrait"}
             </button>
@@ -267,6 +276,10 @@ export default function CreateCharacterPage() {
 
       <label style={S.label}>Name</label>
       <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Mara, Kai, Sable…" style={S.input} maxLength={60} />
+
+      <label style={S.label}>Age <span style={S.hint}>(must be 18+)</span></label>
+      <input value={age} onChange={(e) => setAge(e.target.value.replace(/[^0-9]/g, "").slice(0, 3))} placeholder="e.g. 24" style={S.input} inputMode="numeric" />
+      {age && !ageOk ? <p style={S.fieldErr}>Characters must be adults — enter an age of 18 or older.</p> : null}
 
       <FieldLabel label="Look" onSuggest={() => suggest(["look"])} busy={genBusy === "look"} disabled={!!genBusy} />
       <input value={look} onChange={(e) => setLook(e.target.value)} placeholder="how they appear — hair, style, the way they carry themselves" style={S.input} maxLength={400} />
@@ -336,7 +349,7 @@ export default function CreateCharacterPage() {
       {error ? <p style={S.err}>{error}</p> : null}
 
       <div style={S.actions}>
-        <button style={{ ...S.primary, opacity: !name.trim() || busy ? 0.55 : 1 }} onClick={create} disabled={!name.trim() || busy}>
+        <button style={{ ...S.primary, opacity: !canSave || busy ? 0.55 : 1 }} onClick={create} disabled={!canSave || busy}>
           {busy ? (editId ? "Saving…" : "Creating…") : editId ? "Save changes" : "Create & write her first story →"}
         </button>
         <a href={editId ? "/characters" : "/"} style={S.cancel}>Cancel</a>
@@ -375,6 +388,7 @@ const S: Record<string, React.CSSProperties> = {
   portraitPlaceholder: { width: 96, height: 128, borderRadius: 12, display: "grid", placeItems: "center", textAlign: "center", background: "#231A2B", border: "1px dashed #4a3a50", color: "#6f6276", fontSize: 12, flexShrink: 0, padding: 8 },
   portraitCol: { display: "flex", flexDirection: "column", gap: 2 },
   portraitBtn: { background: "#231A2B", color: "#E9A06B", border: "1px solid #4a3a50", borderRadius: 10, padding: "10px 16px", cursor: "pointer", fontSize: 14, fontWeight: 650, alignSelf: "flex-start" },
+  portraitOutfit: { width: "100%", background: "#1A121F", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 9, padding: "9px 12px", fontSize: 13.5, boxSizing: "border-box", marginBottom: 10 },
   tagAddRow: { display: "flex", gap: 8, margin: "0 0 10px" },
   tagInput: { flex: 1, background: "#1A121F", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 9, padding: "9px 12px", fontSize: 14, boxSizing: "border-box" },
   tagAdd: { background: "#231A2B", color: "#E9A06B", border: "1px solid #4a3a50", borderRadius: 9, padding: "9px 15px", cursor: "pointer", fontSize: 13.5, fontWeight: 600, whiteSpace: "nowrap" },

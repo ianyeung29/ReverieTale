@@ -45,6 +45,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     backstory: (def.backstory as string) ?? "",
     voice: (def.voice as string) ?? "",
     tags: Array.isArray(def.tags) ? (def.tags as string[]) : [],
+    age: typeof def.age === "number" ? def.age : null,
   });
 }
 
@@ -52,6 +53,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 // (published <-> disabled). creatorId is never editable.
 const Patch = z.object({
   name: z.string().trim().min(1).max(60).optional(),
+  age: z.number().int().min(18).max(120).optional(),
   look: z.string().trim().max(400).optional(),
   persona: z.string().trim().max(600).optional(),
   backstory: z.string().trim().max(600).optional(),
@@ -82,7 +84,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (!row) return NextResponse.json({ error: "not found" }, { status: 404 });
   if (row.creatorId !== userId) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
-  const editsDefinition = FIELDS.some((k) => body[k] !== undefined);
+  const editsDefinition = FIELDS.some((k) => body[k] !== undefined) || body.age !== undefined;
   const image = body.image !== undefined ? { image: body.image, imageMime: body.imageMime ?? null } : {};
 
   // Unpublish is the one status change a creator can make directly and freely.
@@ -101,6 +103,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   // status:"published") must pass the hybrid gate again. Creators can't self-publish.
   const def = { ...((row.definition ?? {}) as Record<string, unknown>) };
   for (const k of FIELDS) if (body[k] !== undefined) def[k] = body[k];
+  if (body.age !== undefined) def.age = body.age;
 
   const blob = [def.name, def.look, def.persona, def.backstory, def.voice, ...(Array.isArray(def.tags) ? def.tags : [])]
     .filter(Boolean)

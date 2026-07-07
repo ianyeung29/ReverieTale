@@ -116,6 +116,7 @@ export async function prepareChat(params: Params): Promise<Prep> {
   const def = (char.definition ?? {}) as Record<string, string>;
   const system = [
     `You are ${def.name || "a companion"}, an AI character. Stay fully in character.`,
+    def.age ? `Age: ${def.age} (an adult).` : "",
     def.persona ? `Personality: ${def.persona}` : "",
     def.look ? `Appearance: ${def.look}` : "",
     def.backstory ? `Backstory: ${def.backstory}` : "",

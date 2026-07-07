@@ -16,19 +16,22 @@ const PORTRAIT_PRICE = Number(process.env.PORTRAIT_PRICE || 5);
 
 const Body = z.object({
   name: z.string().max(60).optional(),
+  age: z.number().int().min(18).max(120).optional(),
+  outfit: z.string().max(200).optional(),
   look: z.string().max(400).optional(),
   persona: z.string().max(600).optional(),
   tags: z.array(z.string().max(30)).max(8).optional(),
 });
 
 function buildPrompt(b: z.infer<typeof Body>): string {
+  const subject = b.age ? `${b.age}-year-old adult ${b.name || "person"}` : b.name || "a person";
   const bits = [b.look, b.persona].filter(Boolean).join(". ");
-  const tags = b.tags?.length ? b.tags.join(", ") : "";
+  const outfit = b.outfit ? ` Wearing ${b.outfit}.` : "";
+  const tags = b.tags?.length ? ` ${b.tags.join(", ")}.` : "";
   return (
-    `Character portrait of ${b.name || "a person"}` +
+    `Character portrait of ${subject}` +
     (bits ? `, ${bits}` : "") +
-    (tags ? `. ${tags}` : "") +
-    ". Upper-body portrait, looking at the viewer, soft cinematic lighting, detailed, high quality, tasteful, safe for work."
+    `.${outfit}${tags} Upper-body portrait, looking at the viewer, soft cinematic lighting, detailed, high quality, tasteful, safe for work.`
   );
 }
 
@@ -47,7 +50,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid request body" }, { status: 400 });
   }
 
-  const blob = [body.name, body.look, body.persona, ...(body.tags ?? [])].filter(Boolean).join(" ");
+  const blob = [body.name, body.outfit, body.look, body.persona, ...(body.tags ?? [])].filter(Boolean).join(" ");
   if (screen(blob).blocked) return NextResponse.json({ error: "blocked", reason: "safety_minor" }, { status: 422 });
 
   // Metering: the first FREE_PORTRAITS generations are free; then PORTRAIT_PRICE each.

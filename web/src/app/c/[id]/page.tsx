@@ -29,6 +29,7 @@ function chapterCount(content: string): number {
 type Profile = {
   id: string;
   name: string;
+  age: number | null;
   look: string;
   persona: string;
   backstory: string;
@@ -74,6 +75,7 @@ async function loadProfile(id: string): Promise<Profile | null> {
     return {
       id: char.id,
       name: (def.name as string) ?? "Unknown",
+      age: typeof def.age === "number" ? def.age : null,
       look: (def.look as string) ?? "",
       persona: (def.persona as string) ?? "",
       backstory: (def.backstory as string) ?? "",
@@ -116,7 +118,7 @@ export default async function CharacterProfile({ params }: { params: Promise<{ i
         <div style={S.headText}>
           <h1 style={S.name}>{p.name}</h1>
           <p style={S.by}>by {p.creatorId ? <a href={`/creator/${p.creatorId}`} style={S.byLink}>{p.creator}</a> : p.creator}</p>
-          {p.look ? <p style={S.look}>{p.look}</p> : null}
+          {p.age || p.look ? <p style={S.look}>{[p.age ? `Age ${p.age}` : null, p.look || null].filter(Boolean).join(" · ")}</p> : null}
           {p.tags.length ? <div style={S.tags}>{p.tags.map((t) => <a key={t} href={`/tag/${encodeURIComponent(t)}`} style={S.tag}>{t}</a>)}</div> : null}
         </div>
       </div>

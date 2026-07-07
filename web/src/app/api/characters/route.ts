@@ -48,6 +48,7 @@ export async function GET() {
 // revenue share, so it's set from the session (never trusted from the body).
 const Body = z.object({
   name: z.string().trim().min(1).max(60),
+  age: z.number().int().min(18).max(120), // characters must be adults
   persona: z.string().trim().max(600).optional(),
   look: z.string().trim().max(400).optional(),
   backstory: z.string().trim().max(600).optional(),
@@ -79,6 +80,7 @@ export async function POST(req: Request) {
 
   const definition = {
     name: body.name,
+    age: body.age,
     persona: body.persona ?? "",
     look: body.look ?? "",
     backstory: body.backstory ?? "",
