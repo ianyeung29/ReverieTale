@@ -3,10 +3,12 @@ import { z } from "zod";
 import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { characters, stories } from "@/db/schema";
-import { moderateContent } from "@/lib/moderation";
+import { buildPortraitPrompt, generateImage, imageConfigured } from "@/lib/image";
+import { moderateContent, screenImagePrompt } from "@/lib/moderation";
 import { getCurrentUserId } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 120; // may auto-generate a default portrait on create
 
 export async function GET() {
   const rows = await db
@@ -88,6 +90,25 @@ export async function POST(req: Request) {
     tags: body.tags ?? [],
   };
 
+  // Auto-generate the free default portrait from the details the user entered.
+  // Best-effort: if image generation isn't configured, the prompt is blocked, or
+  // the provider fails, we still create the character (portrait-less) — the user
+  // can generate one later on the edit page. A client-supplied image wins.
+  let image = body.image;
+  let imageMime = body.imageMime ?? null;
+  if (!image && imageConfigured()) {
+    const prompt = buildPortraitPrompt({ name: body.name, age: body.age, look: body.look, persona: body.persona, tags: body.tags });
+    if (!screenImagePrompt(prompt).blocked) {
+      try {
+        const gen = await generateImage(prompt);
+        image = gen.base64;
+        imageMime = gen.mime;
+      } catch (e) {
+        console.error("[characters] default portrait failed:", e instanceof Error ? e.message : e);
+      }
+    }
+  }
+
   const [char] = await db
     .insert(characters)
     .values({
@@ -98,7 +119,7 @@ export async function POST(req: Request) {
       // Only touch image columns when a portrait was actually attached, so the
       // core create flow works even if migration 0006 hasn't been applied.
       // portraitGens=1 marks the free default as used, so edit-page regens are paid.
-      ...(body.image ? { image: body.image, imageMime: body.imageMime ?? null, portraitGens: 1 } : {}),
+      ...(image ? { image, imageMime, portraitGens: 1 } : {}),
     })
     .returning({ id: characters.id });
 

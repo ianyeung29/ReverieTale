@@ -7,6 +7,27 @@
  */
 const grokKey = () => process.env.XAI_IMAGE_KEY || process.env.XAI_API_KEY;
 
+// Shared portrait-prompt builder so the create route (auto default portrait) and
+// the portrait route (manual regen) produce identical, tasteful SFW prompts.
+export function buildPortraitPrompt(b: {
+  name?: string;
+  age?: number;
+  outfit?: string;
+  look?: string;
+  persona?: string;
+  tags?: string[];
+}): string {
+  const subject = b.age ? `${b.age}-year-old adult ${b.name || "person"}` : b.name || "a person";
+  const bits = [b.look, b.persona].filter(Boolean).join(". ");
+  const outfit = b.outfit ? ` Wearing ${b.outfit}.` : "";
+  const tags = b.tags?.length ? ` ${b.tags.join(", ")}.` : "";
+  return (
+    `Character portrait of ${subject}` +
+    (bits ? `, ${bits}` : "") +
+    `.${outfit}${tags} Upper-body portrait, looking at the viewer, soft cinematic lighting, detailed, high quality, tasteful, safe for work.`
+  );
+}
+
 export function imageConfigured(): boolean {
   const provider = process.env.IMAGE_PROVIDER || "grok";
   if (provider === "grok") return Boolean(grokKey());

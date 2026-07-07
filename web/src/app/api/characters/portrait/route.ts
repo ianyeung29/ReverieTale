@@ -3,7 +3,7 @@ import { z } from "zod";
 import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { characters, users } from "@/db/schema";
-import { generateImage, imageConfigured } from "@/lib/image";
+import { buildPortraitPrompt, generateImage, imageConfigured } from "@/lib/image";
 import { screenImagePrompt } from "@/lib/moderation";
 import { spend, userBalance } from "@/lib/ledger";
 import { getCurrentUserId } from "@/lib/session";
@@ -26,18 +26,6 @@ const Body = z.object({
   tags: z.array(z.string().max(30)).max(8).optional(),
 });
 
-function buildPrompt(b: z.infer<typeof Body>): string {
-  const subject = b.age ? `${b.age}-year-old adult ${b.name || "person"}` : b.name || "a person";
-  const bits = [b.look, b.persona].filter(Boolean).join(". ");
-  const outfit = b.outfit ? ` Wearing ${b.outfit}.` : "";
-  const tags = b.tags?.length ? ` ${b.tags.join(", ")}.` : "";
-  return (
-    `Character portrait of ${subject}` +
-    (bits ? `, ${bits}` : "") +
-    `.${outfit}${tags} Upper-body portrait, looking at the viewer, soft cinematic lighting, detailed, high quality, tasteful, safe for work.`
-  );
-}
-
 // POST /api/characters/portrait -> a generated portrait (base64) for the current
 // draft. The client holds it and submits it with create/edit. SFW; our own image
 // gate (screenImagePrompt) rejects disallowed prompts before we spend a provider
@@ -57,7 +45,7 @@ export async function POST(req: Request) {
   // Our own gatekeeper: reject disallowed prompts up front, before any metering
   // or a (paid) provider call, so we don't burn image credits on a generation the
   // provider would only black out. Screens the full prompt, not just raw inputs.
-  const prompt = buildPrompt(body);
+  const prompt = buildPortraitPrompt(body);
   const gate = screenImagePrompt(prompt);
   if (gate.blocked) return NextResponse.json({ error: "blocked", reason: gate.reason }, { status: 422 });
 

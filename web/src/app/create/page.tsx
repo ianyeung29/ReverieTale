@@ -250,7 +250,7 @@ export default function CreateCharacterPage() {
 
       {loadErr ? <p style={S.fieldErr}>Couldn&apos;t load this companion&apos;s details. Refresh to try again.</p> : null}
 
-      {imageEnabled ? (
+      {imageEnabled && editId ? (
         <div style={S.portraitRow}>
           {portraitSrc ? <img src={portraitSrc} alt="portrait" style={S.portraitBig} /> : <div style={S.portraitPlaceholder}>no portrait yet</div>}
           <div style={S.portraitCol}>
@@ -354,11 +354,11 @@ export default function CreateCharacterPage() {
 
       <div style={S.actions}>
         <button style={{ ...S.primary, opacity: !canSave || busy ? 0.55 : 1 }} onClick={create} disabled={!canSave || busy}>
-          {busy ? (editId ? "Saving…" : "Creating…") : editId ? "Save changes" : "Create & write her first story →"}
+          {busy ? (editId ? "Saving…" : "Creating & drawing portrait…") : editId ? "Save changes" : "Create & write her first story →"}
         </button>
         <a href={editId ? "/characters" : "/"} style={S.cancel}>Cancel</a>
       </div>
-      {editId ? null : <p style={S.foot}>Next you&apos;ll set the scene for her opening story. Writing a chapter costs credits; reading is always free.</p>}
+      {editId ? null : <p style={S.foot}>We&apos;ll draw a default portrait from these details automatically — you can regenerate it later from the edit page. Next you&apos;ll set the scene for her opening story. Writing a chapter costs credits; reading is always free.</p>}
     </main>
   );
 }
