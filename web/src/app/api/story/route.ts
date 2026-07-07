@@ -104,8 +104,10 @@ export async function POST(req: Request) {
 
     // Draw an ambient background from the setting in the BACKGROUND so reading
     // starts instantly; the scene fades in when it lands. Best-effort — the story
-    // reads fine without it, and the image gate keeps disallowed scenes out.
-    if (imageConfigured()) {
+    // reads fine without it, and the image gate keeps disallowed scenes out. Only
+    // when the writer actually gave a setting, so we don't spend credits on a
+    // generic scene nobody asked for.
+    if (body.setting?.trim() && imageConfigured()) {
       const scenePrompt = buildScenePrompt({ setting: body.setting, genre: body.genre, tone: body.tone, scenario: body.scenario });
       if (!screenImagePrompt(scenePrompt).blocked) {
         after(async () => {
