@@ -21,9 +21,10 @@ export function Nav() {
       <a href="/" style={S.brand}>Reverie</a>
       <div style={S.links}>
         <a href="/browse" style={S.link}>Browse</a>
+        <a href="/stories" style={S.link}>Stories</a>
         <a href="/create" style={S.link}>Create</a>
         <a href="/characters" style={S.link}>Companions</a>
-        <a href="/library" style={S.link}>Stories</a>
+        <a href="/library" style={S.link}>My library</a>
         <a href="/chat" style={S.link}>Chat</a>
         {me?.isAdmin ? (
           <a href="/admin/review" style={S.review}>
