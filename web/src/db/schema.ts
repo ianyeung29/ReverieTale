@@ -78,6 +78,10 @@ export const stories = pgTable(
     title: text("title").notNull(),
     content: text("content").notNull(),
     elements: jsonb("elements"), // { setting, tone, ... }
+    // Optional ambient background, generated from the story's setting and stored
+    // base64 + mime, served via /api/stories/:id/background. Sets mood while reading.
+    image: text("image"),
+    imageMime: text("image_mime"),
     isPublic: boolean("is_public").notNull().default(true),
     // Read counter (page views by non-owners) - powers the "most read" sort.
     reads: integer("reads").notNull().default(0),

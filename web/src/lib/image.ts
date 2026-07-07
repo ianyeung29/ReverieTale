@@ -40,6 +40,20 @@ export function buildPortraitPrompt(b: {
   );
 }
 
+// Ambient background prompt for a story: an empty, atmospheric ENVIRONMENT built
+// from the story's setting/genre/tone. Deliberately no people or text — it sits
+// behind the prose as mood lighting, dimmed and blurred at render time.
+export function buildScenePrompt(e: { setting?: string | null; genre?: string | null; tone?: string | null; scenario?: string | null }): string {
+  const place = e.setting?.trim() || e.scenario?.trim() || "a quiet, intimate room at dusk";
+  const genre = e.genre?.trim() ? `${e.genre.trim()} atmosphere` : "cinematic atmosphere";
+  const tone = e.tone?.trim() ? `${e.tone.trim()} mood` : "warm, romantic mood";
+  return (
+    `Atmospheric establishing shot of ${place}. ${genre}, ${tone}. ` +
+    `Empty scenery with no people and no text, soft depth of field, moody cinematic lighting, ` +
+    `painterly, evocative, wide environment shot.`
+  );
+}
+
 export function imageConfigured(): boolean {
   const provider = process.env.IMAGE_PROVIDER || "grok";
   if (provider === "grok") return Boolean(grokKey());

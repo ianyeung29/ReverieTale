@@ -45,6 +45,16 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const rating = await ratingFor("story", row.id);
   const mine = userId && !isOwner ? await userRating(userId, "story", row.id) : null;
 
+  // Background column is optional (migration 0010); probe it separately so a
+  // missing column never breaks reading the story.
+  let hasBackground = false;
+  try {
+    const [bg] = await db.select({ h: sql<boolean>`(${stories.image} is not null)` }).from(stories).where(eq(stories.id, id)).limit(1);
+    hasBackground = Boolean(bg?.h);
+  } catch {
+    /* image column not migrated yet */
+  }
+
   return NextResponse.json({
     id: row.id,
     title: row.title,
@@ -53,6 +63,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     characterName: def.name ?? "Unknown",
     isOwner,
     hasBackup: isOwner && Boolean(row.backup),
+    hasBackground,
     reads,
     rating: rating.average,
     ratingCount: rating.count,

@@ -1,11 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { characters, stories, users } from "@/db/schema";
 import { generateStory } from "@/lib/story";
 import { resolveTier } from "@/lib/model";
-import { screen } from "@/lib/moderation";
+import { screen, screenImagePrompt } from "@/lib/moderation";
+import { buildScenePrompt, generateImage, imageConfigured } from "@/lib/image";
 import { getCurrentUserId } from "@/lib/session";
 import { ensureDailyDrip, spend, userBalance } from "@/lib/ledger";
 
@@ -100,6 +101,23 @@ export async function POST(req: Request) {
     // Charge only after a successful, safety-cleared generation + save.
     const charge = await spend(userId, CHAPTER_PRICE, { kind: "chapter", storyId: story.id, chapter: 0 });
     if (!charge.ok) return NextResponse.json({ error: "insufficient_credits", price: CHAPTER_PRICE, balance: charge.balance }, { status: 402 });
+
+    // Draw an ambient background from the setting in the BACKGROUND so reading
+    // starts instantly; the scene fades in when it lands. Best-effort — the story
+    // reads fine without it, and the image gate keeps disallowed scenes out.
+    if (imageConfigured()) {
+      const scenePrompt = buildScenePrompt({ setting: body.setting, genre: body.genre, tone: body.tone, scenario: body.scenario });
+      if (!screenImagePrompt(scenePrompt).blocked) {
+        after(async () => {
+          try {
+            const gen = await generateImage(scenePrompt);
+            await db.update(stories).set({ image: gen.base64, imageMime: gen.mime }).where(eq(stories.id, story.id));
+          } catch (err) {
+            console.error("[story] background generation failed:", err instanceof Error ? err.message : err);
+          }
+        });
+      }
+    }
 
     return NextResponse.json({ storyId: story.id, title, content, balance: charge.balance });
   } catch (e) {

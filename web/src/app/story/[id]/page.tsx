@@ -8,7 +8,7 @@ import { RatingBar } from "@/components/RatingBar";
 
 type Story = {
   id: string; title: string; content: string; characterId: string; characterName: string;
-  isOwner: boolean; hasBackup: boolean;
+  isOwner: boolean; hasBackup: boolean; hasBackground: boolean;
   reads: number; rating: number; ratingCount: number; myRating: number | null; canRate: boolean;
 };
 
@@ -40,6 +40,14 @@ export default function StoryReadPage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [chapterPrice, setChapterPrice] = useState(10);
   const [showToc, setShowToc] = useState(false);
+  const [bgOn, setBgOn] = useState(true);
+
+  useEffect(() => {
+    setBgOn(localStorage.getItem("rv_story_bg") !== "off");
+  }, []);
+  function toggleBg() {
+    setBgOn((v) => { localStorage.setItem("rv_story_bg", v ? "off" : "on"); return !v; });
+  }
 
   useEffect(() => {
     fetch(`/api/stories/${id}`).then((r) => (r.ok ? r.json() : Promise.reject())).then((s: Story) => {
@@ -132,10 +140,23 @@ export default function StoryReadPage() {
 
   return (
     <main style={S.wrap}>
-      <style>{"@keyframes rvFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}"}</style>
+      <style>{"@keyframes rvFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}@keyframes rvBgIn{from{opacity:0}to{opacity:1}}"}</style>
+      {story.hasBackground && bgOn ? (
+        <div aria-hidden style={S.bgLayer}>
+          <div style={{ ...S.bgImage, backgroundImage: `url(/api/stories/${id}/background)` }} />
+          <div style={S.bgScrim} />
+        </div>
+      ) : null}
       <div style={S.progressTrack}><div style={{ ...S.progressFill, width: `${progress}%` }} /></div>
 
-      <a href="/" style={S.back}>← Reverie</a>
+      <div style={S.topRow}>
+        <a href="/" style={S.back}>← Reverie</a>
+        {story.hasBackground ? (
+          <button style={S.bgToggle} onClick={toggleBg} title="Toggle the ambient background">
+            {bgOn ? "◑ Ambient on" : "◐ Ambient off"}
+          </button>
+        ) : null}
+      </div>
       <div style={S.head}>
         <CharacterAvatar characterId={story.characterId} name={story.characterName} size={46} />
         <div>
@@ -264,8 +285,13 @@ function Chips({ options, value, onPick }: { options: string[]; value: string; o
 }
 
 const S: Record<string, React.CSSProperties> = {
-  wrap: { maxWidth: 660, margin: "0 auto", padding: "36px 24px 120px", lineHeight: 1.7 },
+  wrap: { maxWidth: 660, margin: "0 auto", padding: "36px 24px 120px", lineHeight: 1.7, position: "relative" },
+  bgLayer: { position: "fixed", inset: 0, zIndex: -1, overflow: "hidden", pointerEvents: "none", animation: "rvBgIn 1.2s ease" },
+  bgImage: { position: "absolute", inset: -24, backgroundSize: "cover", backgroundPosition: "center", filter: "blur(9px) brightness(.42) saturate(1.12)", transform: "scale(1.06)" },
+  bgScrim: { position: "absolute", inset: 0, background: "radial-gradient(120% 90% at 50% 0%, rgba(21,15,26,.55), rgba(21,15,26,.82) 70%, rgba(21,15,26,.95)), linear-gradient(180deg, rgba(21,15,26,.35), rgba(21,15,26,.9))" },
+  topRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 },
   back: { color: "#8A7A90", textDecoration: "none", fontSize: 14, letterSpacing: ".04em" },
+  bgToggle: { background: "rgba(35,26,43,.6)", color: "#AC9CB0", border: "1px solid #3A2E44", borderRadius: 999, padding: "5px 12px", cursor: "pointer", fontSize: 12.5, fontWeight: 600, backdropFilter: "blur(6px)" },
   link: { color: "#E9A06B" },
   progressTrack: { position: "fixed", top: 52, left: 0, right: 0, height: 3, background: "#241a2b", zIndex: 20 },
   progressFill: { height: "100%", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", transition: "width .3s ease" },
