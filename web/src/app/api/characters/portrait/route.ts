@@ -19,6 +19,7 @@ const PORTRAIT_PRICE = Number(process.env.PORTRAIT_PRICE || 5);
 const Body = z.object({
   characterId: z.string().uuid().optional(), // present when regenerating a saved character
   name: z.string().max(60).optional(),
+  gender: z.string().max(30).optional(),
   age: z.number().int().min(18).max(120).optional(),
   outfit: z.string().max(200).optional(),
   look: z.string().max(400).optional(),

@@ -7,17 +7,29 @@
  */
 const grokKey = () => process.env.XAI_IMAGE_KEY || process.env.XAI_API_KEY;
 
+// Map a stored gender value to the noun image models respond to best.
+function genderWord(gender?: string): string {
+  if (!gender) return "";
+  const x = gender.trim().toLowerCase();
+  if (x === "female" || x === "woman" || x === "f") return "woman";
+  if (x === "male" || x === "man" || x === "m") return "man";
+  return "person"; // non-binary / other -> neutral
+}
+
 // Shared portrait-prompt builder so the create route (auto default portrait) and
 // the portrait route (manual regen) produce identical, tasteful SFW prompts.
 export function buildPortraitPrompt(b: {
   name?: string;
+  gender?: string;
   age?: number;
   outfit?: string;
   look?: string;
   persona?: string;
   tags?: string[];
 }): string {
-  const subject = b.age ? `${b.age}-year-old adult ${b.name || "person"}` : b.name || "a person";
+  const g = genderWord(b.gender);
+  const who = b.name ? (g ? `${g} named ${b.name}` : b.name) : g || "person";
+  const subject = b.age ? `${b.age}-year-old adult ${who}` : who;
   const bits = [b.look, b.persona].filter(Boolean).join(". ");
   const outfit = b.outfit ? ` Wearing ${b.outfit}.` : "";
   const tags = b.tags?.length ? ` ${b.tags.join(", ")}.` : "";

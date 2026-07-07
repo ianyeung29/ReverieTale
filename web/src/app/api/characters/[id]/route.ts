@@ -8,7 +8,7 @@ import { getCurrentUserId } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
-const FIELDS = ["name", "look", "persona", "backstory", "voice", "tags"] as const;
+const FIELDS = ["name", "gender", "look", "persona", "backstory", "voice", "tags"] as const;
 
 // GET /api/characters/:id -> owner-only detail for editing.
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -40,6 +40,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     status: row.status,
     hasImage,
     name: (def.name as string) ?? "",
+    gender: (def.gender as string) ?? "",
     look: (def.look as string) ?? "",
     persona: (def.persona as string) ?? "",
     backstory: (def.backstory as string) ?? "",
@@ -53,6 +54,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 // (published <-> disabled). creatorId is never editable.
 const Patch = z.object({
   name: z.string().trim().min(1).max(60).optional(),
+  gender: z.string().trim().min(1).max(30).optional(),
   age: z.number().int().min(18).max(120).optional(),
   look: z.string().trim().max(400).optional(),
   persona: z.string().trim().max(600).optional(),

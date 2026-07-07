@@ -55,6 +55,7 @@ export async function GET() {
 // revenue share, so it's set from the session (never trusted from the body).
 const Body = z.object({
   name: z.string().trim().min(1).max(60),
+  gender: z.string().trim().min(1).max(30), // required: female | male | non-binary | …
   age: z.number().int().min(18).max(120), // characters must be adults
   persona: z.string().trim().max(600).optional(),
   look: z.string().trim().max(400).optional(),
@@ -87,6 +88,7 @@ export async function POST(req: Request) {
 
   const definition = {
     name: body.name,
+    gender: body.gender,
     age: body.age,
     persona: body.persona ?? "",
     look: body.look ?? "",
@@ -115,7 +117,7 @@ export async function POST(req: Request) {
   // row is updated when the image lands (best-effort — the character exists either
   // way, and the user can regenerate from the edit page if it never arrives).
   if (!body.image && imageConfigured()) {
-    const prompt = buildPortraitPrompt({ name: body.name, age: body.age, look: body.look, persona: body.persona, tags: body.tags });
+    const prompt = buildPortraitPrompt({ name: body.name, gender: body.gender, age: body.age, look: body.look, persona: body.persona, tags: body.tags });
     if (!screenImagePrompt(prompt).blocked) {
       after(async () => {
         try {

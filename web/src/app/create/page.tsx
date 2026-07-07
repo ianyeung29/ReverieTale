@@ -4,6 +4,12 @@ import { useEffect, useState } from "react";
 import { Avatar } from "@/components/Avatar";
 import { EntryGate } from "@/components/EntryGate";
 
+const GENDER_OPTIONS = [
+  { value: "female", label: "Female" },
+  { value: "male", label: "Male" },
+  { value: "non-binary", label: "Non-binary" },
+];
+
 const TAG_SUGGESTIONS = [
   "romance", "flirty", "shy", "confident", "mysterious", "playful", "brooding", "warm", "witty", "protective",
   "adventurous", "artistic", "sarcastic", "gentle", "dominant", "sweet", "cold-but-caring", "nerdy", "rebellious",
@@ -13,6 +19,7 @@ const TAG_SUGGESTIONS = [
 export default function CreateCharacterPage() {
   const [authEmail, setAuthEmail] = useState<string | null | undefined>(undefined);
   const [name, setName] = useState("");
+  const [gender, setGender] = useState("");
   const [age, setAge] = useState("");
   const [outfit, setOutfit] = useState("");
   const [look, setLook] = useState("");
@@ -50,7 +57,7 @@ export default function CreateCharacterPage() {
     fetch(`/api/characters/${id}`).then((r) => (r.ok ? r.json() : Promise.reject(r.status))).then((d) => {
       setName(d.name || ""); setLook(d.look || ""); setPersona(d.persona || "");
       setBackstory(d.backstory || ""); setVoice(d.voice || ""); setTags(Array.isArray(d.tags) ? d.tags : []);
-      setAge(d.age ? String(d.age) : "");
+      setAge(d.age ? String(d.age) : ""); setGender(d.gender || "");
       setHasImage(!!d.hasImage);
     }).catch(() => setLoadErr(true));
   }, []);
@@ -62,7 +69,7 @@ export default function CreateCharacterPage() {
       const res = await fetch("/api/characters/portrait", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ characterId: editId || undefined, name: name.trim() || undefined, age: ageOk ? ageNum : undefined, outfit: outfit.trim() || undefined, look: look.trim() || undefined, persona: persona.trim() || undefined, tags: tags.length ? tags : undefined }),
+        body: JSON.stringify({ characterId: editId || undefined, name: name.trim() || undefined, gender: gender || undefined, age: ageOk ? ageNum : undefined, outfit: outfit.trim() || undefined, look: look.trim() || undefined, persona: persona.trim() || undefined, tags: tags.length ? tags : undefined }),
       });
       const d = await res.json();
       if (res.status === 401) { setAuthEmail(null); return; }
@@ -153,13 +160,14 @@ export default function CreateCharacterPage() {
 
   const ageNum = Number(age);
   const ageOk = Number.isFinite(ageNum) && ageNum >= 18 && ageNum <= 120;
-  const canSave = Boolean(name.trim()) && ageOk;
+  const canSave = Boolean(name.trim()) && Boolean(gender) && ageOk;
 
   async function create() {
     if (!canSave || busy) return;
     setBusy(true); setError("");
     const payload = {
       name: name.trim(),
+      gender,
       age: ageNum,
       look: look.trim() || undefined,
       persona: persona.trim() || undefined,
@@ -280,6 +288,20 @@ export default function CreateCharacterPage() {
 
       <label style={S.label}>Name</label>
       <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Mara, Kai, Sable…" style={S.input} maxLength={60} />
+
+      <label style={S.label}>Gender <span style={S.hint}>(required)</span></label>
+      <div style={S.chips}>
+        {GENDER_OPTIONS.map((g) => (
+          <button
+            key={g.value}
+            type="button"
+            style={{ ...S.chip, ...(gender === g.value ? S.chipOn : {}) }}
+            onClick={() => setGender(gender === g.value ? "" : g.value)}
+          >
+            {g.label}
+          </button>
+        ))}
+      </div>
 
       <label style={S.label}>Age <span style={S.hint}>(must be 18+)</span></label>
       <input value={age} onChange={(e) => setAge(e.target.value.replace(/[^0-9]/g, "").slice(0, 3))} placeholder="e.g. 24" style={S.input} inputMode="numeric" />

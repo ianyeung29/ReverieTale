@@ -34,7 +34,7 @@ export async function generateStory(def: Record<string, string>, elements: Story
   const system = `${baseSystem}\nBegin with a title on the first line as 'Title: <the title>', then a blank line, then the story.`;
 
   const user = [
-    `Character: ${def.name}. ${def.persona}. Backstory: ${def.backstory}. Voice: ${def.voice}.`,
+    `Character: ${def.name}${def.gender ? ` (${def.gender})` : ""}. ${def.persona}. Backstory: ${def.backstory}. Voice: ${def.voice}.`,
     elements.genre ? `Genre: ${elements.genre}.` : "",
     elements.relationship ? `Your relationship: ${elements.relationship}.` : "",
     elements.scenario ? `How you meet: ${elements.scenario}.` : "",
