@@ -3,6 +3,7 @@ import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { characters, stories } from "@/db/schema";
 import { ratingFor, userRating } from "@/lib/ratings";
+import { isBookmarked } from "@/lib/bookmarks";
 import { getCurrentUserId } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -55,6 +56,16 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     /* image column not migrated yet */
   }
 
+  // Bookmark state is optional (migration 0011); never break reading over it.
+  let saved = false;
+  if (userId) {
+    try {
+      saved = await isBookmarked(userId, row.id);
+    } catch {
+      /* bookmarks table not migrated yet */
+    }
+  }
+
   return NextResponse.json({
     id: row.id,
     title: row.title,
@@ -69,5 +80,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     ratingCount: rating.count,
     myRating: mine,
     canRate: Boolean(userId) && !isOwner,
+    isSaved: saved,
+    canSave: Boolean(userId) && !isOwner,
   });
 }

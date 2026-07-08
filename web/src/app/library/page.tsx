@@ -5,20 +5,35 @@ import { CharacterAvatar } from "@/components/CharacterAvatar";
 
 type Item = { id: string; title: string; name: string; chapters: number; characterId: string };
 
+function StoryGrid({ items }: { items: Item[] }) {
+  return (
+    <div style={S.grid}>
+      {items.map((s) => (
+        <a key={s.id} href={`/story/${s.id}`} className="rv-card" style={S.card}>
+          <div style={S.head}><CharacterAvatar characterId={s.characterId} name={s.name} size={34} /><div style={S.title}>{s.title}</div></div>
+          <span style={S.meta}>with {s.name} · {s.chapters} chapter{s.chapters === 1 ? "" : "s"}</span>
+        </a>
+      ))}
+    </div>
+  );
+}
+
 export default function LibraryPage() {
   const [items, setItems] = useState<Item[] | null>(null);
+  const [saved, setSaved] = useState<Item[] | null>(null);
   const [earned, setEarned] = useState(0);
 
   useEffect(() => {
     fetch("/api/stories/mine").then((r) => r.json()).then((d: Item[]) => setItems(Array.isArray(d) ? d : [])).catch(() => setItems([]));
+    fetch("/api/stories/saved").then((r) => (r.ok ? r.json() : [])).then((d: Item[]) => setSaved(Array.isArray(d) ? d : [])).catch(() => setSaved([]));
     fetch("/api/credits").then((r) => (r.ok ? r.json() : null)).then((d) => d && setEarned(d.earnedFromReaders ?? 0)).catch(() => {});
   }, []);
 
   return (
     <main style={S.wrap}>
       <a href="/" style={S.back}>← Reverie</a>
-      <h1 style={S.h1}>Your stories</h1>
-      <p style={S.sub}>Everything you've started - pick up any chapter where you left off.</p>
+      <h1 style={S.h1}>Your library</h1>
+      <p style={S.sub}>Everything you've started or saved - pick up any chapter where you left off.</p>
 
       {earned > 0 ? (
         <div style={S.earn}>
@@ -40,15 +55,15 @@ export default function LibraryPage() {
           </div>
         </div>
       ) : (
-        <div style={S.grid}>
-          {items.map((s) => (
-            <a key={s.id} href={`/story/${s.id}`} className="rv-card" style={S.card}>
-              <div style={S.head}><CharacterAvatar characterId={s.characterId} name={s.name} size={34} /><div style={S.title}>{s.title}</div></div>
-              <span style={S.meta}>with {s.name} · {s.chapters} chapter{s.chapters === 1 ? "" : "s"}</span>
-            </a>
-          ))}
-        </div>
+        <StoryGrid items={items} />
       )}
+
+      {saved && saved.length > 0 ? (
+        <>
+          <p style={S.section}>Saved for later · {saved.length}</p>
+          <StoryGrid items={saved} />
+        </>
+      ) : null}
     </main>
   );
 }
@@ -58,6 +73,7 @@ const S: Record<string, React.CSSProperties> = {
   back: { color: "#8A7A90", textDecoration: "none", fontSize: 14 },
   h1: { fontFamily: "Georgia, serif", fontSize: 40, margin: "22px 0 8px" },
   sub: { color: "#AC9CB0", margin: "0 0 28px" },
+  section: { fontSize: 12, letterSpacing: ".14em", textTransform: "uppercase", color: "#9A8AA0", fontWeight: 700, margin: "40px 0 14px" },
   emptyPanel: { textAlign: "center", background: "#1A1420", border: "1px solid #2f2438", borderRadius: 18, padding: "44px 24px" },
   emptyIcon: { fontSize: 34 },
   emptyTitle: { fontFamily: "Georgia, serif", fontSize: 24, margin: "10px 0 6px", color: "#F4EAF0" },

@@ -10,11 +10,21 @@ type Story = {
   id: string; title: string; content: string; characterId: string; characterName: string;
   isOwner: boolean; hasBackup: boolean; hasBackground: boolean;
   reads: number; rating: number; ratingCount: number; myRating: number | null; canRate: boolean;
+  isSaved: boolean; canSave: boolean;
 };
 
 const MOODS = ["sweet", "playful", "flirty", "tender", "tense", "mysterious", "dramatic"];
 const TWISTS = ["a confession", "an interruption", "a secret revealed", "they almost kiss", "a misunderstanding", "a bold move", "someone arrives"];
 const WHAT_HAPPENS = ["she says how she really feels", "the moment nearly breaks", "you're left alone together", "a memory resurfaces", "the tension finally snaps", "an unexpected visitor arrives"];
+
+type FontSize = "sm" | "md" | "lg";
+type ReaderTheme = "dark" | "sepia" | "paper";
+const FONT_SIZES: Record<FontSize, number> = { sm: 16.5, md: 18.5, lg: 21.5 };
+const READER_THEMES: Record<ReaderTheme, { label: string; bg: string; text: string; swatch: string }> = {
+  dark: { label: "Dark", bg: "transparent", text: "#ECE3E8", swatch: "#241B2D" },
+  sepia: { label: "Sepia", bg: "#F3E7D0", text: "#3B2A1A", swatch: "#F3E7D0" },
+  paper: { label: "Paper", bg: "#FAF7F2", text: "#221E1A", swatch: "#FAF7F2" },
+};
 
 function rand<T>(a: T[]): T { return a[Math.floor(Math.random() * a.length)]; }
 function splitChapters(content: string): string[] {
@@ -41,17 +51,45 @@ export default function StoryReadPage() {
   const [chapterPrice, setChapterPrice] = useState(10);
   const [showToc, setShowToc] = useState(false);
   const [bgOn, setBgOn] = useState(true);
+  const [fontSize, setFontSize] = useState<FontSize>("md");
+  const [theme, setTheme] = useState<ReaderTheme>("dark");
+  const [showReaderMenu, setShowReaderMenu] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [saveBusy, setSaveBusy] = useState(false);
 
   useEffect(() => {
     setBgOn(localStorage.getItem("rv_story_bg") !== "off");
+    const fs = localStorage.getItem("rv_reader_fontsize");
+    if (fs === "sm" || fs === "md" || fs === "lg") setFontSize(fs);
+    const th = localStorage.getItem("rv_reader_theme");
+    if (th === "dark" || th === "sepia" || th === "paper") setTheme(th);
   }, []);
   function toggleBg() {
     setBgOn((v) => { localStorage.setItem("rv_story_bg", v ? "off" : "on"); return !v; });
   }
+  function pickFontSize(v: FontSize) { setFontSize(v); localStorage.setItem("rv_reader_fontsize", v); }
+  function pickTheme(v: ReaderTheme) { setTheme(v); localStorage.setItem("rv_reader_theme", v); }
+
+  async function toggleSave() {
+    if (saveBusy || !story?.canSave) return;
+    setSaveBusy(true);
+    const next = !saved;
+    setSaved(next); // optimistic
+    try {
+      const res = await fetch(`/api/stories/${id}/bookmark`, { method: "POST" });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok && typeof d.bookmarked === "boolean") setSaved(d.bookmarked);
+      else setSaved(!next);
+    } catch {
+      setSaved(!next);
+    } finally {
+      setSaveBusy(false);
+    }
+  }
 
   useEffect(() => {
     fetch(`/api/stories/${id}`).then((r) => (r.ok ? r.json() : Promise.reject())).then((s: Story) => {
-      setStory(s); setChapters(splitChapters(s.content));
+      setStory(s); setChapters(splitChapters(s.content)); setSaved(s.isSaved);
     }).catch(() => setNotFound(true));
     fetch("/api/config").then((r) => r.json()).then((d) => { if (d.pricing?.chapter) setChapterPrice(d.pricing.chapter); }).catch(() => {});
   }, [id]);
@@ -151,11 +189,43 @@ export default function StoryReadPage() {
 
       <div style={S.topRow}>
         <a href="/" style={S.back}>← Reverie</a>
-        {story.hasBackground ? (
-          <button style={S.bgToggle} onClick={toggleBg} title="Toggle the ambient background">
-            {bgOn ? "◑ Ambient on" : "◐ Ambient off"}
-          </button>
-        ) : null}
+        <div style={S.topTools}>
+          {story.canSave ? (
+            <button style={S.iconToggle} onClick={toggleSave} title={saved ? "Remove from your library" : "Save to your library"} aria-pressed={saved}>
+              {saved ? "🔖 Saved" : "🔖 Save"}
+            </button>
+          ) : null}
+          <div style={S.readerMenuWrap}>
+            <button style={S.iconToggle} onClick={() => setShowReaderMenu((v) => !v)} title="Reading settings" aria-expanded={showReaderMenu}>Aa</button>
+            {showReaderMenu ? (
+              <>
+                <div style={S.readerMenuBackdrop} onClick={() => setShowReaderMenu(false)} />
+                <div style={S.readerMenu}>
+                  <p style={S.readerMenuLabel}>Text size</p>
+                  <div style={S.readerMenuRow}>
+                    {(Object.keys(FONT_SIZES) as FontSize[]).map((k) => (
+                      <button key={k} className="rv-chip" style={{ ...S.readerChip, ...(fontSize === k ? S.readerChipOn : {}) }} onClick={() => pickFontSize(k)}>
+                        {k === "sm" ? "S" : k === "md" ? "M" : "L"}
+                      </button>
+                    ))}
+                  </div>
+                  <p style={S.readerMenuLabel}>Reading theme</p>
+                  <div style={S.readerMenuRow}>
+                    {(Object.keys(READER_THEMES) as ReaderTheme[]).map((k) => (
+                      <button key={k} className="rv-chip" style={{ ...S.readerSwatch, background: READER_THEMES[k].swatch, ...(theme === k ? S.readerSwatchOn : {}) }} onClick={() => pickTheme(k)} title={READER_THEMES[k].label} aria-label={READER_THEMES[k].label} />
+                    ))}
+                  </div>
+                  {story.hasBackground ? (
+                    <>
+                      <p style={S.readerMenuLabel}>Ambient background</p>
+                      <button className="rv-chip" style={{ ...S.readerChip, width: "100%" }} onClick={toggleBg}>{bgOn ? "On" : "Off"}</button>
+                    </>
+                  ) : null}
+                </div>
+              </>
+            ) : null}
+          </div>
+        </div>
       </div>
       <div style={S.head}>
         <CharacterAvatar characterId={story.characterId} name={story.characterName} size={46} />
@@ -173,8 +243,16 @@ export default function StoryReadPage() {
         </div>
       ) : null}
 
-      <article key={idx + ":" + (chapters[idx] ?? "").length} style={S.article}>
-        {(chapters[idx] ?? "").split(/\n{2,}/).map((p, i) => <p key={i} style={S.para}>{p}</p>)}
+      <article
+        key={idx + ":" + (chapters[idx] ?? "").length}
+        style={{
+          ...S.article,
+          ...(theme !== "dark" ? { background: READER_THEMES[theme].bg, borderRadius: 16, padding: "28px 26px", boxShadow: "0 20px 50px rgba(0,0,0,.35)" } : {}),
+        }}
+      >
+        {(chapters[idx] ?? "").split(/\n{2,}/).map((p, i) => (
+          <p key={i} style={{ ...S.para, fontSize: FONT_SIZES[fontSize], color: READER_THEMES[theme].text }}>{p}</p>
+        ))}
       </article>
 
       {story.isOwner ? (
@@ -249,9 +327,18 @@ export default function StoryReadPage() {
         />
       </div>
 
-      <div style={S.talkRow}>
-        <a style={S.talk} href={`/chat?characterId=${story.characterId}&fromStory=${story.id}&chapter=${idx + 1}`}>Open full chat with {story.characterName} →</a>
-      </div>
+      <a
+        className="rv-card"
+        style={S.chatBridge}
+        href={`/chat?characterId=${story.characterId}&fromStory=${story.id}&chapter=${idx + 1}`}
+      >
+        <CharacterAvatar characterId={story.characterId} name={story.characterName} size={42} />
+        <div style={S.chatBridgeText}>
+          <p style={S.chatBridgeTitle}>{last ? "Still thinking about that?" : "Want to talk about it?"}</p>
+          <p style={S.chatBridgeBody}>Keep the conversation going with {story.characterName} — they remember everything you&apos;ve shared so far.</p>
+        </div>
+        <span style={S.chatBridgeArrow}>→</span>
+      </a>
 
       {showBackup && backupText ? (
         <div style={S.overlay} onClick={() => setShowBackup(false)}>
@@ -315,7 +402,7 @@ const S: Record<string, React.CSSProperties> = {
   nav: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginTop: 22, borderTop: "1px solid #241a2b", paddingTop: 22 },
   navBtn: { background: "#231A2B", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 10, padding: "11px 16px", cursor: "pointer", fontSize: 14, fontWeight: 600 },
   navPrimary: { color: "#1A1220", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", border: "1px solid transparent" },
-  count: { color: "#AC9CB0", fontSize: 13, fontVariantNumeric: "tabular-nums", background: "transparent", border: "1px solid #3A2E44", borderRadius: 8, padding: "7px 11px", cursor: "pointer", whiteSpace: "nowrap" },
+  count: { position: "relative", zIndex: 47, color: "#AC9CB0", fontSize: 13, fontVariantNumeric: "tabular-nums", background: "transparent", border: "1px solid #3A2E44", borderRadius: 8, padding: "7px 11px", cursor: "pointer", whiteSpace: "nowrap" },
   tocWrap: { position: "relative", display: "flex", justifyContent: "center" },
   tocBackdrop: { position: "fixed", inset: 0, zIndex: 45 },
   toc: { position: "absolute", bottom: "130%", left: "50%", transform: "translateX(-50%)", width: "min(340px, 82vw)", maxHeight: 300, overflowY: "auto", background: "#150F1A", border: "1px solid #3A2E44", borderRadius: 12, zIndex: 46, boxShadow: "0 16px 40px rgba(0,0,0,.5)", padding: 6 },
@@ -340,6 +427,20 @@ const S: Record<string, React.CSSProperties> = {
   noticeLink: { color: "#E9A06B", fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" },
   ratingRow: { marginTop: 26, paddingTop: 22, borderTop: "1px solid #241a2b", display: "flex", flexDirection: "column", gap: 10 },
   ratingLabel: { fontSize: 12, letterSpacing: ".14em", textTransform: "uppercase", color: "#8A7A90", fontWeight: 700 },
-  talkRow: { marginTop: 22, textAlign: "center" },
-  talk: { color: "#AC9CB0", textDecoration: "none", fontSize: 14 },
+  chatBridge: { marginTop: 22, display: "flex", alignItems: "center", gap: 14, padding: "16px 18px", textDecoration: "none", color: "#F4EAF0", background: "linear-gradient(100deg, rgba(233,160,107,.12), rgba(212,106,139,.12))", border: "1px solid #4a3a50", borderRadius: 16 },
+  chatBridgeText: { flex: 1, minWidth: 0 },
+  chatBridgeTitle: { fontFamily: "Georgia, serif", fontSize: 17, margin: 0, color: "#F4EAF0" },
+  chatBridgeBody: { color: "#C6B7CC", fontSize: 13.5, margin: "3px 0 0" },
+  chatBridgeArrow: { color: "#E9A06B", fontSize: 20, fontWeight: 700, flexShrink: 0 },
+  topTools: { display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" },
+  iconToggle: { position: "relative", zIndex: 47, background: "rgba(35,26,43,.6)", color: "#AC9CB0", border: "1px solid #3A2E44", borderRadius: 999, padding: "5px 12px", cursor: "pointer", fontSize: 12.5, fontWeight: 600, backdropFilter: "blur(6px)" },
+  readerMenuWrap: { position: "relative" },
+  readerMenuBackdrop: { position: "fixed", inset: 0, zIndex: 45 },
+  readerMenu: { position: "absolute", top: "130%", right: 0, zIndex: 46, width: 220, background: "#150F1A", border: "1px solid #3A2E44", borderRadius: 14, boxShadow: "0 16px 40px rgba(0,0,0,.5)", padding: 14 },
+  readerMenuLabel: { fontSize: 11, letterSpacing: ".08em", textTransform: "uppercase", color: "#8A7A90", fontWeight: 700, margin: "10px 0 8px" },
+  readerMenuRow: { display: "flex", gap: 8 },
+  readerChip: { flex: 1, background: "#231A2B", color: "#CBBBD0", border: "1px solid #3A2E44", borderRadius: 8, padding: "7px 0", cursor: "pointer", fontSize: 13, fontWeight: 600, textAlign: "center" },
+  readerChipOn: { background: "linear-gradient(100deg,#E9A06B,#D46A8B)", color: "#1A1220", border: "1px solid transparent" },
+  readerSwatch: { flex: 1, height: 30, borderRadius: 8, border: "1px solid #3A2E44", cursor: "pointer" },
+  readerSwatchOn: { border: "2px solid #E9A06B" },
 };

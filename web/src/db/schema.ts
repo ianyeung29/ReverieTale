@@ -94,6 +94,24 @@ export const stories = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// Bookmarks. A reader saves a story to their library to pick back up later -
+// distinct from stories.userId (who WROTE it). One bookmark per (user, story).
+// ---------------------------------------------------------------------------
+export const bookmarks = pgTable(
+  "bookmarks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    storyId: uuid("story_id").notNull().references(() => stories.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    userStoryUniq: uniqueIndex("bookmarks_user_story_uniq").on(t.userId, t.storyId),
+    byUser: index("bookmarks_user_idx").on(t.userId),
+  }),
+);
+
+// ---------------------------------------------------------------------------
 // Ratings. A reader gives a 1-5 star rating to a character or a story. One rating
 // per (user, target); re-rating overwrites. Averages power social proof + sorting.
 // ---------------------------------------------------------------------------
