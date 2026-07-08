@@ -12,6 +12,7 @@ type Story = {
   isOwner: boolean; hasBackup: boolean; hasBackground: boolean;
   reads: number; rating: number; ratingCount: number; myRating: number | null; canRate: boolean;
   isSaved: boolean; canSave: boolean;
+  isCharacterHidden: boolean;
 };
 
 const MOODS = ["sweet", "playful", "flirty", "tender", "tense", "mysterious", "dramatic"];
@@ -326,7 +327,15 @@ export default function StoryReadPage() {
           canRate={story.canRate}
           label="Rate this story"
         />
-        {story.canRate ? <ReportLink targetType="story" targetId={story.id} /> : null}
+        {story.canRate ? (
+          <ReportLink
+            targetType="story"
+            targetId={story.id}
+            hideCharacterId={story.characterId}
+            hideAlreadyHidden={story.isCharacterHidden}
+            hideLabel={story.characterName}
+          />
+        ) : null}
       </div>
 
       <a

@@ -3,6 +3,7 @@ import { eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { characters, stories } from "@/db/schema";
 import { bookmarkedStoryIds } from "@/lib/bookmarks";
+import { logUnlessMissingRelation } from "@/lib/db-errors";
 import { getCurrentUserId } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -21,8 +22,9 @@ export async function GET() {
   let ids: string[] = [];
   try {
     ids = await bookmarkedStoryIds(userId);
-  } catch {
-    return NextResponse.json([]); // bookmarks table not migrated yet
+  } catch (e) {
+    logUnlessMissingRelation("stories/saved", e);
+    return NextResponse.json([]);
   }
   if (ids.length === 0) return NextResponse.json([]);
 

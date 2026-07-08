@@ -4,6 +4,8 @@ import { db } from "@/db";
 import { characters, stories } from "@/db/schema";
 import { ratingFor, userRating } from "@/lib/ratings";
 import { isBookmarked } from "@/lib/bookmarks";
+import { isCharacterBlocked } from "@/lib/blocks";
+import { logUnlessMissingRelation } from "@/lib/db-errors";
 import { getCurrentUserId } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -61,8 +63,20 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   if (userId) {
     try {
       saved = await isBookmarked(userId, row.id);
-    } catch {
-      /* bookmarks table not migrated yet */
+    } catch (e) {
+      logUnlessMissingRelation("stories/:id bookmark check", e);
+    }
+  }
+
+  // Whether the viewer has hidden this story's character (migration 0012) - lets
+  // the client offer "also hide" in the report flow without accidentally
+  // un-hiding an already-hidden character (the underlying action is a toggle).
+  let characterHidden = false;
+  if (userId) {
+    try {
+      characterHidden = await isCharacterBlocked(userId, row.characterId);
+    } catch (e) {
+      logUnlessMissingRelation("stories/:id block check", e);
     }
   }
 
@@ -82,5 +96,6 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     canRate: Boolean(userId) && !isOwner,
     isSaved: saved,
     canSave: Boolean(userId) && !isOwner,
+    isCharacterHidden: characterHidden,
   });
 }

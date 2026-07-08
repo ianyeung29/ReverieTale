@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { blockedCharacters } from "@/lib/blocks";
+import { logUnlessMissingRelation } from "@/lib/db-errors";
 import { getCurrentUserId } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +13,8 @@ export async function GET() {
 
   try {
     return NextResponse.json(await blockedCharacters(userId));
-  } catch {
-    return NextResponse.json([]); // character_blocks table not migrated yet
+  } catch (e) {
+    logUnlessMissingRelation("characters/blocked", e);
+    return NextResponse.json([]);
   }
 }

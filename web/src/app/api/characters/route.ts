@@ -4,6 +4,7 @@ import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { characters, stories } from "@/db/schema";
 import { blockedCharacterIds } from "@/lib/blocks";
+import { logUnlessMissingRelation } from "@/lib/db-errors";
 import { buildPortraitPrompt, generateImage, imageConfigured } from "@/lib/image";
 import { moderateContent, screenImagePrompt } from "@/lib/moderation";
 import { ratingAggregates } from "@/lib/ratings";
@@ -38,8 +39,8 @@ export async function GET() {
   if (viewerId) {
     try {
       blocked = new Set(await blockedCharacterIds(viewerId));
-    } catch {
-      /* character_blocks table not migrated yet */
+    } catch (e) {
+      logUnlessMissingRelation("characters GET (browse)", e);
     }
   }
 

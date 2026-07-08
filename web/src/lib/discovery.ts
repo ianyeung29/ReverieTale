@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { characters, stories } from "@/db/schema";
 import { ratingAggregates } from "@/lib/ratings";
 import { blockedCharacterIds } from "@/lib/blocks";
+import { logUnlessMissingRelation } from "@/lib/db-errors";
 
 export type DiscoverChar = {
   id: string;
@@ -44,8 +45,8 @@ export async function listCharacters(opts?: { creatorId?: string; tag?: string; 
   let ratingByChar = new Map<string, { average: number; count: number }>();
   try {
     ratingByChar = await ratingAggregates("character", rows.map((r) => r.id));
-  } catch {
-    /* ratings table not migrated yet */
+  } catch (e) {
+    logUnlessMissingRelation("discovery ratings", e);
   }
 
   // Image column is optional (migration 0006); probe separately so a missing
@@ -54,8 +55,8 @@ export async function listCharacters(opts?: { creatorId?: string; tag?: string; 
   try {
     const imgRows = await db.select({ id: characters.id, h: sql<boolean>`(${characters.image} is not null)` }).from(characters).where(eq(characters.status, "published"));
     imageByChar = new Map(imgRows.map((r) => [r.id, r.h]));
-  } catch {
-    /* image column not migrated yet */
+  } catch (e) {
+    logUnlessMissingRelation("discovery image column", e);
   }
 
   let list: DiscoverChar[] = rows.map((r) => {
@@ -90,8 +91,8 @@ export async function listCharacters(opts?: { creatorId?: string; tag?: string; 
     try {
       const blocked = new Set(await blockedCharacterIds(opts.viewerId));
       if (blocked.size) list = list.filter((c) => !blocked.has(c.id));
-    } catch {
-      /* character_blocks table not migrated yet */
+    } catch (e) {
+      logUnlessMissingRelation("discovery blocks", e);
     }
   }
   return list;

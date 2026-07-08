@@ -5,8 +5,9 @@ import { characters, stories, users } from "@/db/schema";
 import { CharacterAvatar } from "@/components/CharacterAvatar";
 import { RatingBar } from "@/components/RatingBar";
 import { StarRating } from "@/components/StarRating";
-import { BlockToggle, ReportLink } from "@/components/TrustControls";
+import { HideToggle, ReportLink } from "@/components/TrustControls";
 import { isCharacterBlocked } from "@/lib/blocks";
+import { logUnlessMissingRelation } from "@/lib/db-errors";
 import { ratingAggregates, userRating } from "@/lib/ratings";
 import { getCurrentUserId } from "@/lib/session";
 
@@ -94,8 +95,8 @@ async function loadProfile(id: string): Promise<Profile | null> {
     if (userId && !isOwner) {
       try {
         blocked = await isCharacterBlocked(userId, char.id);
-      } catch {
-        /* character_blocks table not migrated yet */
+      } catch (e) {
+        logUnlessMissingRelation("c/:id block check", e);
       }
     }
 
@@ -171,9 +172,9 @@ export default async function CharacterProfile({ params }: { params: Promise<{ i
 
       {p.canModerate ? (
         <div style={S.trustRow}>
-          <BlockToggle characterId={p.id} initialBlocked={p.isBlocked} />
+          <HideToggle characterId={p.id} initialHidden={p.isBlocked} />
           <span style={S.trustDot}>·</span>
-          <ReportLink targetType="character" targetId={p.id} />
+          <ReportLink targetType="character" targetId={p.id} hideCharacterId={p.id} hideAlreadyHidden={p.isBlocked} hideLabel={p.name} />
         </div>
       ) : null}
 

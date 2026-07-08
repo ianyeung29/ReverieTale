@@ -211,8 +211,8 @@ export default function CreateCharacterPage() {
       });
       const d = await res.json();
       if (res.ok && d.id) {
-        // Auto-approved -> straight into writing her first story. Held for review
-        // -> show a confirmation instead (she isn't public yet).
+        // Auto-approved -> straight into writing their first story. Held for review
+        // -> show a confirmation instead (not public yet).
         if (d.status === "published") { window.location.href = `/story?characterId=${d.id}`; return; }
         setSubmitted(d.name || name.trim()); setBusy(false); return;
       }
@@ -520,11 +520,11 @@ export default function CreateCharacterPage() {
 
               <div style={S.actions}>
                 <button style={{ ...S.primary, opacity: !canSave || busy ? 0.55 : 1 }} onClick={create} disabled={!canSave || busy}>
-                  {busy ? "Creating & drawing portrait…" : "Create & write her first story →"}
+                  {busy ? "Creating & drawing portrait…" : "Create & write their first story →"}
                 </button>
               </div>
               {!canSave ? <p style={S.fieldErr}>Go back to Basics — name, gender, and a valid age (18+) are required.</p> : null}
-              <p style={S.foot}>We&apos;ll draw a default portrait from these details automatically — you can regenerate it later from the edit page. Next you&apos;ll set the scene for her opening story. Writing a chapter costs credits; reading is always free.</p>
+              <p style={S.foot}>We&apos;ll draw a default portrait from these details automatically — you can regenerate it later from the edit page. Next you&apos;ll set the scene for their opening story. Writing a chapter costs credits; reading is always free.</p>
               <p style={S.foot}>By publishing, you confirm they&apos;re a fictional adult and agree to our <a href="/guidelines" style={S.errLink}>community guidelines</a>.</p>
             </div>
           ) : null}
