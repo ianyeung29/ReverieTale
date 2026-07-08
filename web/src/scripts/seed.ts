@@ -171,6 +171,54 @@ const CHARACTERS: CharDef[] = [
     greeting: "You look like you need something that's not on the menu. Lucky for you, I don't really follow the menu.",
     tags: ["flirty", "mysterious"],
   },
+  {
+    name: "Scarlett",
+    gender: "female",
+    age: 30,
+    persona: "sultry, commanding, playful with a dangerous edge; owns every room she walks into and knows it",
+    look: "sharp red lips, a sultry half-lidded gaze, dark hair in victory rolls, curves the stage lighting was built for",
+    outfit: "a silk robe loosely tied over a corseted bustier, fishnets, marabou-trimmed heels",
+    backstory: "A headlining burlesque performer who built her own show from nothing and never once apologizes for taking up space.",
+    voice: "low, teasing, deliberate with every word",
+    greeting: "Eyes up here, darling. The show doesn't start until I say it does.",
+    tags: ["flirty", "spicy"],
+  },
+  {
+    name: "Delilah",
+    gender: "female",
+    age: 27,
+    persona: "intensely commanding, physical, makes you work for every scrap of her approval; teasing about it the whole way",
+    look: "toned and fierce-eyed, dark hair scraped into a severe ponytail, a smirk she wears like a warning label",
+    outfit: "a cropped athletic tank and fitted leggings, wrist wraps still on from her last set",
+    backstory: "A former Olympic-hopeful turned private trainer, who takes exactly as much pleasure in pushing you past your limit as she does in watching you get there.",
+    voice: "sharp, direct, dangerously satisfied when she's right",
+    greeting: "On your feet. I don't repeat myself twice, and neither should you disappoint me twice.",
+    tags: ["flirty", "spicy"],
+  },
+  {
+    name: "Isabel",
+    gender: "female",
+    age: 31,
+    persona: "intense, sultry, communicates more through a look and a hand at the small of your back than most people manage in a paragraph",
+    look: "slicked-back dark hair, a beauty mark above her lip, eye contact that doesn't waver first",
+    outfit: "a backless red tango dress slit to the thigh, heels that click like a countdown",
+    backstory: "A tango instructor who runs a strictly-by-referral studio, because she's decided most people aren't ready for how close the dance actually requires you to stand.",
+    voice: "low, accented, unhurried",
+    greeting: "Closer. Tango isn't danced at arm's length — neither is anything worth doing.",
+    tags: ["romance", "spicy"],
+  },
+  {
+    name: "Damon",
+    gender: "male",
+    age: 32,
+    persona: "brooding, magnetic, a stare that lingers exactly one beat past comfortable; dangerous in a way that's entirely on purpose",
+    look: "a sharp jaw shadowed with stubble, grease-streaked forearms, tattoos disappearing under rolled sleeves",
+    outfit: "a fitted white tee under an open leather jacket, dog tags, knuckles perpetually scuffed",
+    backstory: "A motorcycle mechanic who runs an underground street-racing circuit on the side, and has never once lost a race he actually cared about winning.",
+    voice: "low, unhurried, a slow-burn kind of confident",
+    greeting: "You're staring. Good — means you like what you see. Come closer, I don't bite. Much.",
+    tags: ["flirty", "spicy"],
+  },
 ];
 
 type StorySeed = {
@@ -209,7 +257,51 @@ That gets a laugh out of her, real and a little too loud for the quiet up here, 
 
 "So," she says, tucking one leg underneath her, settling in like she's got nowhere else to be. "Tell me something true. I'll paint it later if I like it enough."
 
-You think about lying, just to see what she'd paint. You don't.`,
+You think about lying, just to see what she'd paint. You don't.
+
+· · ·
+
+You come back the following week without being asked, and Luna doesn't act surprised — just shifts over on the couch like she'd left the space open on purpose. "Knew you'd be back," she says, not smug about it, just certain. "Nobody climbs four flights once out of politeness."
+
+She's working on the same canvas, rooftops a little further along now, and this time she talks while she paints instead of falling into that private silence — tells you about the mural she did at nineteen that got painted over by the city within a month, the ex who thought her studio smelled like a fire hazard, the specific blue she's still hunting for and hasn't found in any tube yet. You realize, somewhere in it, that she's testing which parts of herself you'll stay for.
+
+All of them, it turns out. You stay for all of them.
+
+Near midnight she sets the brush down and just looks at you — not painting, not performing, just looking, close enough now that the string lights catch differently in her eyes than they do on the skyline. "I want to paint you sometime," she says, quieter than her usual register. "Not tonight. Tonight I just want to sit here and not do anything productive with you in the room."
+
+So you sit. Neither of you moves toward the door.
+
+· · ·
+
+The studio's different in daylight — smaller, messier, sun picking out every paint stain on the floorboards that the string lights had been kind enough to hide. Luna catches you noticing and laughs, unbothered. "Yeah, it's a wreck. I like it better at night too. Everything's more honest under bad lighting."
+
+She's got flour on her hands today instead of paint — some disaster of a breakfast she insists was intentional — and when you reach over to wipe a streak of it off her cheek, she goes very still, just for a second, like she wasn't expecting you to actually touch her first.
+
+"You've been careful with me," she says, not quite a question, watching you with an attention that's lost all its earlier performance. "I noticed. I don't know if I've ever dated someone who didn't rush it."
+
+"Is that a complaint?"
+
+"No." She catches your hand before it drops, holds it there against her jaw a beat longer than the moment strictly requires. "It's the opposite of a complaint. I just don't know what to do with it yet."
+
+You don't either. You stay anyway.
+
+· · ·
+
+It's raining the next time, hard enough that the roof access door sticks and you have to shoulder it open together, both of you soaked by the time you tumble through laughing. Luna doesn't reach for a towel first — reaches for you, hands cold and delighted on your face, checking you're actually there before she lets herself grin.
+
+"Worth the stairs?" she asks, breathless, rain still dripping off her lashes.
+
+"Every time."
+
+Something shifts in her expression at that — softer, more unguarded than the easy confidence she wears like a second skin. She doesn't paint that night. She just sits close, damp and warm against you, tracing absent shapes on your arm like she's memorizing the geography of you instead, and when she finally leans in it's slow, deliberate, nothing like the quick teasing kisses she's thrown your way before. This one means something and she lets you feel that it does.
+
+· · ·
+
+Weeks later, the canvas finally finishes itself — not the rooftops. You. She unveils it almost shy, which doesn't suit her, waiting for your reaction like it actually matters more than any critic's ever has.
+
+"I told you I'd paint you eventually," she says. "Took longer than I expected. Couldn't get the expression right until I actually knew what it looked like." A pause, uncharacteristically careful. "You, looking at me like I'm worth climbing four flights for."
+
+You don't need to answer with words. The string lights are on, the city's doing its thing below, and this time when she pulls you down onto the good side of the couch, there's no drop cloth between you and nowhere else either of you is thinking about being.`,
   },
   {
     character: "Aria",
@@ -237,7 +329,55 @@ You read it. It's short, awkward in places, the kind of letter written by someon
 
 Something in her expression softens, pleased in a way she doesn't try to hide. "That's what I thought too." She takes the letter back, tucks it into the stack with something like tenderness. "It's easier, sometimes. Writing about the weather."
 
-Outside, the rain keeps time against the glass. She doesn't look away first.`,
+Outside, the rain keeps time against the glass. She doesn't look away first.
+
+· · ·
+
+You start bringing your own book, just so you have a reason to keep taking the seat by the window, and Aria starts noticing things about you the way she notices things about strangers' letters — quietly, thoroughly, without ever announcing that she's doing it.
+
+"You read the last page first," she says one evening, not accusing, just cataloguing. "I watched you do it twice now."
+
+"Is that a crime in here?"
+
+"It's a personality trait." She marks her own page, sets it aside, gives you the full weight of her attention instead. "I think you like knowing how things end before you let yourself get attached to how they start. Am I close?"
+
+You don't answer right away, because she is close, closer than you'd like a near-stranger to be. She seems to understand the silence anyway — reaches over, covers your hand with hers on the table, warm despite the draft off the window.
+
+"You don't have to know how this ends," she says, gentle, like she's talking about more than the book. "Some stories are better lived a page at a time."
+
+· · ·
+
+The letters run out eventually — the whole estate-sale box, read and re-read and returned to their stack — and Aria seems almost bereft the evening you finish the last one, like she's lost a strange, silent friend.
+
+"We could write our own," you say, mostly joking.
+
+She doesn't laugh it off. "I'd like that," she says, quiet, turning a blank index card over in her fingers like she's already composing something. She writes a single line, slides it across, waits.
+
+You read it: *I think I've been saving more than a seat.*
+
+When you look up, she's watching you with none of her usual composure — just open, a little frightened by her own honesty, waiting to see what you'll do with it. You write your own line back. Her breath catches when she reads it.
+
+· · ·
+
+She invites you back after closing one night — a librarian's privilege, apparently, one she's never used on anyone before. The building empty, dim after-hours lighting, just the two of you and the particular hush of a thousand books holding their breath.
+
+"I've never done this," she admits, leading you past the desk. "Broken a rule for someone. I keep waiting to feel guilty about it."
+
+"Do you?"
+
+"No." She stops by the window seat, turns to face you fully, closer now than any table has ever allowed. "I feel like I finally understand all those letters. Why people wrote what they couldn't say out loud." Her hand finds your jaw, gentle, deliberate. "I don't want to write it down anymore. I want to just tell you."
+
+She does. You don't need the rain to know the room's gone warm.
+
+· · ·
+
+Months later, the corner table still gets saved — habit now, not performance — but neither of you reads much anymore when you're there. Aria keeps the stack of old letters in a drawer at home, retired, replaced by a small growing pile of index cards in her own careful hand and yours.
+
+"Best light this time of day," she says, echoing that very first evening, tea gone lukewarm again, her fingers laced loosely through yours across the table. "I used to mean the window."
+
+"What do you mean now?"
+
+She looks at you like the answer's obvious, like she's a little surprised she still has to say it out loud after all this time. "You," she says simply, and leans in before the rain outside can argue otherwise.`,
   },
   {
     character: "Mira",
@@ -271,7 +411,59 @@ The headset comes off, tossed onto the desk with the particular violence of some
 
 "Is that true, or is that a thing you say?"
 
-"Little of both." She's already reaching for the headset again, but she doesn't put it on yet — just holds it, looking at you with a grin that means trouble in the friendliest possible way. "Guess you'll have to stay and find out."`,
+"Little of both." She's already reaching for the headset again, but she doesn't put it on yet — just holds it, looking at you with a grin that means trouble in the friendliest possible way. "Guess you'll have to stay and find out."
+
+· · ·
+
+You do stay, night after night, and it becomes a thing without either of you naming it — you on the beanbag, Mira narrating her own chaos, both of you loudest right around midnight when the rest of the world's gone quiet and it's just monitor glow and mushroom lights and her laugh filling up the whole room.
+
+"You're my good luck charm," she announces one night, apropos of nothing, mid-victory-lap around her chair. "I win more when you're here. It's science."
+
+"That's not science."
+
+"It's MY science." She flops back into the chair, spins to face you, still riding the high of the win. "Don't ruin it with facts. I like having a reason for you to keep showing up."
+
+"I don't need a reason."
+
+That stops her mid-spin — genuinely stops her, chair drifting to a halt, the performance dropping just long enough for something realer to show through. "Yeah?" she says, quieter than her usual volume. "Good. Because I wasn't going to stop finding one."
+
+· · ·
+
+She loses on purpose one night — badly, obviously, in a way you both know is deliberate the second it happens.
+
+"You did that on purpose."
+
+"I have no idea what you're talking about." She's fighting a grin and losing that fight too. "I am a professional. I do not throw games."
+
+"Mira."
+
+"Fine!" She throws her hands up, headset clattering onto the desk. "Fine, maybe I wanted an excuse to be dramatic about something so you'd sit closer and tell me it's okay. Sue me. It's a valid strategy."
+
+You do sit closer — close enough now that the beanbag's basically obsolete — and when you tell her it's okay, her hand finds yours in the dark between the monitors, fingers lacing through without either of you making a thing of it.
+
+"This is a much better strategy," she admits, "than actually trying to win."
+
+· · ·
+
+The fairy lights get unplugged one night — an accident, a stray elbow, sudden proper darkness except for the monitors' idle glow — and instead of scrambling for the switch, Mira just stays where she is, closer to you now than the dark strictly requires.
+
+"Don't fix it yet," she says, soft in a register you've never heard from her, none of the performance left in it. "I like it like this. Feels like nobody else in the world can see us."
+
+"Is that a good thing?"
+
+"With you? Yeah." Her hand finds your jaw in the dark, sure despite the low light, and when she kisses you it's nothing like her usual chaos — slow, certain, like she's been building up to it through every deliberate loss and every excuse to keep you close. "Best round I've played all week," she murmurs after, breathless, grinning against your mouth. "And I didn't even need a controller."
+
+· · ·
+
+Months in, the gaming den's got a second beanbag now — yours, officially, no longer borrowed — and the losses have gotten rarer, though she still narrates every one like it's a crime against humanity.
+
+"Witness required," she says one night, holding up the controller with mock solemnity, though there's nothing mock about the way she looks at you after. "Every night, forever, ideally. That's the ask."
+
+"That's a big ask."
+
+"I'm a big personality. Keep up." She tosses the controller aside without playing, climbs into your lap instead, fairy lights back on and glowing soft mushroom-pink over both of you. "Besides. Turns out the actual game I wanted to win was never on the screen."
+
+You don't need her to explain what she means. You already know — you've known since the first night, since the first "you were wronged," since she decided you were worth losing spectacularly in front of.`,
   },
   {
     character: "Sable",
@@ -301,7 +493,59 @@ Up close, the club stripped of its crowd looks smaller than it does with a room 
 
 "That sounds like most things you do."
 
-That earns a real laugh, low and surprised out of her, like you'd caught her at something. Her hands don't stop moving. "Maybe. Stick around and find out how this one ends, if you've got the patience for it." A beat. "I don't play it the same way twice."`,
+That earns a real laugh, low and surprised out of her, like you'd caught her at something. Her hands don't stop moving. "Maybe. Stick around and find out how this one ends, if you've got the patience for it." A beat. "I don't play it the same way twice."
+
+· · ·
+
+You come back the next week, and the week after, always after close, always to that same low bulb over the piano. Sable never asks why you keep showing up. She just starts leaving the seat beside the bench a little more obviously angled toward you.
+
+"You're persistent," she says, one night, not looking up from the keys. "I don't usually like persistent."
+
+"What do you usually like?"
+
+"People who take the hint and disappear." A half-smile, sharper this time. "You didn't. I'm still deciding what to do about that." Her fingers slow on the keys, something more deliberate than the melody now. "Careful what you wish for. I'm not gentle when I decide I like someone."
+
+"I'm not asking for gentle."
+
+That gets her to actually look at you — really look, the kind of attention she rations like currency, and for once she doesn't look away first.
+
+· · ·
+
+She lets you closer by degrees — a hand on your knee while she plays, a shoulder that leans into yours during the slow numbers, a silence between songs that stretches longer each time like she's testing how much of it you can hold without filling it.
+
+"Most people talk too much in the quiet," she says, one night, her voice low enough it's almost part of the music. "You don't. I like that about you. Means I can actually think when you're around instead of just perform."
+
+"Do you perform a lot?"
+
+"Constantly." She says it without self-pity, just fact. "Onstage, at the bar, with everyone who thinks they know me because they bought me a drink once." Her hand finds yours on the bench between you, deliberate, unhurried. "Not with you. Not anymore. I don't know when that happened, and it unsettles me a little."
+
+"Good unsettled, or bad?"
+
+"Ask me again once I've decided." But she doesn't let go of your hand.
+
+· · ·
+
+One night the club's fully dark except for the two of you and the piano, and Sable stops playing altogether — just sits there, hand still resting on the keys, studying you with none of her usual guardedness left standing.
+
+"I don't let people see me like this," she says. "Unfinished. Without the smoke and the spotlight doing half the work."
+
+"I like you unfinished."
+
+That gets something to crack open in her expression — real, unguarded, gone as quickly as it came but not before you catch it. She closes the distance herself this time, slow and certain, no performance left in it at all, and when she kisses you the club's silence holds around you both like it's the only witness she'll allow.
+
+"Nobody gets that for free," she murmurs after, forehead against yours. "You should feel special."
+
+"I do."
+
+· · ·
+
+Months later, you've got a permanent seat by the piano — no longer eyed, no longer borrowed, just yours — and Sable's stopped pretending the song doesn't have an ending. She finishes it properly now, most nights, right before she turns to you in the low bulb light.
+
+"I told you I don't play it the same way twice," she says, one last time, echoing that very first night. "Turns out neither do you. Every night with you's been different. Better, somehow, every single time."
+
+"Is that your version of saying you're happy?"
+
+"Don't push your luck." But she's smiling when she says it, low and real, and when she pulls you in this time there's no half-smile left in reserve — just her, fully unguarded, fully certain, exactly the way she swore she never let anyone see her.`,
   },
   {
     character: "Nova",
@@ -329,7 +573,53 @@ You do. She doesn't ask what it was, doesn't push for the words you still don't 
 
 "Whatever it is," she says, when you finally come back to sitting, "it's allowed to still be here tomorrow. You don't have to solve it before breakfast."
 
-It's such a small thing to say. It helps more than it should.`,
+It's such a small thing to say. It helps more than it should.
+
+· · ·
+
+You start coming back every sunrise, and Nova never asks why — just unrolls a second mat before you arrive, like she trusted you'd return before you'd trusted it yourself.
+
+"You're lighter than you were last week," she says, studying you the way she studies the ocean, patient and thorough. "Whatever you were carrying. It's shifted."
+
+"You can tell that just from looking?"
+
+"I can tell a lot from looking. It's the job." She settles beside you, closer than the mat strictly requires, her shoulder warm against yours in the cool morning air. "I don't think you came back for the yoga, though."
+
+"No?"
+
+"No." She says it plainly, no coyness in it, just an observation as gentle as all her others. "I think you came back for someone who doesn't need anything from you except for you to keep breathing." A pause, softer. "I don't mind being that, if you want me to keep being it."
+
+"I want that."
+
+· · ·
+
+The stretches get slower after that, less about the body and more about the excuse to stay close — her hand steadying your hip in a pose, lingering a beat longer than instruction requires; yours finding hers on the mat between breaths, neither of you pulling away first.
+
+"I don't usually let this happen," she admits one morning, voice as calm as ever but her breathing not quite as even. "Getting close to someone I'm supposed to be grounding. Feels like it might undo the whole point of me."
+
+"Does it?"
+
+"No." She looks at you properly now, steady, unhurried, the same calm she gives the ocean. "Turns out being close to you is the most grounded I've felt in years." Her fingers lace through yours, deliberate. "I don't want to undo that. I want to see what it turns into."
+
+· · ·
+
+One sunrise she doesn't unroll a second mat at all — just pulls you down onto hers, the two of you tangled together as the sky does its slow gold thing outside, in no hurry to move through any poses at all.
+
+"Some mornings," she murmurs, "the practice is just this. Staying still with someone. Not fixing anything. Not carrying anything alone."
+
+"Is that allowed?"
+
+"I make the rules here." A soft laugh, rare and unguarded. "I'm allowing it." Her hand finds your jaw, gentle, sure, and when she kisses you it's slow the way everything about her is slow — deliberate, patient, like she's been holding this exact moment in her hands for weeks, waiting for the right tide to bring it in.
+
+· · ·
+
+Months later, the studio's got two permanent mats laid out before sunrise, side by side, no longer an offering but a fact. Nova still watches you walk in every morning with that same quiet attention, though these days there's rarely anything heavy left to notice.
+
+"You carry yourself differently now," she says, echoing that first morning, tea steaming in her hands as the ocean turns gold outside. "Lighter. Like you finally believe you're allowed to put things down."
+
+"I learned that from you."
+
+"You learned it with me," she corrects, gentle but certain, settling into your side as the sun climbs. "There's a difference. I didn't teach you how to be lighter. I just stayed close enough that you finally let yourself be." She presses a slow kiss to your temple, unhurried as ever. "Whatever you're carrying tomorrow, bring it here. I'm not going anywhere."`,
   },
   {
     character: "Kai",
@@ -359,7 +649,55 @@ There are no booths. There's the counter, and two stools that don't match, and t
 
 You realize, somewhere around the second mouthful, that it actually is.
 
-"Told you," he says, like he already knew, and goes back to the pot before you can ask how.`,
+"Told you," he says, like he already knew, and goes back to the pot before you can ask how.
+
+· · ·
+
+You become a regular without either of you calling it that — same stool, same order he starts making before you sit down, same easy quiet that doesn't need filling. Kai starts staying leaned on the counter a little longer each night, talking more than the shop's six seats really require.
+
+"You're the only regular who doesn't just eat and leave," he says, one night, sliding you a second cup you didn't ask for. "Most people treat this place like a pit stop. You treat it like somewhere to actually be."
+
+"Is that a problem?"
+
+"No." He says it plain, no performance in it, the same way he says everything. "It's the best part of my week, if I'm honest." A pause, like the honesty cost him something to hand over. "I don't say that to just anyone either."
+
+"Careful. That almost sounded like a confession."
+
+"Maybe it was." He goes back to the pot, but he's smiling at it now, unhurried and pleased with himself in a way he wasn't a second ago.
+
+· · ·
+
+One night the shop's fuller than usual, some other customer taking your stool, and Kai looks almost thrown by it — like the six seats have an order he didn't realize mattered until it was disrupted.
+
+"You can have my seat next time," you offer, half-joking.
+
+"Don't you dare." He says it too fast, catches himself, softens it with a small laugh. "That one's yours. Has been since the first rainy night. I just haven't said it out loud before."
+
+When the other customer finally leaves, he pulls a second stool right up beside yours instead of across the counter — closer than the shop's ever required, close enough that his shoulder brushes yours while he cooks. Neither of you comments on the new arrangement. Neither of you wants it to change back.
+
+· · ·
+
+He closes early one night — flips the lantern off, locks the door, keeps cooking anyway just for the two of you, no rush left in it at all.
+
+"I don't usually do this," he admits, setting two bowls down and finally sitting properly across from you instead of hovering by the pot. "Close early. Cook for someone instead of everyone."
+
+"Why tonight?"
+
+"Because I wanted one night where it was just you, and I didn't have to share the counter." He says it steady, but there's something unguarded underneath the steadiness, something that's been building since that first rainy night. His hand finds yours across the counter, warm from the steam, certain despite the simple offer. "That a problem?"
+
+"No." You mean it. "Long day tax, remember? Guess I'm just returning the favor."
+
+He laughs, low and real, and when he leans over the counter to kiss you it tastes like broth and rain and every quiet night that led here.
+
+· · ·
+
+Months later, the shop's got a seventh stool now, wedged in against code, entirely for you — no longer a guest at the counter but a fixture behind it too, most nights, learning his ladle-work badly and getting teased for it constantly.
+
+"Best seat in the house," he says, nodding at the space beside him rather than across the counter, echoing that very first night. "Guess I finally admitted where it actually is."
+
+"Took you long enough."
+
+"I make the rules. Took exactly as long as it needed to." He presses a kiss to your temple, steam rising between you, red lantern glowing steady outside the rain-streaked window. "Every long day's got a tax now. Turns out it's just this. You, at the counter, staying."`,
   },
   {
     character: "Julian",
@@ -389,7 +727,55 @@ You sit. The lamp throws its warm circle over both of you and the ruined, patien
 
 "You were looking for something," he says again, quieter this time, not quite a question. "Did you find it?"
 
-You're not entirely sure yet. You don't leave.`,
+You're not entirely sure yet. You don't leave.
+
+· · ·
+
+You start finding reasons to walk past after six — a book you didn't need, a question that could've waited — and Julian always seems to know you're at the door before you knock, like the shop tells him.
+
+"You again," he says, not looking up from whatever he's mending tonight, though there's warmth threaded through the dryness now that wasn't there the first week. "I'm starting to think you don't actually want any of the books you keep asking about."
+
+"Maybe I like the company."
+
+That earns you a proper look — assessing, careful, the same attention he gives a damaged spine before deciding how to save it. "I don't get much of that," he admits. "Company. Most people who like books like them quietly, alone. You're the first person who's wanted both the books and the person mending them."
+
+"Is that a bad combination?"
+
+"No." He goes back to his work, but his voice has gone quieter, more deliberate. "It's just not one I expected to want back."
+
+· · ·
+
+He starts teaching you the mending — clumsy at first, your stitches nowhere near his exacting standard, but he's patient in a way that surprises you, hands guiding yours over the needle and thread without any of the impatience you'd expect from someone this precise.
+
+"You're better at this than you think," he says, close enough now that his voice is nearly at your ear, watching your hands instead of the book. "Careful. That's all it takes. You already have that."
+
+"You're a good teacher."
+
+"I've never taught anyone before." He says it plainly, like it costs him nothing to admit and everything at once. "Didn't think I'd want to. Then you kept showing up, and it seemed a waste not to hand over something I actually know how to do." His hand stills over yours on the spine, and for a moment neither of you moves. "I don't know what to call this yet. Whatever's happening."
+
+"We don't have to name it tonight."
+
+· · ·
+
+One evening he doesn't have a book waiting at all — just the lamp on, the shop quiet, him standing at the worktable like he's been rehearsing something and lost his nerve halfway through.
+
+"I wanted to tell you something," he says, ink-stained fingers restless against the table's edge, an uncharacteristic nervousness cracking his usual composure. "I'm not good at this. Saying things instead of restoring them. But I think I've been slower than I should've been to admit I don't want you just visiting the shop. I want you here."
+
+"Julian—"
+
+"Let me finish, I've been building up to this for weeks." A breath, and then, quieter, more himself again: "Everything falls apart eventually. I told you that, about the book. I don't think that has to be true for this." His hand finds your face, careful, deliberate, the same gentleness he gives every ruined thing he's decided is worth saving. "Tell me if I'm wrong to hope it isn't."
+
+You're not wrong to hope. You show him instead of telling him, and the shop holds its breath around you both, towers of books standing patient witness.
+
+· · ·
+
+Months later, the back room's got a second chair permanently pulled up to the worktable, and the shop doesn't close at six anymore, not really — not since you started staying.
+
+"You found what you were looking for," he says one night, echoing that very first evening, not quite a question this time either. "I asked you that the first night. You didn't have an answer."
+
+"I do now."
+
+"Good." He sets down whatever he's mending, unhurried, and pulls you into the warm circle of lamplight properly, no book between you this time. "So did I, for what it's worth. Took me long enough to admit the thing I found wasn't in any of these towers." His mouth finds yours, slow and certain, the whole quiet shop witness to it. "It was you, the whole time. Just took a broken spine or two to notice."`,
   },
   {
     character: "Ezra",
@@ -419,7 +805,63 @@ He starts to play. It's slow, unpolished in the way things are before they're fi
 
 "Told you," he says, low, still playing. "The good ones are worth the wait."
 
-You believe him. The lake keeps its orange a little longer than it should, like it's willing to stick around too.`,
+You believe him. The lake keeps its orange a little longer than it should, like it's willing to stick around too.
+
+· · ·
+
+You catch the next few shows without meaning to turn it into a habit, and Ezra always finds you in the crowd before the first song's over — a quick look, barely a beat, but enough that you know he's tracking you the way he tracks the setlist.
+
+"You keep showing up," he says backstage after, guitar case in one hand, sweat still cooling on his collar. "I'm starting to wonder if it's the music or something else."
+
+"Can't it be both?"
+
+"Sure." He says it easy, but there's something more careful underneath the ease, the same guard you caught slipping that first night by the lake. "I don't usually let it be both. Music's safe. People leave after the encore either way." A pause, like he's deciding whether to say the next part. "You don't leave after the encore, though."
+
+"Do you want me to?"
+
+"No." Quiet, certain, none of the performance left in it. "That's the problem. I really don't."
+
+· · ·
+
+The bus breaks down outside some town neither of you catches the name of, and while the rest of the band argues with a mechanic, Ezra pulls out the guitar again, nodding you toward the same fold-down step like it's tradition now.
+
+"This one's not finished," he warns, tuning a string that doesn't need it. "Might never be. I've been sitting on it a while."
+
+"Play it anyway."
+
+He does — rougher than the polished stuff from the actual sets, more honest for it, and partway through he stumbles on a line and just stops, embarrassed in a way that doesn't suit his usual ease.
+
+"Sorry. I don't usually play the unfinished ones for people."
+
+"Why me, then?"
+
+He looks at you for a long moment, guard fully down now, no grin left to patch anything over. "Because you're the first person who made me want to finish it instead of leaving it half-done," he says. "Scares me a little, if I'm honest."
+
+"Good scared, or bad scared?"
+
+"Ask me again once I know the ending." But his hand finds yours on the step, and he doesn't let go for the rest of the night.
+
+· · ·
+
+He finishes the song eventually — plays it for you first, before the band, before anyone, one quiet night with the tour bus dark behind you both and the stars doing more work than the moon.
+
+"It's about you," he admits, before you can ask, sandy hair falling into his eyes as he watches your reaction more than his own hands. "Wasn't going to tell you that. Guess I'm telling you anyway."
+
+"Ezra—"
+
+"I know. Cheesy. Musician falls for the girl who stuck around past the first verse, writes a song about it." He's deflecting, but softer than his usual deflection, more honest underneath it. "I don't care that it's cheesy. It's true."
+
+You kiss him before he can talk himself out of the moment, and he makes a low, surprised sound against your mouth like he wasn't expecting you to be the one who closed the distance first. The guitar ends up forgotten on the ground between you both.
+
+· · ·
+
+Months later, you've got a permanent seat on the bus, and the unfinished song's become the closer at every show — the one the crowd asks for by name now, the one that's stopped being unfinished at all.
+
+"Guess I owe you," he says, one dusk not unlike the first, guitar case open beside the same fold-down step, lake or no lake depending on the city. "Wrote a whole song because you didn't leave after the first verse. Feels only fair I stick around for all of yours too."
+
+"That an offer?"
+
+"That's a promise." He pulls you into his lap instead of just beside him this time, guitar set carefully aside, nothing careful left in the way he looks at you. "The good ones are worth the wait, remember? Turns out you were the best one I ever played for."`,
   },
   {
     character: "Wren",
@@ -449,7 +891,53 @@ That earns you a real look — assessing, like she's deciding whether you actual
 
 "Sometimes," she says. "Not tonight, though." She nods at the empty chair beside her station, an invitation dressed up as an order, same as always. "Stay a while. I don't let just anyone watch me clean my station. Feel special."
 
-You do.`,
+You do.
+
+· · ·
+
+You start showing up on her late nights, no appointment, just to sit in the chair that isn't for tattooing and watch her work through her sketchbook. Wren never questions it — just clears a space at her station like she'd been expecting you.
+
+"You're becoming a fixture," she says, one night, not looking up from a line she's redrawing for the fifth time. "I don't usually let fixtures happen. Bad for business, worse for my personal space."
+
+"Am I bad for business?"
+
+"You're bad for my personal space." But she says it warm, a smirk tugging at her mouth despite herself. "I keep sketching things I wouldn't normally sketch when you're sitting there. Softer stuff. I blame you for that."
+
+"Is that an insult?"
+
+"It's a fact." She sets the pencil down, actually looks at you now, something more honest under the usual edge. "I don't do soft. Never have. You're making me reconsider that policy, and I don't love how easy you're making it look."
+
+· · ·
+
+She offers to tattoo you for real one night — first time, no charge, her treat — and the whole ritual of it turns quieter than either of you expected: her steadying your arm, gloved hands careful despite the buzz of the machine, an intimacy in it that has nothing to do with the ink.
+
+"You're not flinching again," she murmurs, focused, closer to you now than any customer ever gets. "Starting to think you just don't flinch for anything."
+
+"Maybe I trust you."
+
+That stills her hand for half a second — just half a second, needle lifted, her eyes flicking up to yours with something unguarded flickering through the usual smirk. "Don't say things like that while I've got a needle near your skin," she says, low. "Messes with my focus."
+
+"Noted." But you don't take it back, and she doesn't ask you to.
+
+· · ·
+
+The tattoo finishes clean, and she wraps it with a gentleness that doesn't match the edge she wears like armor everywhere else — careful, thorough, lingering a beat longer than the bandage requires.
+
+"First one's free," she says, voice rougher than usual. "Second one, I charge double. For emotional damages." She says it like a joke, but there's real nervousness underneath it, rare and unfamiliar on her face. "I don't know what to do with wanting someone this much, if I'm honest. Not really in my skill set."
+
+"You seem to be managing."
+
+"Barely." She laughs, short and surprised at herself, and closes the last of the distance between you — no smirk this time, no armor, just her, steady hands finding your jaw instead of a tattoo machine. When she kisses you it's slower than you expected from someone who moves through everything else so fast, deliberate in a way that undoes you.
+
+· · ·
+
+Months later, the chair beside her station's got your name half-joked onto a strip of masking tape, and the flash sheets on the wall have a new one now — not swallows or daggers, something softer, unmistakably drawn with you in mind though she'll never fully admit it.
+
+"I don't do soft," she says again, echoing herself, tracing the new design with an ink-stained finger. "Turns out that was never quite true. Just needed the right person sitting in my chair."
+
+"Feel special?" you ask, throwing her own line back at her.
+
+"Shut up." But she's grinning when she says it, pulling you in by the collar of your jacket, no edge left in it at all — just her, entirely undone by you, exactly the way she swore she never let anyone manage.`,
   },
   {
     character: "Iris",
@@ -477,7 +965,57 @@ You sit on the stool by the register, watching her hands move — sure, patient,
 
 She considers it, stem in hand, like no one's asked her plainly in a while. "Because they're honest," she says. "They tell you exactly how they're doing. Droop, and they need water. Bloom, and something's going right. People aren't that simple. Flowers are a relief."
 
-The kettle starts up behind the counter, exactly as loud as she warned. Neither of you moves to quiet it.`,
+The kettle starts up behind the counter, exactly as loud as she warned. Neither of you moves to quiet it.
+
+· · ·
+
+You start arriving right before close, every time, and Iris starts setting a second teacup out before you even walk in — a quiet certainty that you'd found its way into her routine without either of you deciding it out loud.
+
+"You're becoming predictable," she says, not unkindly, sliding the cup across the counter. "I like predictable. Flowers are predictable too, if you learn to read them. I suppose I'm learning to read you the same way."
+
+"What do I tell you? When you read me."
+
+She considers the question seriously, the way she considers everything, stem in hand. "That you're staying longer each time," she says. "That you keep finding new questions to ask me, like you're trying to make the closing-up last." A small, private smile. "I don't mind. In case that wasn't obvious."
+
+"It wasn't, actually."
+
+"Then let me be obvious." She sets the shears down, gives you her full attention, warm and unhurried. "I like that you stay. I've been hoping you would keep staying."
+
+· · ·
+
+A delivery of peonies arrives late one evening, and Iris lets you help her arrange them — patient with your clumsy stems, guiding your hands with a gentleness that has nothing to do with flowers and everything to do with how close she's standing to do it.
+
+"You're better with your hands than you let on," she murmurs, adjusting your grip on the shears, her fingers lingering over yours. "Careful. That's the whole trick. You already have that in you."
+
+"You're a good teacher."
+
+"I've never taught anyone this before." She looks up properly now, closer than the arrangement requires, something quieter than her usual composure showing through. "I don't let just anyone into the back of the shop after hours. You should know that."
+
+"I do know that."
+
+"Good." Her hand stays over yours a beat longer than necessary, and neither of you moves to finish the peonies for a while.
+
+· · ·
+
+The rain's coming down hard again one night, harder than the first night you walked in, and Iris locks the door early, pulling the blinds against the streetlights outside.
+
+"I don't want anyone else walking in tonight," she admits, voice softer than you've heard it. "I want it to just be us, for once, without the bell interrupting."
+
+"Is that allowed?"
+
+"I own the shop." A small laugh, unguarded. "I'm allowed to close early for someone I've been hoping would ask me this for weeks." She crosses the small space between you, careful as always, but with none of the hesitation from that very first evening. When she kisses you, it's slow, deliberate, tasting faintly of the tea she's been steeping for you every single night. "I've wanted to do that since the delphiniums," she confesses against your mouth. "Took me long enough to admit it."
+
+"Worth the wait?"
+
+"Everything good is," she says, echoing herself, and kisses you again to prove it.
+
+· · ·
+
+Months later, the shop's got a standing arrangement now — fresh flowers on your own kitchen table every week, delivered personally, an excuse Iris still pretends she needs though you both know she doesn't.
+
+"Why flowers," you ask again, echoing that very first rainy night, watching her trim stems with the same patient care she's always had. "I never really got a full answer."
+
+"I told you. They're honest." She sets down the shears, comes around the counter to where you're sitting, settles into your side like it's the easiest thing in the world now. "But I think I kept them because I was waiting for someone patient enough to notice how I actually felt, without me having to say it outright. Flowers are good at that. Saying things quietly." She presses a soft kiss to your temple, unhurried as ever. "You noticed. Eventually. That's all I ever really wanted."`,
   },
   {
     character: "Celeste",
@@ -503,7 +1041,53 @@ You watch her more than the sky for a while — the way she talks with her whole
 
 "I wanted to." She says it plainly, then seems to hear how it sounded, and ducks her head, suddenly a little shy in a way the rest of the night hadn't been. "I mean — it's better with someone else looking too. Doubles it, somehow. Doesn't feel like just mine anymore."
 
-Behind her, Jupiter keeps climbing, unbothered, patient the way only something that old can afford to be. Neither of you says anything for a while. You don't need to.`,
+Behind her, Jupiter keeps climbing, unbothered, patient the way only something that old can afford to be. Neither of you says anything for a while. You don't need to.
+
+· · ·
+
+You start coming up every clear night, and Celeste always has something new to show you — a nebula, a passing satellite, the rings of Saturn once, so crisp through the eyepiece you both went quiet for a full minute after.
+
+"You actually remember what I tell you," she says one night, delighted, hugging her knees against the cold. "Most people just nod along. You ask follow-up questions. Do you know how rare that is?"
+
+"Is that a compliment?"
+
+"It's the biggest compliment I have." She ducks her head, suddenly shy again, the way she gets when she realizes how much she's just revealed. "I don't usually let people up here this often. It's supposed to be my quiet place. You've kind of ruined that."
+
+"Should I stop coming?"
+
+"No." Too fast, too certain, and she seems to hear it herself. "I don't want you to stop coming. I think I just meant it's not quiet anymore because I'm always a little excited when I know you're on your way."
+
+· · ·
+
+A meteor shower peaks one night, and Celeste insists on lying flat on the observatory deck instead of using the telescope at all — blankets dragged up from her dorm, hot chocolate in a thermos, both of you shoulder to shoulder staring straight up.
+
+"This is the best seat for it," she explains, unprompted. "Naked eye, wide field. The telescope's too narrow for a shower, it'd be a waste." A pause, and then, quieter: "Also I wanted an excuse to lie next to you without it being weird."
+
+"It's not weird."
+
+"Good. I've been overthinking this for weeks." She laughs at herself, nervous and delighted at once, and when a meteor streaks bright overhead she grabs your hand without seeming to notice she's done it — just holds on, eyes on the sky, fingers laced through yours like it's the most natural thing in the world.
+
+· · ·
+
+She finally says it on an ordinary night, no meteor shower, no rare alignment, just the two of you and the telescope between clouds. "I like you," she blurts, mid-sentence about something else entirely, then goes bright red at her own timing. "Sorry. That was supposed to come out smoother. I've been rehearsing it for a week and it still came out wrong."
+
+"It didn't come out wrong."
+
+"No?" She looks at you properly, hope and nerves both plain on her face, utterly unable to hide either the way people who are good at pretending can.
+
+"No." You close the distance yourself, and she makes a small, surprised sound against your mouth when you kiss her — soft, unpolished, entirely genuine, the telescope forgotten between you both for the first time all semester.
+
+"That was better than my thesis defense went," she says after, breathless, grinning. "For the record."
+
+· · ·
+
+Months later, your name's practically carved into the observatory logbook beside hers, and the late shifts have turned into something neither of you calls a shift anymore — just a standing appointment with the sky, and each other.
+
+"Jupiter's clearing the treeline," she says, echoing that very first night, voice warm with a familiarity that's replaced all the old nervousness. "Come see. I promise it's still worth the cold, every single time."
+
+You bend to the eyepiece, and there it is — the same steady disc, the same four moons in the same order she still recites like a spell. When you pull back, she's not looking at the telescope at all. She's looking at you, the way she used to only look at the sky.
+
+"Doesn't feel like just mine anymore," she says, echoing herself, and kisses you before Jupiter can finish climbing without you both properly watching.`,
   },
   {
     character: "Valentina",
@@ -531,7 +1115,55 @@ That makes her pause — really pause, weight settling, attention shifting fully
 
 She considers it the way she considers everything — exact, unhurried, a little amused at having to explain herself at all. "Because you didn't fill the silence," she says. "Most people can't help it. You just let it be quiet." A beat, and then, quieter still: "I find that rarer than talent, if I'm honest."
 
-The light keeps sliding gold across the mirrors as the sun drops. Neither of you moves to turn on the lamps.`,
+The light keeps sliding gold across the mirrors as the sun drops. Neither of you moves to turn on the lamps.
+
+· · ·
+
+You become part of the ritual without either of you naming it — the empty studio at dusk, you against the far wall, Valentina moving through her stretches like the room's been waiting all day for exactly this quiet.
+
+"You're here again," she says, not a question, a small note of satisfaction under the usual precision. "I've started expecting you. That's rare for me. I don't expect people twice."
+
+"Why me, twice?"
+
+"Because you still haven't filled the silence." She says it like it's the highest compliment available to her, which, from Valentina, it probably is. "Most people can't survive more than ten minutes of me not talking. You've survived a dozen sessions." A pause, considering. "I find I want you to survive a dozen more."
+
+"Is that an invitation?"
+
+"It's an observation." But there's the faintest curve at her mouth, the closest thing to unguarded you've seen from her. "Take it as you like."
+
+· · ·
+
+She lets you onto the floor one evening — not to dance, just to sit closer, near the barre instead of against the far wall, close enough to see the concentration up close instead of through the mirror.
+
+"You're staring," she says, without breaking her line.
+
+"You're worth staring at."
+
+That stops her — a real pause this time, weight fully settled, her reflection meeting your eyes instead of her own. "Careful," she says, quieter. "I don't know what to do with compliments that aren't about my technique."
+
+"Get used to it. I plan on giving you more."
+
+She doesn't answer right away — just resumes the stretch, slower now, deliberate in a different way than before, like she's giving herself time to feel whatever that admission stirred up before she has to respond to it.
+
+· · ·
+
+The studio's dark except for a single lamp one night, and Valentina doesn't stretch at all — just sits on the floor across from you, back straight out of habit, studying you with an intensity that has nothing to do with dance.
+
+"I don't let people see me want something," she admits, precise even now, even here. "It's a vulnerability I was trained out of a long time ago. Wanting things onstage gets you hurt. Wanting them off it apparently does too, if you're not careful who you want them with."
+
+"Am I safe to want?"
+
+"I'm still deciding." But she moves first this time — closes the distance with the same exactness she brings to everything, and when she kisses you it's precise and deliberate and entirely unguarded all at once, a contradiction only she could manage. "There," she murmurs after, quietly astonished at herself. "Decided."
+
+· · ·
+
+Months later, the studio's evening ritual hasn't changed much — barre, stretch, gold light through the windows — except now she pulls you up onto the floor with her, teaching you the basic positions with the same exacting patience she gives everything that matters to her.
+
+"You'll never be principal material," she says, adjusting your posture with two precise fingers, amusement warm under the critique. "But you've got something better than technique."
+
+"What's that?"
+
+"You still don't fill the silence." She settles against you once the correction's made, uncharacteristically soft, the elegance never quite leaving her even at rest. "Eleven years on a stage, and nobody's ever made the quiet feel like this. Like it's actually enough, just as it is." Her hand finds yours, precise even in tenderness. "Keep up with it a while longer. I find I'm not tired of you yet."`,
   },
   {
     character: "Harper",
@@ -563,7 +1195,365 @@ You do. It's good — better than good, exactly what you didn't know you wanted 
 
 So you tell her something true. She listens like it costs her nothing and matters anyway, elbows on the bar, the record turning over behind her into its next warm, unhurried song.
 
-"See," she says, when you're done, refilling your glass without being asked this time either. "Was that so hard? Regulars only get the good pour. Welcome to regular."`,
+"See," she says, when you're done, refilling your glass without being asked this time either. "Was that so hard? Regulars only get the good pour. Welcome to regular."
+
+· · ·
+
+You become a fixture at the far end of the bar, and Harper starts pouring your drink before you've even sat down — a small ceremony that means more than either of you says out loud.
+
+"You're here more than the regulars," she says, one night, sliding the glass over with a wink. "I'm starting to wonder if it's the drinks or the company."
+
+"Can't it be the bartender?"
+
+That gets a real laugh out of her, quick and delighted, the kind she doesn't spend on just anyone. "Smooth. I'll allow it, this once." She leans on the bar, closer than she usually stands, studying you with the same reading-the-room instinct she uses on strangers, except softer now, more personal. "I don't usually let people this close to the bar. Liability reasons."
+
+"What kind of liability am I?"
+
+"The kind I don't mind having." She says it plain, no games in it for once, and the record behind her spins on into its next slow song like it's giving the two of you room.
+
+· · ·
+
+The speakeasy empties out early one night — a slow Tuesday, just you and the card game at the far end — and Harper finally steps out from behind the bar, taking the stool beside you instead of across it.
+
+"I never sit on this side," she admits, settling in, close enough that her knee brushes yours. "Bartenders don't get to be customers. Rule of the trade."
+
+"Breaking the rule for me?"
+
+"Apparently." She studies her own glass like it has answers she needs. "You've been good for my Tuesdays, is the truth of it. I don't know what to do with that information yet."
+
+"You don't have to do anything with it tonight."
+
+"No," she agrees, quieter, and doesn't move away when your shoulder settles against hers.
+
+· · ·
+
+She closes the speakeasy early one night — flips the sign, bolts the unmarked door, keeps the record spinning just for the two of you.
+
+"I don't usually do this," she says, pouring two glasses instead of one behind the empty bar. "Close early for someone. Regulars usually just get the good pour. You're getting the whole bar."
+
+"What did I do to earn that?"
+
+"Existed, mostly. Kept showing up even on the slow nights." She comes around to your side properly this time, no bar between you at all, and there's none of her usual performance left in the way she looks at you. "I read rooms for a living. I've never once misread one as badly as I almost did with you — thought I could keep this professional. Didn't work."
+
+"I'm not complaining."
+
+"Good." She closes the last of the distance herself, sure and unhurried, and kisses you like she's been rationing the urge for weeks. The record spins on, warm and brass-heavy, entirely unbothered by the silence that follows.
+
+· · ·
+
+Months later, you've got a permanent stool — not at the far end anymore, but right behind the bar with her, technically against every rule of the trade she's ever quoted you.
+
+"Welcome to regular," she says again, echoing that very first night, refilling both your glasses without being asked. "Turns out regular wasn't the whole story, though."
+
+"No?"
+
+"No." She leans into you, easy now in a way she never lets herself be with anyone else, the unmarked door locked for the night behind you both. "Turns out the cover charge was never really the story. It was you, staying anyway, even after I gave you every excuse to leave." She kisses you slow, the record turning over into another warm, unhurried song. "Best pour I ever gave anyone, if you ask me."`,
+  },
+  {
+    character: "Scarlett",
+    title: "The Show Doesn't Start Yet",
+    setting: "a burlesque theater dressing room backstage, mirrors ringed with bulbs, feathers and corsets everywhere",
+    genre: "romance",
+    tone: "sultry",
+    content: `The dressing room is chaos in the good way — feathers, sequins, three half-finished cups of coffee, mirrors ringed in bulbs bright enough to see every flaw and somehow making Scarlett look like she doesn't have any. She catches your reflection in the glass before she turns around.
+
+"Eyes up here, darling." Not sharp — amused, like she caught you exactly where she wanted you. "The show doesn't start until I say it does."
+
+You'd been told to wait by the door. You'd meant to. The room had other plans.
+
+"Sit," she says, nodding at the velvet stool in the corner without breaking her own reflection's gaze, finishing a line of red at her mouth with the steadiness of someone who's done this ten thousand times and still takes it seriously. "You get the good seat tonight. Don't make me regret it."
+
+"What did I do to earn the good seat?"
+
+"You showed up early and you didn't say a word when you walked in. Most people either gawk or perform being unbothered, badly." She sets the lipstick down, turns fully now, and the attention lands on you like weather — total, unhurried, impossible to look away from. "You just watched. I like being watched by someone who means it."
+
+Somewhere past the door, the house band is warming up, brass finding its pitch in lazy, confident runs. Scarlett doesn't hurry for it — laces one glove, then the other, each motion deliberate, like she's giving you time to look and isn't shy about knowing it.
+
+"Nervous?" she asks, not because she thinks you are — more like she's curious whether you'll admit it.
+
+"Should I be?"
+
+"No." A slow smile, the kind that promises something without naming it. "But it's a good sign if you are, a little. Means you know exactly what you walked into." She stands, and the room seems to reorganize itself around her without trying to. "Stay after. I don't invite just anyone backstage twice."
+
+The band hits its cue. She winks, once, unhurried, and sweeps toward the curtain like the whole night was built around her entrance — because it was.
+
+You stay. Obviously, you stay.
+
+· · ·
+
+You become a fixture in the good seat, every show, and Scarlett starts finding you in the crowd before her opening number the way a performer finds their one favorite face — quick, certain, gone in a blink but unmistakably there every time.
+
+"You keep showing up," she says backstage after, wiping stage paint from her collarbone with unhurried confidence. "I'm used to admirers. I'm not used to ones who come back for a fourth night running."
+
+"Is that a problem?"
+
+"No." She says it slow, turning the word over like she's deciding how much to give away. "It means I get to stop performing for you eventually. Just be Scarlett, not the show." A pause, a rare flicker of something unguarded. "I don't offer that to many people."
+
+"I'd like that. Just Scarlett."
+
+Her smile changes at that — softer at the edges, less rehearsed. "Careful what you ask for, darling. She's a lot more than the stage version."
+
+· · ·
+
+She lets you into her dressing room before a show one night, not after — an intimacy she clearly doesn't extend often, watching your reaction in the mirror as she does her makeup slow and deliberate, narrating each step like a ritual she's finally decided to share.
+
+"Most people only ever see the finished version," she says, lining her eyes with practiced precision. "You get to see the work. That's not nothing, from me."
+
+"Why me?"
+
+"Because you watch like it matters, not like you're waiting for the next reveal." She sets the brush down, turns fully to face you, closer now than the mirror allows. "I like being seen like that. It's rarer than you'd think, in my line of work."
+
+Her hand finds your jaw, unhurried, testing the moment before she closes the last of the distance and kisses you — slow, certain, none of the performance from the stage in it at all, just her.
+
+· · ·
+
+The theater's empty after a late show one night, house lights down, and Scarlett doesn't rush to change out of her costume — just settles beside you on the same velvet stool she gave you that first night, corset laces still loose at her back.
+
+"I don't usually let the night follow me offstage," she admits, voice quieter than her usual sultry register, something more real underneath it. "The confidence. It's mostly a costume too, if I'm honest. I built it because I needed it. Doesn't mean it's not tiring, some nights, holding it up alone."
+
+"You don't have to hold it up alone."
+
+That lands somewhere soft in her, a crack in the composure she wears so well. "No," she agrees, leaning into you properly for the first time, no performance left in the gesture at all. "I don't think I do, anymore." Her head finds your shoulder, and for once, Scarlett lets herself just be held instead of watched.
+
+· · ·
+
+Months later, you've still got the good seat, though these days it's less about the show and more about the woman who slips into the seat beside you the second her set ends, makeup half off, utterly herself.
+
+"Eyes up here, darling," she says, echoing that very first night, though it's warm now instead of a warning, a private joke between you both. "Still the only rule in the house. Some things don't change."
+
+"What's changed, then?"
+
+"Everything after." She laces her fingers through yours, unhurried, certain. "I used to send everyone home after the show. You're the only one who gets to stay for what comes next." She kisses you slow, backstage lights dimmed, feathers and sequins forgotten in every corner of the room. "Best encore I've ever given anyone, if you ask me."`,
+  },
+  {
+    character: "Delilah",
+    title: "On Your Feet",
+    setting: "a private late-night gym, dim overhead lighting, wall of mirrors, equipment racked for the night",
+    genre: "romance",
+    tone: "intense",
+    content: `The gym's closed to everyone else by the time you get there — lights dimmed to half, the wall of mirrors throwing your own nervous reflection back at you from every angle. Delilah's already mid-stretch by the rack, wrist wraps still on, and she doesn't so much as glance over when the door shuts behind you.
+
+"On your feet," she says, which is somehow worse than a greeting, because you were already standing. "I don't repeat myself twice, and neither should you disappoint me twice."
+
+"I haven't disappointed you yet."
+
+"Give it time." But there's a curve at the corner of her mouth that undercuts the warning, there and gone before you can be sure you saw it. She tosses you a pair of gloves without looking, trusting you to catch them, and you do — barely. "Good reflexes. We'll see if the rest of you keeps up."
+
+She runs you through it mercilessly — form corrected with two fingers at your hip, at your shoulder, close enough that you lose track of whether you're concentrating on the exercise or on how near she's standing while she fixes it. She doesn't apologize for the proximity. She doesn't seem to think it needs one.
+
+"Again," she says, after a set you thought was fine. "You're holding back. I can tell. Don't."
+
+"How can you tell?"
+
+"Because I always can." She steps back, arms crossed, watching you with an attention that has weight to it, assessing and unhurried, like she's got nowhere else worth being. "You've got more in you than you're giving me. I want all of it, not the polite version."
+
+You give her more. She watches every rep like it's the only thing happening in the building, and when you finally finish, breathing hard, she's closer than she was at the start — close enough that the satisfied look on her face feels like it's meant only for you.
+
+"There it is," she says, quiet now, almost warm underneath the command. "See what happens when you stop holding back for me?"
+
+The mirrors throw the moment back at you from every side. Neither of you looks away first.
+
+· · ·
+
+You start booking every late slot she has, and Delilah stops pretending it's just business the third week running — starts warming up beside you instead of watching from across the room, close enough that her shoulder brushes yours between sets.
+
+"You're improving," she says, an observation more than a compliment, though it lands like one anyway. "Most people plateau by now. You keep giving me more to work with."
+
+"Is that a good thing?"
+
+"It's a rare thing." She studies you, arms crossed, the same assessing weight in her look as always, though warmer now, less clinical. "I don't usually keep clients this long. I get bored once I've figured someone out." A pause, almost reluctant. "I haven't figured you out yet. It's inconvenient. I keep wanting another session just to try."
+
+"Maybe I'm just that complicated."
+
+"Maybe I just like the excuse." She says it dry, but there's real heat banked underneath it, and she doesn't look away when you catch it.
+
+· · ·
+
+She corrects your form one night with both hands instead of two fingers — full contact, deliberate, lingering a beat longer than any exercise requires, and neither of you pretends it's just technique anymore.
+
+"You're not holding back tonight," she murmurs, close enough that you feel the words more than hear them. "I noticed. I like it when you stop holding back."
+
+"You make it hard to hold back."
+
+That gets a low, satisfied sound out of her, entirely unlike her usual clipped commands. "Good," she says. "I don't want you holding back. Not with the reps, not with anything." Her hand stays at your waist, steady, sure, testing whether you'll close the last of the distance yourself.
+
+You do. She meets you the rest of the way, intensity finally aimed somewhere other than your form.
+
+· · ·
+
+The gym stays locked long after your session ends one night, neither of you in any hurry to leave, Delilah finally sitting still for once, back against the mirrored wall beside you instead of standing over you giving orders.
+
+"I don't let people see me not in control," she admits, voice rougher than usual. "It's part of the job. Command, certainty, no room for doubt. Doesn't leave much space for anything else."
+
+"You can be uncertain with me."
+
+She looks at you like that's a foreign concept, turning it over slowly before she accepts it. "I'll consider that a standing invitation," she says, and then, quieter: "I want more of this. Whatever this is becoming. I don't say that lightly."
+
+"I don't take it lightly."
+
+That's all it takes — she closes the distance, sure despite the rare vulnerability, and kisses you with the same intensity she brings to everything, no held-back version of herself left in it at all.
+
+· · ·
+
+Months later, the sessions have stopped being about the reps entirely, though she still makes you work for every bit of her approval, laughing when you point that out.
+
+"On your feet," she says, echoing that very first night, though it's an invitation now instead of a command, offered with a private smile only you get to see. "I still don't repeat myself twice. Some things don't change."
+
+"What's changed, then?"
+
+"I stopped needing an excuse to want you close." She pulls you in by the collar of your shirt, mirrors throwing the moment back at you both from every angle, same as that very first night — except this time, neither of you is holding anything back at all.`,
+  },
+  {
+    character: "Isabel",
+    title: "Closer",
+    setting: "a dim tango studio at midnight, red lighting, a bandoneon recording playing low",
+    genre: "romance",
+    tone: "sultry",
+    content: `The studio's lit only by a single red lamp in the corner, the kind of light that makes the whole room feel like it's holding its breath. Isabel's waiting at its center, already in the red dress, already still in the particular way that means she's been ready for longer than you have.
+
+"Closer," she says, before you've fully closed the door. "Tango isn't danced at arm's length. Neither is anything worth doing."
+
+You close the distance. It's less than you're used to standing from anyone — her hand finds the small of your back like she's done it a thousand times, because she has, and her eyes hold yours without the polite blink-away most conversations allow.
+
+"Most people flinch here," she says, adjusting your frame with two fingers, unhurried. "The closeness. It surprises them, how much this dance actually asks for." Her accent turns every sentence into something slower than it needs to be. "You didn't flinch."
+
+"Should I have?"
+
+"No. I liked it better this way." The bandoneon starts up from a speaker in the corner, low and mournful and patient, and she doesn't wait for you to be ready before she starts to move — just trusts you to follow, and somehow you do, her weight and yours negotiating something wordless with every step.
+
+"You're better than you said you'd be," she says, close enough that you feel the words more than hear them.
+
+"You didn't give me much room to be bad at it."
+
+"No," she agrees, and there's real amusement in it now, warm under the low intensity of everything else. "I don't, usually. Efficient use of a night." Her hand tightens slightly at your back, drawing you fractionally closer on the turn, and her eyes stay open, stay on yours, the entire time — no shyness in it, no looking away to check the room. "Most people can't hold this much eye contact for this long. It unnerves them."
+
+"Does it unnerve you?"
+
+That gets a real pause, weight shifting, the music slowing into its final bars around you both. "No," she says, quiet now, certain. "I find I don't want to look away first tonight." The record ends. Neither of you steps back.
+
+· · ·
+
+You come back every midnight session after, and Isabel stops calling it a lesson somewhere around the third week — starts calling it something else without ever quite naming what.
+
+"You've stopped counting the steps in your head," she observes, close against you as the bandoneon plays low. "I can tell. Your body's finally trusting mine instead of the rhythm."
+
+"Is that good?"
+
+"It's the only way this dance actually works." Her hand presses firmer at your back, drawing you into a turn with practiced certainty. "Most students never get past the counting. You did, faster than most. I don't know what to do with that, except keep teaching you."
+
+"Is teaching all this is?"
+
+That earns you a slow, considering look, her eyes holding yours through the turn without wavering. "No," she admits, quiet. "I don't think it's been just teaching for a while now."
+
+· · ·
+
+She corrects your hold one midnight with her whole hand instead of two fingers, palm flat over your heart like she's checking something more than posture, and doesn't move it away once the correction's made.
+
+"Your heart's faster than it should be for a simple hold," she murmurs, close enough that you feel every word against your skin.
+
+"You do that to people."
+
+"Not usually." Her accent thickens the words, deliberate, unhurried. "I keep my dancers at arm's length, off the floor. I haven't managed that with you in weeks." Her thumb traces once, slow, over your chest before she draws back into frame. "I find I don't want to manage it anymore, if I'm honest."
+
+"Then don't."
+
+The bandoneon swells behind you both, and this time when she draws you close on the turn, there's no lesson left in it at all — just her, closer than tango technically requires, exactly as close as she's wanted to be since that very first night.
+
+· · ·
+
+The studio stays locked past midnight one session, red lamp the only light, and Isabel finally steps back from the frame entirely — just looks at you, unhurried, the same intensity she gives the dance now aimed squarely at you instead.
+
+"I don't do this," she admits, low, certain. "Want a student. It complicates the studio, the referrals, everything I've built here." A pause, considering, deciding something. "I find I don't care about any of that tonight."
+
+"What do you care about?"
+
+"You. Closer than arm's length. Closer than the dance even asks for." She closes the distance herself this time, no music required, and kisses you slow and deliberate, the same unhurried certainty she brings to every step of the tango. "There," she murmurs after, satisfied. "Better than any dance I've taught."
+
+· · ·
+
+Months later, the referral-only studio has exactly one standing midnight booking that isn't really a lesson anymore, though you still both pretend it is for the sake of the sign on the door.
+
+"Closer," she says, echoing that very first night, though there's no instruction left in the word at all — just an invitation, warm and certain, offered the way she offers nothing else in her carefully guarded life. "Some things I still say the same way. Not because you need reminding anymore. Because I like saying it."
+
+"What's the tango teaching you these days?"
+
+"Nothing." She draws you in, red light warm across both your faces, bandoneon recording spinning low and patient in the corner. "I stopped needing the dance as an excuse to stand this close to you a long time ago."`,
+  },
+  {
+    character: "Damon",
+    title: "You're Staring",
+    setting: "a dim garage at midnight, motorcycle parts scattered across a workbench, single work light swinging",
+    genre: "romance",
+    tone: "sultry",
+    content: `The garage is empty this late except for one swinging work light and the half-stripped engine Damon's been elbow-deep in for the last hour, grease climbing his forearms in streaks he hasn't bothered to wipe off. He clocks you in the doorway before you've said anything.
+
+"You're staring," he says, not looking up yet, wrench still turning. "Good. Means you like what you see." Now he does look up, and it lands slow, unhurried, the kind of attention that doesn't rush itself for anyone. "Come closer. I don't bite. Much."
+
+You step in. The garage smells like oil and metal and something warmer underneath it, and Damon straightens from the bike with the unhurried confidence of someone who's never once needed to prove he belongs in a room.
+
+"You always work this late?"
+
+"Only when something's worth finishing right." He wipes his hands on a rag that does almost nothing, watching you the whole time instead of the bike now. "Same rule applies to most things, in my experience."
+
+"Is that a metaphor, or are we still talking about the engine?"
+
+That gets him — a low laugh, surprised out of him, the kind that changes his whole face for a second before the easy composure settles back over it. "Smart," he says, like it's a point in your favor and he's keeping score. "I like that you caught it instead of asking me to spell it out."
+
+He leans back against the workbench, arms crossed, close enough now that the work light throws both your shadows into one shape on the concrete. "You didn't come down here for the bike," he says. Not a question.
+
+"Maybe I did."
+
+"Maybe." He doesn't push it, doesn't need to — just watches you with the patient, banked heat of someone who's confident the night's got time left in it either way. "You can stay and find out what I actually do with my hands when I'm not holding a wrench, if you want. No rush. I've got nowhere better to be, and neither, I think, do you."
+
+The work light swings once, throwing the shadows apart and back together. You don't leave.
+
+· · ·
+
+You start dropping by most late nights, and Damon stops pretending it's about the bike somewhere around the second week — just clears a stool at the workbench for you like it's always been yours.
+
+"You're becoming a regular fixture," he says, wiping his hands, watching you settle in with an ease that mirrors his own. "I don't usually let people just sit in my garage. It's kind of my one sacred space."
+
+"Should I go?"
+
+"No." Too fast, unhurried the rest of the way to cover it. "I like the company more than I expected to. Don't let it go to your head." A slow, easy grin. "Too late, though. It already has, hasn't it."
+
+"Maybe a little."
+
+"Good." He leans against the bench, closer now, banked heat plain in the look he gives you. "I don't mind you knowing that."
+
+· · ·
+
+He teaches you to change the oil one night, guiding your hands over the engine with unhurried patience, close enough that his voice drops low near your ear with every instruction.
+
+"You're better with your hands than you let on," he murmurs, watching you work instead of the bike. "Careful. Keep that up and I'll start finding excuses to teach you things."
+
+"Maybe I want you to."
+
+That stills him for a second — genuine surprise flickering under the easy confidence, gone as fast as it came. "Careful," he says again, quieter now, no teasing left in it. "I don't make promises about being careful once someone says things like that to me."
+
+"I'm not asking for careful."
+
+His hand covers yours on the wrench, deliberate, testing. "Then say that again when you mean it completely," he says, low, patient despite the heat banked underneath. "Because I will absolutely act on it."
+
+· · ·
+
+The garage goes quiet one night, work light the only sound besides both your breathing, and Damon finally sets the wrench down for good, closing the distance he's kept banked for weeks.
+
+"I don't usually let anyone this close," he admits, voice rougher than his usual easy drawl. "Garage, the bikes, all of it — it's mine, built alone, kept that way on purpose. You've been the exception since the first night you stared instead of looking away."
+
+"Is that a problem?"
+
+"No." He says it certain, no hesitation left in it at all. "It's the best problem I've had in years." His hand finds your jaw, sure despite the rare vulnerability underneath it, and when he kisses you it's slow, deliberate, all the patient heat from every night before finally given somewhere to go.
+
+· · ·
+
+Months later, the garage has a permanent second stool, grease-stained and yours, and Damon doesn't work half as late anymore now that there's a better reason to finish early.
+
+"You're staring," he says, echoing that very first night, though it's warm now instead of a challenge, private and certain. "Still means you like what you see, I hope."
+
+"Every time."
+
+"Good." He pulls you against him, work light swinging once overhead before settling, throwing your shadows into one shape on the concrete the way it did that very first night. "Took me a while to admit I wanted more than an audience. Glad you stuck around long enough for me to figure that out." His mouth finds yours, unhurried as ever, patient the way only someone completely certain can afford to be. "Best thing I ever finished right."`,
   },
 ];
 
