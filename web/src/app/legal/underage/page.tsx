@@ -1,5 +1,5 @@
 import { LegalLayout, Section, S } from "@/components/LegalLayout";
-import { OPERATOR_NAME, SUPPORT_EMAIL } from "@/lib/legal";
+import { MIN_AGE, OPERATOR_NAME, SUPPORT_EMAIL } from "@/lib/legal";
 
 export const metadata = { title: "Underage Policy · Reverie" };
 
@@ -8,12 +8,13 @@ export default function UnderagePolicyPage() {
     <LegalLayout
       eyebrow="Legal"
       title="Underage Policy"
-      intro={`${OPERATOR_NAME} is strictly for adults. This policy explains how we keep minors off the platform and out of the content on it.`}
+      intro={`${OPERATOR_NAME} is rated ${MIN_AGE}+. This policy explains how we keep younger users off the platform and out of the content on it.`}
     >
       <Section title="1. Age gate and registration">
         <p style={S.p}>
-          You must be 18 or older, or the age of majority where you live if that&apos;s higher, to create an account or use
-          Reverie. Every signup requires an explicit confirmation of age before an account is created.
+          You must be {MIN_AGE} or older, or the age of majority where you live if that&apos;s higher, to create an account or
+          use Reverie. Every signup requires an explicit confirmation of age before an account is created. If you are under 18,
+          see the parental/guardian consent requirement in our <a href="/legal/terms" style={S.link}>Terms of Service</a>.
         </p>
         <p style={S.p}>
           <strong style={S.strong}>This is currently a self-attestation, not an independent age-verification check.</strong> We
@@ -22,10 +23,10 @@ export default function UnderagePolicyPage() {
           verification measures in the future as the platform grows.
         </p>
         <p style={S.p}>
-          If you believe a minor has accessed Reverie — including your own child — contact us at{" "}
+          If you believe a younger user has accessed Reverie — including your own child — contact us at{" "}
           <a href={`mailto:${SUPPORT_EMAIL}`} style={S.link}>{SUPPORT_EMAIL}</a> so we can investigate and block further access.
           We are not able to independently verify a user&apos;s age beyond their own attestation, and it remains each user&apos;s
-          responsibility to comply with the laws of their own location regarding access to adult content.
+          responsibility to comply with the laws of their own location regarding access to age-restricted content.
         </p>
       </Section>
       <Section title="2. No content resembling minors">

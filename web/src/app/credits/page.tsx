@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { EntryGate } from "@/components/EntryGate";
+import { MIN_AGE } from "@/lib/legal";
 
 type Balance = { purchased: number; earned: number; total: number };
 type Item = { id: string; label: string; amount: number; at: string };
@@ -68,7 +69,7 @@ export default function CreditsPage() {
   }
 
   if (authed === undefined) return <main style={S.wrap}><p style={{ color: "#AC9CB0" }}>Loading…</p></main>;
-  if (authed === false) return <EntryGate onDone={() => load()} subtitle="Sign in to see your credits. 18+ only." />;
+  if (authed === false) return <EntryGate onDone={() => load()} subtitle={`Sign in to see your credits. ${MIN_AGE}+ only.`} />;
 
   const b = data?.balance;
 

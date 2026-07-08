@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { CharacterAvatar } from "@/components/CharacterAvatar";
 import { EntryGate } from "@/components/EntryGate";
+import { MIN_AGE } from "@/lib/legal";
 
 type Char = { id: string; name: string; tagline: string; persona: string; tags: string[] };
 
@@ -139,7 +140,7 @@ export default function StoryPage() {
   }
 
   if (authEmail === undefined) return <main style={S.wrap}><p style={{ color: "#AC9CB0" }}>Loading…</p></main>;
-  if (authEmail === null) return <EntryGate onDone={(e) => setAuthEmail(e)} subtitle="Sign in to create a story. 18+ only." />;
+  if (authEmail === null) return <EntryGate onDone={(e) => setAuthEmail(e)} subtitle={`Sign in to create a story. ${MIN_AGE}+ only.`} />;
 
   const active = chars.find((c) => c.id === charId);
 

@@ -7,3 +7,11 @@ export const OPERATOR_NAME = "Reverie";
 export const SUPPORT_EMAIL = "support@reverie.app"; // placeholder - point this at a real inbox before launch
 export const GOVERNING_LAW = "the State of New York, United States";
 export const LAST_REVISED = "July 8, 2026";
+
+// Minimum age to USE Reverie (App Store review, age gate, legal docs). This is
+// deliberately separate from the minimum age a fictional COMPANION must be
+// (always 18, enforced in the character schema/moderation prompts) - those
+// are two different rules and changing this one must never touch that one.
+// Bump back to 18 here (one line) if this ever becomes a distribution
+// distinct from the App Store build.
+export const MIN_AGE = 17;

@@ -5,6 +5,7 @@ import { Avatar } from "@/components/Avatar";
 import { EntryGate } from "@/components/EntryGate";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { Section } from "@/components/Section";
+import { MIN_AGE } from "@/lib/legal";
 
 const GENDER_OPTIONS = [
   { value: "female", label: "Female" },
@@ -238,7 +239,7 @@ export default function CreateCharacterPage() {
   }
 
   if (authEmail === undefined) return <main style={S.wrap}><p style={{ color: "#AC9CB0" }}>Loading…</p></main>;
-  if (authEmail === null) return <EntryGate onDone={(e) => setAuthEmail(e)} subtitle="Sign in to create a companion. 18+ only." />;
+  if (authEmail === null) return <EntryGate onDone={(e) => setAuthEmail(e)} subtitle={`Sign in to create a companion. ${MIN_AGE}+ only.`} />;
 
   if (submitted) {
     return (

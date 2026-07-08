@@ -1,5 +1,5 @@
 import { LegalLayout, Section, S } from "@/components/LegalLayout";
-import { GOVERNING_LAW, OPERATOR_NAME, SUPPORT_EMAIL } from "@/lib/legal";
+import { GOVERNING_LAW, MIN_AGE, OPERATOR_NAME, SUPPORT_EMAIL } from "@/lib/legal";
 
 export const metadata = { title: "Terms of Service · Reverie" };
 
@@ -33,9 +33,14 @@ export default function TermsPage() {
 
       <Section title="2. Eligibility and accounts">
         <p style={S.p}>
-          You must be 18 or older, or the age of majority where you live if higher, to use Reverie — see our{" "}
+          You must be {MIN_AGE} or older, or the age of majority where you live if higher, to use Reverie — see our{" "}
           <a href="/legal/underage" style={S.link}>Underage Policy</a>. By using the Service you confirm you meet this
           requirement.
+        </p>
+        <p style={S.p}>
+          If you are under 18, you may only use the Service with the involvement and consent of a parent or legal guardian, who
+          agrees to be bound by these Terms on your behalf and takes responsibility for your use of the Service, including any
+          purchases made through your account.
         </p>
         <p style={S.p}>
           You&apos;re responsible for everything that happens under your account. Keep your login credentials to yourself —

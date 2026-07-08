@@ -1,3 +1,5 @@
+import { MIN_AGE } from "@/lib/legal";
+
 export const metadata = { title: "Community guidelines · Reverie" };
 
 export default function GuidelinesPage() {
@@ -6,10 +8,10 @@ export default function GuidelinesPage() {
       <a href="/" style={S.back}>← Reverie</a>
       <p style={S.mark}>Trust &amp; safety</p>
       <h1 style={S.h1}>Community guidelines</h1>
-      <p style={S.sub}>Reverie is an 18+ fiction platform. Everyone here — readers and creators — is expected to follow these rules.</p>
+      <p style={S.sub}>Reverie is a {MIN_AGE}+ fiction platform. Everyone here — readers and creators — is expected to follow these rules.</p>
 
       <Section title="Who this is for">
-        <p style={S.p}>You must be 18 or older to use Reverie. Every account confirms this when signing up. This is currently a self-attestation, not an independent age-verification check — real verification is planned before any wider or explicit-content launch.</p>
+        <p style={S.p}>You must be {MIN_AGE} or older to use Reverie. Every account confirms this when signing up. This is currently a self-attestation, not an independent age-verification check — real verification is planned before any wider or explicit-content launch.</p>
       </Section>
 
       <Section title="What's allowed">

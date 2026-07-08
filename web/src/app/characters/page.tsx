@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { CharacterAvatar } from "@/components/CharacterAvatar";
 import { EntryGate } from "@/components/EntryGate";
+import { MIN_AGE } from "@/lib/legal";
 
 type Char = { id: string; name: string; persona: string; greeting?: string; tags: string[]; status: string };
 type Blocked = { id: string; name: string };
@@ -67,7 +68,7 @@ export default function MyCharactersPage() {
   }
 
   if (authEmail === undefined) return <main style={S.wrap}><p style={{ color: "#AC9CB0" }}>Loading…</p></main>;
-  if (authEmail === null) return <EntryGate onDone={(e) => setAuthEmail(e)} subtitle="Sign in to manage your companions. 18+ only." />;
+  if (authEmail === null) return <EntryGate onDone={(e) => setAuthEmail(e)} subtitle={`Sign in to manage your companions. ${MIN_AGE}+ only.`} />;
 
   return (
     <main style={S.wrap}>

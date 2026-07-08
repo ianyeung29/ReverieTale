@@ -1,14 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { MIN_AGE } from "@/lib/legal";
 
 /**
- * Email + 18-and-over gate used wherever an account is required. Google is
+ * Email + minimum-age gate used wherever an account is required. Google is
  * offered as a CONVENIENCE login alongside it - not an age check. Google
- * exposes no birthdate/age claim to third-party apps, so the 18+ attestation
+ * exposes no birthdate/age claim to third-party apps, so the age attestation
  * still applies the same either way (see lib/session.ts, lib/google.ts).
  */
-export function EntryGate({ onDone, subtitle = "Continue with your email. 18+ only." }: { onDone: (email: string) => void; subtitle?: string }) {
+export function EntryGate({ onDone, subtitle = `Continue with your email. ${MIN_AGE}+ only.` }: { onDone: (email: string) => void; subtitle?: string }) {
   const [email, setEmail] = useState("");
   const [over18, setOver18] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -26,7 +27,7 @@ export function EntryGate({ onDone, subtitle = "Continue with your email. 18+ on
   }, []);
 
   async function submit() {
-    if (!over18) return setErr("You must be 18 or older to enter.");
+    if (!over18) return setErr(`You must be ${MIN_AGE} or older to enter.`);
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return setErr("Enter a valid email.");
     setBusy(true); setErr("");
     try {
@@ -44,7 +45,7 @@ export function EntryGate({ onDone, subtitle = "Continue with your email. 18+ on
   return (
     <div style={G.center}>
       <div style={G.gate}>
-        <p style={G.mk}>Adults only</p>
+        <p style={G.mk}>{MIN_AGE}+ only</p>
         <h2 style={G.h}>Enter Reverie</h2>
         <p style={G.sub}>{subtitle}</p>
 
@@ -58,7 +59,7 @@ export function EntryGate({ onDone, subtitle = "Continue with your email. 18+ on
         ) : null}
 
         <input style={G.input} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@email.com" onKeyDown={(e) => { if (e.key === "Enter") submit(); }} />
-        <label style={G.chk}><input type="checkbox" checked={over18} onChange={(e) => setOver18(e.target.checked)} /> I am 18 or older</label>
+        <label style={G.chk}><input type="checkbox" checked={over18} onChange={(e) => setOver18(e.target.checked)} /> I am {MIN_AGE} or older</label>
         {err ? <p style={G.err}>{err}</p> : null}
         <button style={{ ...G.btn, opacity: busy ? 0.6 : 1 }} onClick={submit} disabled={busy}>{busy ? "…" : "Continue"}</button>
       </div>

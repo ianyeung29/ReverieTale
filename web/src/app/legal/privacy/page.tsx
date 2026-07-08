@@ -1,5 +1,5 @@
 import { LegalLayout, Section, S } from "@/components/LegalLayout";
-import { GOVERNING_LAW, OPERATOR_NAME, SUPPORT_EMAIL } from "@/lib/legal";
+import { GOVERNING_LAW, MIN_AGE, OPERATOR_NAME, SUPPORT_EMAIL } from "@/lib/legal";
 
 export const metadata = { title: "Privacy Notice · Reverie" };
 
@@ -12,7 +12,7 @@ export default function PrivacyPage() {
     >
       <Section title="1. Information we collect">
         <p style={S.p}><strong style={S.strong}>Account data:</strong> your email address and password (stored as a salted hash, never in plain text), and an optional public display name if you create companions.</p>
-        <p style={S.p}><strong style={S.strong}>Age confirmation:</strong> your confirmation that you&apos;re 18 or older. See our <a href="/legal/underage" style={S.link}>Underage Policy</a> — this is currently a self-attestation, not third-party identity verification.</p>
+        <p style={S.p}><strong style={S.strong}>Age confirmation:</strong> your confirmation that you meet our minimum age requirement ({MIN_AGE}+). See our <a href="/legal/underage" style={S.link}>Underage Policy</a> — this is currently a self-attestation, not third-party identity verification.</p>
         <p style={S.p}><strong style={S.strong}>Content you create:</strong> companion definitions (name, personality, backstory, tags, portraits), stories, and chat messages. Chat and story content is used to generate responses and is retained so a conversation can continue with memory of what you&apos;ve shared.</p>
         <p style={S.p}><strong style={S.strong}>Interaction data:</strong> ratings you give, stories you bookmark, companions you hide from your own browsing, and reports you file. Reporter identity on a report is visible to moderators only, never to the person reported.</p>
         <p style={S.p}><strong style={S.strong}>Payment data:</strong> if you purchase credits, payment is handled by our payment processor directly — we do not store your full card number. We keep a record of the transaction (amount, credit balance, timestamp) to maintain your account balance and for accounting.</p>
@@ -59,7 +59,7 @@ export default function PrivacyPage() {
         </p>
       </Section>
       <Section title="7. Children">
-        <p style={S.p}>Reverie is for adults only. We don&apos;t knowingly collect data from anyone under 18. See our <a href="/legal/underage" style={S.link}>Underage Policy</a>.</p>
+        <p style={S.p}>Reverie is rated {MIN_AGE}+. We don&apos;t knowingly collect data from anyone under {MIN_AGE}. See our <a href="/legal/underage" style={S.link}>Underage Policy</a>.</p>
       </Section>
       <Section title="8. Security">
         <p style={S.p}>Passwords are stored as salted hashes, not plain text. No online service can guarantee perfect security, but we take reasonable measures to protect your data against unauthorized access.</p>
