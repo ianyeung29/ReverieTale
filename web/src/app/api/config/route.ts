@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { explicitConfigured } from "@/lib/model";
 import { imageConfigured } from "@/lib/image";
 import { googleConfigured } from "@/lib/google";
+import { REWARD_RATE } from "@/lib/ledger";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,8 @@ export async function GET() {
       chapter: Number(process.env.CHAPTER_PRICE || 10),
       portrait: Number(process.env.PORTRAIT_PRICE || 5),
       portraitFree: Number(process.env.FREE_PORTRAITS || 2),
+      dailyDrip: Number(process.env.DAILY_DRIP || 20),
+      creatorRewardRate: REWARD_RATE,
     },
   });
 }
