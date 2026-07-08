@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { CharacterAvatar } from "@/components/CharacterAvatar";
+import { Section } from "@/components/Section";
 
 type Pending = {
   id: string;
@@ -20,8 +21,22 @@ type Report = {
   targetType: "character" | "story";
   targetId: string;
   targetTitle: string;
+  targetLive: boolean;
   reason: string;
   note: string;
+  createdAt: string;
+};
+
+type ResolvedReport = {
+  id: string;
+  targetType: "character" | "story";
+  targetId: string;
+  targetTitle: string;
+  reason: string;
+  note: string;
+  internalNote: string;
+  resolution: string | null;
+  resolvedAt: string | null;
   createdAt: string;
 };
 
@@ -36,8 +51,10 @@ const REASON_LABELS: Record<string, string> = {
 export default function AdminReviewPage() {
   const [items, setItems] = useState<Pending[] | null>(null);
   const [reports, setReports] = useState<Report[] | null>(null);
+  const [resolved, setResolved] = useState<ResolvedReport[] | null>(null);
   const [forbidden, setForbidden] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [notes, setNotes] = useState<Record<string, string>>({});
 
   function load() {
     fetch("/api/admin/review")
@@ -51,6 +68,10 @@ export default function AdminReviewPage() {
       .then((r) => (r.ok ? r.json() : []))
       .then((d: Report[]) => setReports(Array.isArray(d) ? d : []))
       .catch(() => setReports([]));
+    fetch("/api/admin/reports?status=resolved")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d: ResolvedReport[]) => setResolved(Array.isArray(d) ? d : []))
+      .catch(() => setResolved([]));
   }
   useEffect(() => { load(); }, []);
 
@@ -67,12 +88,23 @@ export default function AdminReviewPage() {
     } catch {} finally { setBusyId(null); }
   }
 
-  async function resolveReport(id: string) {
+  // Resolving a report can also take the target down in the same step
+  // ("unpublish"), and always records the moderator's note for the record -
+  // "Mark resolved" alone used to be the only trace a report was ever acted on.
+  async function act(id: string, action: "unpublish" | "dismiss") {
     if (busyId) return;
     setBusyId(id);
     try {
-      const res = await fetch(`/api/admin/reports/${id}`, { method: "POST" });
-      if (res.ok) setReports((cur) => (cur ? cur.filter((x) => x.id !== id) : cur));
+      const res = await fetch(`/api/admin/reports/${id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, note: notes[id]?.trim() || undefined }),
+      });
+      if (res.ok) {
+        setReports((cur) => (cur ? cur.filter((x) => x.id !== id) : cur));
+        setNotes((cur) => { const c = { ...cur }; delete c[id]; return c; });
+        fetch("/api/admin/reports?status=resolved").then((r) => (r.ok ? r.json() : [])).then((d: ResolvedReport[]) => setResolved(Array.isArray(d) ? d : [])).catch(() => {});
+      }
     } catch {} finally { setBusyId(null); }
   }
 
@@ -119,7 +151,7 @@ export default function AdminReviewPage() {
       )}
 
       <h1 style={{ ...S.h1, marginTop: 44 }}>Reports</h1>
-      <p style={S.sub}>Content readers have flagged. Resolving here doesn&apos;t change the content itself — open it and unpublish/edit separately if it&apos;s warranted.</p>
+      <p style={S.sub}>Content readers have flagged. Unpublish removes it from discovery in the same step; either way, your note is kept with the report.</p>
 
       {reports === null ? (
         <p style={S.muted}>Loading…</p>
@@ -133,19 +165,68 @@ export default function AdminReviewPage() {
                 <div>
                   <div style={S.name}>
                     <a href={r.targetType === "character" ? `/c/${r.targetId}` : `/story/${r.targetId}`} style={S.targetLink}>{r.targetTitle}</a>
+                    <span style={{ ...S.liveBadge, ...(r.targetLive ? S.liveBadgeOn : S.liveBadgeOff) }}>
+                      {r.targetLive ? (r.targetType === "character" ? "Published" : "Public") : (r.targetType === "character" ? "Disabled" : "Unlisted")}
+                    </span>
                   </div>
                   <div style={S.by}>{r.targetType} · reported {new Date(r.createdAt).toLocaleDateString()}</div>
                 </div>
               </div>
               <div style={S.flag}>⚑ {REASON_LABELS[r.reason] ?? r.reason}</div>
               {r.note ? <Field label="Reporter's note" value={r.note} /> : null}
+
+              <label style={S.noteLabel}>Internal note <span style={S.hint}>(kept with the report, not shown to anyone)</span></label>
+              <textarea
+                value={notes[r.id] ?? ""}
+                onChange={(e) => setNotes((cur) => ({ ...cur, [r.id]: e.target.value }))}
+                placeholder="what you checked and why — e.g. reviewed the profile, no minors depicted, dismissing"
+                style={S.noteInput}
+                maxLength={1000}
+              />
+
               <div style={S.actions}>
-                <button style={{ ...S.approve, opacity: busyId === r.id ? 0.5 : 1 }} onClick={() => resolveReport(r.id)} disabled={busyId === r.id}>Mark resolved</button>
+                {r.targetLive ? (
+                  <>
+                    <button style={{ ...S.reject, opacity: busyId === r.id ? 0.5 : 1 }} onClick={() => act(r.id, "unpublish")} disabled={busyId === r.id}>Unpublish &amp; resolve</button>
+                    <button style={{ ...S.approve, opacity: busyId === r.id ? 0.5 : 1 }} onClick={() => act(r.id, "dismiss")} disabled={busyId === r.id}>Leave live &amp; resolve</button>
+                  </>
+                ) : (
+                  <button style={{ ...S.approve, opacity: busyId === r.id ? 0.5 : 1 }} onClick={() => act(r.id, "dismiss")} disabled={busyId === r.id}>Resolve</button>
+                )}
               </div>
             </div>
           ))}
         </div>
       )}
+
+      <Section title={`Recently resolved${resolved?.length ? ` · ${resolved.length}` : ""}`} defaultOpen={false}>
+        {resolved === null ? (
+          <p style={S.muted}>Loading…</p>
+        ) : resolved.length === 0 ? (
+          <p style={S.muted}>Nothing resolved yet.</p>
+        ) : (
+          <div style={S.list}>
+            {resolved.map((r) => (
+              <div key={r.id} style={S.historyRow}>
+                <div style={S.head}>
+                  <div>
+                    <div style={S.name}>
+                      <a href={r.targetType === "character" ? `/c/${r.targetId}` : `/story/${r.targetId}`} style={S.targetLink}>{r.targetTitle}</a>
+                      <span style={{ ...S.liveBadge, ...(r.resolution === "unpublished" ? S.liveBadgeOff : S.liveBadgeOn) }}>
+                        {r.resolution === "unpublished" ? "Unpublished" : "Dismissed"}
+                      </span>
+                    </div>
+                    <div style={S.by}>
+                      {r.targetType} · {REASON_LABELS[r.reason] ?? r.reason} · resolved {r.resolvedAt ? new Date(r.resolvedAt).toLocaleDateString() : ""}
+                    </div>
+                  </div>
+                </div>
+                {r.internalNote ? <p style={S.historyNote}>{r.internalNote}</p> : null}
+              </div>
+            ))}
+          </div>
+        )}
+      </Section>
     </main>
   );
 }
@@ -168,7 +249,7 @@ const S: Record<string, React.CSSProperties> = {
   list: { display: "flex", flexDirection: "column", gap: 16 },
   card: { background: "#241B2D", border: "1px solid #3A2E44", borderRadius: 16, padding: 20, display: "flex", flexDirection: "column", gap: 12 },
   head: { display: "flex", alignItems: "center", gap: 12 },
-  name: { fontFamily: "Georgia, serif", fontSize: 21, color: "#F4EAF0" },
+  name: { fontFamily: "Georgia, serif", fontSize: 21, color: "#F4EAF0", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" },
   targetLink: { color: "#F4EAF0", textDecoration: "none" },
   by: { color: "#8A7A90", fontSize: 13 },
   flag: { background: "#2A1A1E", border: "1px solid #6b3a44", borderRadius: 10, padding: "9px 13px", color: "#F0C9B0", fontSize: 13.5 },
@@ -176,6 +257,14 @@ const S: Record<string, React.CSSProperties> = {
   tag: { fontSize: 11.5, color: "#E9A06B", border: "1px solid #4a3a50", borderRadius: 999, padding: "2px 9px" },
   field: { display: "flex", flexDirection: "column", gap: 3 },
   fieldLabel: { fontSize: 11, letterSpacing: ".1em", textTransform: "uppercase", color: "#8A7A90", fontWeight: 700 },
+  liveBadge: { fontFamily: "inherit", fontSize: 11, letterSpacing: ".06em", textTransform: "uppercase", fontWeight: 700, padding: "2px 8px", borderRadius: 999 },
+  liveBadgeOn: { color: "#8FE0B0", background: "rgba(70,150,110,.16)", border: "1px solid #2f6b4c" },
+  liveBadgeOff: { color: "#AC9CB0", background: "rgba(120,110,130,.12)", border: "1px solid #4a3a50" },
+  noteLabel: { fontSize: 11, letterSpacing: ".1em", textTransform: "uppercase", color: "#8A7A90", fontWeight: 700, margin: 0 },
+  hint: { color: "#6f6276", letterSpacing: 0, textTransform: "none", fontWeight: 400 },
+  noteInput: { width: "100%", minHeight: 56, resize: "vertical", background: "#1A121F", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 9, padding: "9px 12px", fontSize: 13.5, boxSizing: "border-box", fontFamily: "inherit", lineHeight: 1.5 },
+  historyRow: { display: "flex", flexDirection: "column", gap: 8, borderBottom: "1px solid #2f2438", paddingBottom: 14 },
+  historyNote: { color: "#AC9CB0", fontSize: 13, margin: 0, lineHeight: 1.5 },
   fieldValue: { color: "#EadFe6", fontSize: 14.5, margin: 0, whiteSpace: "pre-wrap" },
   actions: { display: "flex", gap: 10, marginTop: 4 },
   approve: { border: 0, cursor: "pointer", color: "#1A1220", background: "linear-gradient(100deg,#7BD6A0,#4FB3C9)", borderRadius: 10, padding: "10px 20px", fontWeight: 650, fontSize: 14 },

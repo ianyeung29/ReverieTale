@@ -126,6 +126,11 @@ export const reports = pgTable(
     reason: text("reason").notNull(), // short category code, e.g. "minor_safety"
     note: text("note"), // optional free text from the reporter
     status: text("status").notNull().default("open"), // open | resolved
+    // Moderator-only accountability trail, set when a report is resolved.
+    internalNote: text("internal_note"), // why this action (or no action) was taken
+    resolution: text("resolution"), // "unpublished" | "dismissed"
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+    resolvedBy: uuid("resolved_by").references(() => users.id),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => ({ byStatus: index("reports_status_idx").on(t.status) }),

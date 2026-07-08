@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Avatar } from "@/components/Avatar";
 import { EntryGate } from "@/components/EntryGate";
 import { ImageLightbox } from "@/components/ImageLightbox";
+import { Section } from "@/components/Section";
 
 const GENDER_OPTIONS = [
   { value: "female", label: "Female" },
@@ -664,20 +665,6 @@ export default function CreateCharacterPage() {
         </aside>
       </div>
     </main>
-  );
-}
-
-// Collapsible edit-mode section. `open` is a static per-call value (never
-// derived from state that changes independently), so React never re-forces
-// it after the user's own click toggles the native <details> - see the CSS
-// comment in layout.tsx for why this has to be a real DOM attribute rather
-// than JS-tracked state to get the chevron rotation for free.
-function Section({ title, defaultOpen = true, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
-  return (
-    <details className="rv-section" open={defaultOpen}>
-      <summary>{title}</summary>
-      <div className="rv-section-body">{children}</div>
-    </details>
   );
 }
 
