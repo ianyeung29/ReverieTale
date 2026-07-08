@@ -16,6 +16,16 @@ function genderWord(gender?: string): string {
   return "person"; // non-binary / other -> neutral
 }
 
+// This is a companion app - portraits are meant to read as conventionally
+// attractive, per gender, while staying inside the "tasteful, safe for work"
+// line the trailing style tags enforce below.
+function attractivenessPhrase(gender?: string): string {
+  const g = genderWord(gender);
+  if (g === "woman") return "stunningly beautiful, gorgeous features, alluring";
+  if (g === "man") return "handsome, striking features, charismatic";
+  return "attractive, striking features";
+}
+
 // Shared portrait-prompt builder so the create route (auto default portrait) and
 // the portrait route (manual regen) produce identical, tasteful SFW prompts.
 export function buildPortraitPrompt(b: {
@@ -34,7 +44,7 @@ export function buildPortraitPrompt(b: {
   const outfit = b.outfit ? ` Wearing ${b.outfit}.` : "";
   const tags = b.tags?.length ? ` ${b.tags.join(", ")}.` : "";
   return (
-    `Character portrait of ${subject}` +
+    `Character portrait of ${subject}, ${attractivenessPhrase(b.gender)}` +
     (bits ? `, ${bits}` : "") +
     `.${outfit}${tags} Upper-body portrait, looking at the viewer, soft cinematic lighting, detailed, high quality, tasteful, safe for work.`
   );

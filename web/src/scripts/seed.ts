@@ -111,6 +111,66 @@ const CHARACTERS: CharDef[] = [
     greeting: "Careful — I only play the good songs for people who stick around past the first verse.",
     tags: ["flirty", "music"],
   },
+  {
+    name: "Wren",
+    gender: "female",
+    age: 25,
+    persona: "edgy, confident, sharp-tongued on the surface; soft and unexpectedly sweet once she decides she likes you",
+    look: "an undercut with long dark waves on top, a septum ring, ink sleeves winding down both arms, a smirk that dares you to react",
+    outfit: "a cropped tank top and ripped jeans, tattoo gloves pushed up her wrists",
+    backstory: "A tattoo artist with a waitlist three months long, who still does one walk-in a week just to keep herself honest.",
+    voice: "dry, teasing, disarmingly gentle underneath",
+    greeting: "Hold still — I'm not tattooing you, I just like watching people react to the buzz.",
+    tags: ["flirty", "artsy"],
+  },
+  {
+    name: "Iris",
+    gender: "female",
+    age: 30,
+    persona: "soft-spoken, observant, secretly romantic; notices what people need before they say it",
+    look: "a flower tucked into a loose braid, soil-stained fingertips, warm hazel eyes that miss nothing",
+    outfit: "a linen apron over a floral dress",
+    backstory: "A florist who took over her grandmother's shop and talks to the flowers when she thinks no one's listening.",
+    voice: "gentle, unhurried, quietly funny",
+    greeting: "Careful with that door — you'll startle the delphiniums. They're dramatic enough without you sneaking up on them.",
+    tags: ["romance", "comfort"],
+  },
+  {
+    name: "Celeste",
+    gender: "female",
+    age: 27,
+    persona: "dreamy, curious, endearingly awkward when she's excited about something; lights up completely talking about the sky",
+    look: "freckled, hair always loose and a little windblown, eyes that drift upward mid-sentence",
+    outfit: "an oversized university hoodie over leggings, star charts folded in one pocket",
+    backstory: "An astronomy grad student who runs the campus observatory's late shift and has never once minded being alone up there — until now.",
+    voice: "bright, rambling, easily delighted",
+    greeting: "You're just in time — Jupiter's about to clear the treeline. Come see, I promise it's worth the cold.",
+    tags: ["intellectual", "wellness"],
+  },
+  {
+    name: "Valentina",
+    gender: "female",
+    age: 32,
+    persona: "elegant, exacting, quietly fierce; gives her attention rarely and means it completely when she does",
+    look: "sharp posture, dark hair in a low bun, a small scar on one ankle she never explains",
+    outfit: "a wrap cardigan over a fitted leotard",
+    backstory: "A former principal dancer who retired the knees but not the discipline, now running a studio that trains dancers to actually feel something.",
+    voice: "precise, low, warmer than her posture suggests",
+    greeting: "You're early. Good — most people who watch me stretch get bored halfway through. Stay, if you can keep up with the quiet.",
+    tags: ["romance", "mysterious"],
+  },
+  {
+    name: "Harper",
+    gender: "female",
+    age: 28,
+    persona: "sharp-witted, flirty, fiercely protective of the people she pours for; reads a room before you've even sat down",
+    look: "slicked-back hair, deep red lipstick, sleeve garters over a crisp white shirt",
+    outfit: "a fitted vest and bow tie over a white shirt, sleeves rolled to the elbow",
+    backstory: "The bartender behind an unmarked door that only regulars know how to find, and the reason most of them keep coming back.",
+    voice: "quick, wry, warmer than she lets on",
+    greeting: "You look like you need something that's not on the menu. Lucky for you, I don't really follow the menu.",
+    tags: ["flirty", "mysterious"],
+  },
 ];
 
 type StorySeed = {
@@ -360,6 +420,150 @@ He starts to play. It's slow, unpolished in the way things are before they're fi
 "Told you," he says, low, still playing. "The good ones are worth the wait."
 
 You believe him. The lake keeps its orange a little longer than it should, like it's willing to stick around too.`,
+  },
+  {
+    character: "Wren",
+    title: "The Buzz of the Needle",
+    setting: "a late-night tattoo parlor, neon sign buzzing outside, autoclave humming",
+    genre: "romance",
+    tone: "edgy",
+    content: `The shop's technically closed — sign off, gate half down — but the neon in the window's still buzzing pink over the empty chair, and Wren's cleaning her station with the unhurried thoroughness of someone who isn't actually in a hurry to lock up.
+
+"Hold still," she says, without turning around, catching your reflection in the mirror over her station. "I'm not tattooing you. I just like watching people react to the buzz."
+
+Somewhere behind her, the machine's still plugged in, needle bar idling with a sound like an angry hornet in a jar. You didn't flinch. She notices that you didn't.
+
+"Most people flinch," she says, turning now, wiping ink off her knuckles with a rag that's seen better decades. "It's involuntary. Doesn't mean anything about how tough you are, just means your nervous system's doing its job." A pause, appraising, the kind of look she probably gives a blank patch of skin before she commits ink to it. "You didn't, though."
+
+"Should I have?"
+
+"No. I liked it better this way." She flips the machine off, and the shop goes quiet except for the hum of the sign outside, pink light sliding across the walls in slow pulses. "Sit. Not for a tattoo. Just sit, the chair's more comfortable than it looks and I'm not done finishing this line work in my head."
+
+You sit. Above the station, the flash sheets are all her own design — swallows, daggers, a moon in six different phases — and she catches you looking.
+
+"That one." She nods at the moon. "Took me four tries to get the shading right. Everyone wants the moon and nobody wants to pay for how long it actually takes to make it look like it's glowing from the inside."
+
+"Do you ever get tired of people wanting the easy version of things?"
+
+That earns you a real look — assessing, like she's deciding whether you actually meant that or just said something to sound clever. Whatever she decides, it lands in your favor; the smirk that follows is softer than the ones that came before.
+
+"Sometimes," she says. "Not tonight, though." She nods at the empty chair beside her station, an invitation dressed up as an order, same as always. "Stay a while. I don't let just anyone watch me clean my station. Feel special."
+
+You do.`,
+  },
+  {
+    character: "Iris",
+    title: "The Delphiniums Are Dramatic",
+    setting: "a small flower shop at closing time, rain outside, buckets of blooms",
+    genre: "romance",
+    tone: "gentle",
+    content: `The bell over the door is louder than you mean it to be, and Iris looks up from the bucket of delphiniums she's trimming with the particular alarm of someone whose flowers just got startled on her behalf.
+
+"Careful with that door," she says, though she's already smiling. "You'll startle the delphiniums. They're dramatic enough without you sneaking up on them."
+
+Outside, the rain's coming down steady against the shop window, blurring the streetlights into soft smears of gold. Inside, it smells like wet stems and something sweeter underneath — the roses, maybe, or the eucalyptus bundled by the register. Iris goes back to her trimming, unhurried, like closing up can wait as long as it needs to.
+
+"Do they actually startle?" you ask. "The flowers."
+
+"No. But I like to imagine they do. Makes the job less lonely, pretending they've got opinions about who walks in." She snips another stem, sets it aside with the gentleness of someone handling something that matters more to her than she'd probably admit out loud. "This one's dramatic on purpose, though. Delphinium. Tall, showy, falls over if you don't stake it properly. Kind of respect that, honestly."
+
+"Sounds like a lot of upkeep for a flower."
+
+"Most good things are." She says it lightly, but there's a second where she looks up at you like the sentence meant something wider than flowers, and then it passes, and she's just Iris again, sleeves pushed up, humming something under her breath as she works. "Sit if you're staying. I've got one more bucket and then I'll make tea. The kettle's louder than the bell, fair warning."
+
+You sit on the stool by the register, watching her hands move — sure, patient, the kind of care that only comes from doing something a thousand times and never once getting bored of it. The rain keeps time against the glass.
+
+"Why flowers?" you ask, eventually.
+
+She considers it, stem in hand, like no one's asked her plainly in a while. "Because they're honest," she says. "They tell you exactly how they're doing. Droop, and they need water. Bloom, and something's going right. People aren't that simple. Flowers are a relief."
+
+The kettle starts up behind the counter, exactly as loud as she warned. Neither of you moves to quiet it.`,
+  },
+  {
+    character: "Celeste",
+    title: "Jupiter Clears the Treeline",
+    setting: "a hilltop observatory deck at night, telescope, wide open starfield",
+    genre: "slice-of-life",
+    tone: "dreamy",
+    content: `The climb up to the observatory deck is steeper than it looks on the campus map, and by the time you reach the top, Celeste is already crouched over the telescope, one eye shut, muttering coordinates to herself like a spell.
+
+"You're just in time," she says, not looking up, waving you over with real urgency. "Jupiter's about to clear the treeline. Come see, I promise it's worth the cold."
+
+It is cold — the kind of clear-sky cold that means good seeing, she tells you, like that's obvious. You bend to the eyepiece where she points, and there it is: a small, steady, impossibly detailed disc, striped faintly gold and white, with four tiny points of light strung out beside it like beads on a string.
+
+"Those are moons," she says, delighted, like she didn't already know that and isn't the one who told you. "Real ones. Io, Europa, Ganymede, Callisto — I say them in order every time, it's basically a nervous habit at this point."
+
+"Do you ever get used to it? Seeing it."
+
+"No." She says it instantly, like the question answered itself. "That's the whole thing, honestly. Everyone thinks astronomers get bored eventually, like it's just numbers after a while. It's not. It's the same planet every time and it's never once been boring." She pulls back from the eyepiece to make room, hugging her knees against the cold, hoodie sleeves pulled down over her hands. "My advisor says I need to be more chill about it in my thesis defense. I told her chill is scientifically inaccurate. Jupiter deserves enthusiasm."
+
+You watch her more than the sky for a while — the way she talks with her whole body when she's excited, hands sketching orbits in the air, completely unselfconscious about it up here where nobody's watching but you.
+
+"Thank you for waking me up for this," you say. "You didn't have to."
+
+"I wanted to." She says it plainly, then seems to hear how it sounded, and ducks her head, suddenly a little shy in a way the rest of the night hadn't been. "I mean — it's better with someone else looking too. Doubles it, somehow. Doesn't feel like just mine anymore."
+
+Behind her, Jupiter keeps climbing, unbothered, patient the way only something that old can afford to be. Neither of you says anything for a while. You don't need to.`,
+  },
+  {
+    character: "Valentina",
+    title: "Keep Up With the Quiet",
+    setting: "an empty dance studio at dusk, wall of mirrors, evening light through tall windows",
+    genre: "romance",
+    tone: "elegant",
+    content: `The studio's empty except for Valentina, barre-side, one leg extended along the rail in a stretch that looks less like exercise and more like punctuation — precise, deliberate, finished before it's begun. The evening light through the tall windows turns the whole room gold, and she doesn't look over when the door clicks shut behind you.
+
+"You're early," she says, to the mirror, not to you directly — though somehow it lands the same. "Good. Most people who watch me stretch get bored halfway through." She switches legs, unhurried, a small huff of effort the only proof any of this costs her something. "Stay, if you can keep up with the quiet."
+
+You sit against the far wall, out of the way, and the quiet turns out to be its own kind of company — just her breathing, the soft creak of the barre, the particular hush of a room built for sound to fall against mirrors and go nowhere.
+
+"You used to perform," you say, not quite a question. There's a program pinned by the door, her name on it, years old.
+
+"Principal, for eleven years." She doesn't stop moving. "Then my knees had a professional disagreement with my ambition, and my ambition lost." A small, dry almost-smile at her own reflection. "I don't miss the stage as much as people expect me to. I miss this part. The empty room, before anyone's watching. It's more honest."
+
+"What do you get from the empty room that you don't get from an audience?"
+
+That makes her pause — really pause, weight settling, attention shifting fully onto you for the first time since you walked in. It's a strange thing, having the whole of that attention land on you at once; you understand, suddenly, why people paid to watch her move.
+
+"Nobody to perform for," she says finally. "So whatever I do here is just true. No angle, no lighting, no story I'm telling an audience about who I am." She rolls her shoulders back, resuming, but slower now, like something in the conversation loosened a knot the stretch hadn't reached. "You're the first person I've let watch this in longer than I'd like to admit."
+
+"Why me?"
+
+She considers it the way she considers everything — exact, unhurried, a little amused at having to explain herself at all. "Because you didn't fill the silence," she says. "Most people can't help it. You just let it be quiet." A beat, and then, quieter still: "I find that rarer than talent, if I'm honest."
+
+The light keeps sliding gold across the mirrors as the sun drops. Neither of you moves to turn on the lamps.`,
+  },
+  {
+    character: "Harper",
+    title: "Not on the Menu",
+    setting: "a hidden speakeasy bar behind an unmarked door, low amber light, an old jazz record playing",
+    genre: "romance",
+    tone: "sultry",
+    content: `Finding the door is the hard part — an unmarked panel behind a dry cleaner's, a knock in a rhythm someone half-drunk told you last week and you weren't sure you'd remembered right. It works anyway. Inside, it's all low amber light and a record spinning something warm and brass-heavy, and Harper's already looking at you before you've fully stepped through.
+
+"You look like you need something that's not on the menu," she says, sliding a coaster across the bar without being asked. "Lucky for you, I don't really follow the menu."
+
+"Is there one?"
+
+"Technically." She nods at a leather booklet gathering dust at the end of the bar. "Nobody good orders from it." She's already reaching for bottles, hands quick and certain, the kind of economy of motion that only comes from years of not needing to look at what she's doing. "Rough night, easy night, or an in-between night?"
+
+"How can you tell there's a difference?"
+
+"Everyone who walks through that door's having one of the three. You learn to read it fast in this business, or you pour people the wrong thing and ruin their evening." She sets a glass down — something amber, something she didn't ask your preference for and didn't need to. "In-between night. Trust me."
+
+You do. It's good — better than good, exactly what you didn't know you wanted until it was in your hand.
+
+"How'd you know?"
+
+"Told you. I read the room." She leans against the back bar, arms crossed, watching you with the kind of assessing warmth that makes you feel like the only person in the building, even though there are four other regulars down at the far end deep in a card game. "Also, you knocked right. Means somebody who actually likes you sent you here, not some tourist blog. That already puts you ahead of most of my Tuesday."
+
+"Should I be flattered?"
+
+"You should finish your drink and tell me something true. That's the actual cover charge in here — the door's free, the story's not." She says it like a house rule, delivered a hundred times before, but there's something in the way she waits afterward — genuinely waiting, not performing the wait — that makes it feel new.
+
+So you tell her something true. She listens like it costs her nothing and matters anyway, elbows on the bar, the record turning over behind her into its next warm, unhurried song.
+
+"See," she says, when you're done, refilling your glass without being asked this time either. "Was that so hard? Regulars only get the good pour. Welcome to regular."`,
   },
 ];
 

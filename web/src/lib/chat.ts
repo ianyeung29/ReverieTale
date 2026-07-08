@@ -94,11 +94,18 @@ export async function prepareChat(params: Params): Promise<Prep> {
 
   const [char] = await db.select().from(characters).where(eq(characters.id, characterId)).limit(1);
   if (!char) throw new Error("character not found");
+  const def = (char.definition ?? {}) as Record<string, string>;
 
   let threadId = params.threadId;
   if (!threadId) {
     const [t] = await db.insert(threads).values({ userId, characterId, characterVersion: char.version }).returning({ id: threads.id });
     threadId = t.id;
+    // The character opens the conversation, for real: persisted as message #1
+    // (not just a decorative empty-state bubble), so it survives a reload and
+    // the model sees its own opening line as context on the very first reply.
+    if (def.greeting?.trim()) {
+      await db.insert(messages).values({ threadId, role: "character", content: def.greeting.trim() });
+    }
   }
 
   // Seed / refresh the durable story memory, bounded to the chapters read so far.
@@ -130,7 +137,6 @@ export async function prepareChat(params: Params): Promise<Prep> {
       .limit(12)
   ).reverse();
 
-  const def = (char.definition ?? {}) as Record<string, string>;
   const system = [
     `You are ${def.name || "a companion"}, an AI character. Stay fully in character.`,
     def.gender ? `Gender: ${def.gender}.` : "",
