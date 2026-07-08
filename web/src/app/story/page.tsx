@@ -185,7 +185,7 @@ export default function StoryPage() {
       <p style={S.section}>Length</p>
       <div style={S.chips}>
         {(["short", "medium"] as const).map((l) => (
-          <button key={l} style={{ ...S.chip, ...(l === length ? S.chipOn : {}) }} onClick={() => setLength(l)}>{l}</button>
+          <button key={l} className="rv-chip" style={{ ...S.chip, ...(l === length ? S.chipOn : {}) }} onClick={() => setLength(l)}>{l}</button>
         ))}
       </div>
 
@@ -194,7 +194,7 @@ export default function StoryPage() {
           <p style={S.section}>Intensity</p>
           <div style={S.chips}>
             {(["standard", "explicit"] as const).map((t) => (
-              <button key={t} style={{ ...S.chip, ...(t === tier ? S.chipOn : {}) }} onClick={() => setTier(t)}>{t === "standard" ? "sweet" : "spicy"}</button>
+              <button key={t} className="rv-chip" style={{ ...S.chip, ...(t === tier ? S.chipOn : {}) }} onClick={() => setTier(t)}>{t === "standard" ? "sweet" : "spicy"}</button>
             ))}
           </div>
         </>
@@ -217,9 +217,9 @@ function Picker({ options, value, onChange, placeholder }: { options: string[]; 
     <div>
       <div style={S.chips}>
         {options.map((o) => (
-          <button key={o} style={{ ...S.chip, ...(o === value ? S.chipOn : {}) }} onClick={() => { setCustom(false); onChange(o === value ? "" : o); }}>{o}</button>
+          <button key={o} className="rv-chip" style={{ ...S.chip, ...(o === value ? S.chipOn : {}) }} onClick={() => { setCustom(false); onChange(o === value ? "" : o); }}>{o}</button>
         ))}
-        <button style={{ ...S.chip, ...(showInput ? S.chipOn : {}) }} onClick={() => { setCustom(true); if (!isCustom) onChange(""); }}>＋ your own</button>
+        <button className="rv-chip" style={{ ...S.chip, ...(showInput ? S.chipOn : {}) }} onClick={() => { setCustom(true); if (!isCustom) onChange(""); }}>＋ your own</button>
       </div>
       {showInput ? (
         <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder || "write your own"} style={S.input} />
@@ -238,7 +238,7 @@ const S: Record<string, React.CSSProperties> = {
   sectionRow: { display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 },
   createLink: { color: "#E9A06B", textDecoration: "none", fontSize: 13.5, fontWeight: 600, whiteSpace: "nowrap" },
   cards: { display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))", gap: 12 },
-  card: { textAlign: "left", background: "#1C1422", border: "1px solid #3A2E44", borderRadius: 14, padding: "14px 16px", cursor: "pointer", color: "#F4EAF0", display: "flex", flexDirection: "column", gap: 8 },
+  card: { textAlign: "left", background: "#241B2D", border: "1px solid #3A2E44", borderRadius: 14, padding: "14px 16px", cursor: "pointer", color: "#F4EAF0", display: "flex", flexDirection: "column", gap: 8 },
   cardOn: { border: "1px solid #E9A06B", background: "#241726", boxShadow: "0 0 0 1px #E9A06B inset" },
   cardHead: { display: "flex", alignItems: "center", gap: 10 },
   cardName: { fontFamily: "Georgia, serif", fontSize: 20 },

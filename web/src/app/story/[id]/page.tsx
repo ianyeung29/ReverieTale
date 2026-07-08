@@ -279,7 +279,7 @@ export default function StoryReadPage() {
 function Chips({ options, value, onPick }: { options: string[]; value: string; onPick: (v: string) => void }) {
   return (
     <div style={S.chips}>
-      {options.map((o) => <button key={o} style={{ ...S.chip, ...(o === value ? S.chipOn : {}) }} onClick={() => onPick(o)}>{o}</button>)}
+      {options.map((o) => <button key={o} className="rv-chip" style={{ ...S.chip, ...(o === value ? S.chipOn : {}) }} onClick={() => onPick(o)}>{o}</button>)}
     </div>
   );
 }
@@ -302,7 +302,7 @@ const S: Record<string, React.CSSProperties> = {
   article: { minHeight: 200, animation: "rvFade .35s ease" },
   para: { margin: "0 0 20px", color: "#ECE3E8", fontSize: 18.5, lineHeight: 1.82, fontFamily: 'Georgia, "Times New Roman", serif' },
   divider: { textAlign: "center", color: "#6f6276", letterSpacing: ".5em", margin: "24px 0" },
-  backupBanner: { display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", background: "#1C1422", border: "1px solid #3A2E44", borderRadius: 12, padding: "10px 14px", margin: "18px 0", color: "#AC9CB0", fontSize: 14 },
+  backupBanner: { display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", background: "#241B2D", border: "1px solid #3A2E44", borderRadius: 12, padding: "10px 14px", margin: "18px 0", color: "#AC9CB0", fontSize: 14 },
   bkBtn: { background: "transparent", color: "#E9A06B", border: "1px solid #4a3a50", borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontSize: 13 },
   overlay: { position: "fixed", inset: 0, zIndex: 50, background: "rgba(10,7,13,.7)", display: "grid", placeItems: "center", padding: 20 },
   overlayCard: { width: "min(620px, 100%)", maxHeight: "85vh", display: "flex", flexDirection: "column", background: "#150F1A", border: "1px solid #3A2E44", borderRadius: 16, overflow: "hidden" },
@@ -323,7 +323,7 @@ const S: Record<string, React.CSSProperties> = {
   tocItemOn: { background: "#231A2B", color: "#F4EAF0" },
   tocNum: { color: "#E9A06B", fontWeight: 700, fontSize: 13, minWidth: 18, fontVariantNumeric: "tabular-nums" },
   tocText: { fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
-  form: { marginTop: 20, background: "#1C1422", border: "1px solid #3A2E44", borderRadius: 16, padding: 20, display: "flex", flexDirection: "column", gap: 8 },
+  form: { marginTop: 20, background: "#241B2D", border: "1px solid #3A2E44", borderRadius: 16, padding: 20, display: "flex", flexDirection: "column", gap: 8 },
   formTop: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 },
   formTitle: { fontFamily: "Georgia, serif", fontSize: 20, margin: 0 },
   surprise: { background: "#231A2B", color: "#E9A06B", border: "1px solid #4a3a50", borderRadius: 999, padding: "7px 13px", cursor: "pointer", fontSize: 13, fontWeight: 600 },

@@ -61,7 +61,7 @@ export default function AdminReviewPage() {
       ) : (
         <div style={S.list}>
           {items.map((c) => (
-            <div key={c.id} style={S.card}>
+            <div key={c.id} className="rv-card" style={S.card}>
               <div style={S.head}>
                 <CharacterAvatar characterId={c.id} name={c.name} size={44} />
                 <div>
@@ -105,7 +105,7 @@ const S: Record<string, React.CSSProperties> = {
   sub: { color: "#AC9CB0", margin: "0 0 26px", fontSize: 14.5 },
   muted: { color: "#AC9CB0" },
   list: { display: "flex", flexDirection: "column", gap: 16 },
-  card: { background: "#1C1422", border: "1px solid #3A2E44", borderRadius: 16, padding: 20, display: "flex", flexDirection: "column", gap: 12 },
+  card: { background: "#241B2D", border: "1px solid #3A2E44", borderRadius: 16, padding: 20, display: "flex", flexDirection: "column", gap: 12 },
   head: { display: "flex", alignItems: "center", gap: 12 },
   name: { fontFamily: "Georgia, serif", fontSize: 21, color: "#F4EAF0" },
   by: { color: "#8A7A90", fontSize: 13 },

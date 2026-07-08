@@ -60,18 +60,18 @@ export default function BrowsePage() {
       <div style={S.controls}>
         <input style={S.search} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name, personality, or tag…" />
         <div style={S.sortWrap}>
-          <button style={{ ...S.sortBtn, ...(sort === "trend" ? S.sortOn : {}) }} onClick={() => setSort("trend")}>Trending</button>
-          <button style={{ ...S.sortBtn, ...(sort === "newest" ? S.sortOn : {}) }} onClick={() => setSort("newest")}>Newest</button>
-          <button style={{ ...S.sortBtn, ...(sort === "read" ? S.sortOn : {}) }} onClick={() => setSort("read")}>Most read</button>
-          <button style={{ ...S.sortBtn, ...(sort === "rated" ? S.sortOn : {}) }} onClick={() => setSort("rated")}>Top rated</button>
+          <button className="rv-chip" style={{ ...S.sortBtn, ...(sort === "trend" ? S.sortOn : {}) }} onClick={() => setSort("trend")}>Trending</button>
+          <button className="rv-chip" style={{ ...S.sortBtn, ...(sort === "newest" ? S.sortOn : {}) }} onClick={() => setSort("newest")}>Newest</button>
+          <button className="rv-chip" style={{ ...S.sortBtn, ...(sort === "read" ? S.sortOn : {}) }} onClick={() => setSort("read")}>Most read</button>
+          <button className="rv-chip" style={{ ...S.sortBtn, ...(sort === "rated" ? S.sortOn : {}) }} onClick={() => setSort("rated")}>Top rated</button>
         </div>
       </div>
 
       {allTags.length ? (
         <div style={S.tagRow}>
-          {activeTags.length ? <button style={S.clearTags} onClick={() => setActiveTags([])}>Clear</button> : null}
+          {activeTags.length ? <button className="rv-chip" style={S.clearTags} onClick={() => setActiveTags([])}>Clear</button> : null}
           {allTags.map((t) => (
-            <button key={t} style={{ ...S.filterTag, ...(activeTags.includes(t) ? S.filterTagOn : {}) }} onClick={() => toggleTag(t)}>{t}</button>
+            <button key={t} className="rv-chip" style={{ ...S.filterTag, ...(activeTags.includes(t) ? S.filterTagOn : {}) }} onClick={() => toggleTag(t)}>{t}</button>
           ))}
         </div>
       ) : null}
@@ -123,7 +123,7 @@ const S: Record<string, React.CSSProperties> = {
   empty: { color: "#AC9CB0" },
   reset: { background: "transparent", color: "#E9A06B", border: 0, cursor: "pointer", fontSize: 15, textDecoration: "underline" },
   grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: 18 },
-  card: { background: "#1C1422", border: "1px solid #3A2E44", borderRadius: 16, padding: 20, display: "flex", flexDirection: "column", gap: 10 },
+  card: { background: "#241B2D", border: "1px solid #3A2E44", borderRadius: 16, padding: 20, display: "flex", flexDirection: "column", gap: 10 },
   headLink: { textDecoration: "none", color: "inherit", display: "block" },
   head: { display: "flex", alignItems: "center", gap: 12 },
   name: { fontFamily: "Georgia, serif", fontSize: 22, color: "#F4EAF0" },

@@ -52,17 +52,17 @@ export default function StoriesPage() {
       <div style={S.controls}>
         <input style={S.search} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by title, companion, or text…" />
         <div style={S.sortWrap}>
-          <button style={{ ...S.sortBtn, ...(sort === "newest" ? S.sortOn : {}) }} onClick={() => setSort("newest")}>Newest</button>
-          <button style={{ ...S.sortBtn, ...(sort === "read" ? S.sortOn : {}) }} onClick={() => setSort("read")}>Most read</button>
-          <button style={{ ...S.sortBtn, ...(sort === "rated" ? S.sortOn : {}) }} onClick={() => setSort("rated")}>Top rated</button>
+          <button className="rv-chip" style={{ ...S.sortBtn, ...(sort === "newest" ? S.sortOn : {}) }} onClick={() => setSort("newest")}>Newest</button>
+          <button className="rv-chip" style={{ ...S.sortBtn, ...(sort === "read" ? S.sortOn : {}) }} onClick={() => setSort("read")}>Most read</button>
+          <button className="rv-chip" style={{ ...S.sortBtn, ...(sort === "rated" ? S.sortOn : {}) }} onClick={() => setSort("rated")}>Top rated</button>
         </div>
       </div>
 
       {genres.length ? (
         <div style={S.genreRow}>
-          <button style={{ ...S.genre, ...(genre === "" ? S.genreOn : {}) }} onClick={() => setGenre("")}>All genres</button>
+          <button className="rv-chip" style={{ ...S.genre, ...(genre === "" ? S.genreOn : {}) }} onClick={() => setGenre("")}>All genres</button>
           {genres.map((g) => (
-            <button key={g} style={{ ...S.genre, ...(genre === g ? S.genreOn : {}) }} onClick={() => setGenre(g === genre ? "" : g)}>{g}</button>
+            <button key={g} className="rv-chip" style={{ ...S.genre, ...(genre === g ? S.genreOn : {}) }} onClick={() => setGenre(g === genre ? "" : g)}>{g}</button>
           ))}
         </div>
       ) : null}
@@ -113,7 +113,7 @@ const S: Record<string, React.CSSProperties> = {
   empty: { color: "#AC9CB0" },
   reset: { background: "transparent", color: "#E9A06B", border: 0, cursor: "pointer", fontSize: 15, textDecoration: "underline" },
   grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: 18 },
-  card: { background: "#1C1422", border: "1px solid #3A2E44", borderRadius: 16, padding: 18, display: "flex", flexDirection: "column", gap: 10, textDecoration: "none", color: "#F4EAF0" },
+  card: { background: "#241B2D", border: "1px solid #3A2E44", borderRadius: 16, padding: 18, display: "flex", flexDirection: "column", gap: 10, textDecoration: "none", color: "#F4EAF0" },
   head: { display: "flex", alignItems: "center", gap: 11 },
   headText: { display: "flex", flexDirection: "column", gap: 2, minWidth: 0 },
   title: { fontFamily: "Georgia, serif", fontSize: 19, lineHeight: 1.2 },

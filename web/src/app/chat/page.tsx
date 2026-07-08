@@ -285,7 +285,7 @@ const S: Record<string, React.CSSProperties> = {
   emptyName: { fontFamily: "Georgia, serif", fontSize: 22, color: "#F4EAF0", margin: "12px 0 0" },
   emptyHint: { color: "#8A7A90", fontSize: 14, margin: "2px 0 16px" },
   openers: { display: "flex", flexDirection: "column", gap: 8, width: "100%", maxWidth: 340 },
-  opener: { background: "#1C1422", color: "#CBBBD0", border: "1px solid #3A2E44", borderRadius: 12, padding: "11px 14px", cursor: "pointer", fontSize: 14, textAlign: "left" },
+  opener: { background: "#241B2D", color: "#CBBBD0", border: "1px solid #3A2E44", borderRadius: 12, padding: "11px 14px", cursor: "pointer", fontSize: 14, textAlign: "left" },
   sys: { alignSelf: "center", color: "#8A7A90", fontSize: 13, textAlign: "center" },
   row: { display: "flex" },
   bubble: { maxWidth: "78%", padding: "11px 15px", borderRadius: 16, lineHeight: 1.5, whiteSpace: "pre-wrap", wordBreak: "break-word" },

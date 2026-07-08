@@ -111,7 +111,7 @@ export default async function Home() {
         <div style={S.moodRow} className="rv-reveal rv-d1">
           <span style={S.moodLabel}>Tonight&apos;s mood:</span>
           {moods.map((t) => (
-            <a key={t} href={`/tag/${encodeURIComponent(t)}`} style={S.moodChip}>{t}</a>
+            <a key={t} href={`/tag/${encodeURIComponent(t)}`} className="rv-chip" style={S.moodChip}>{t}</a>
           ))}
         </div>
       ) : null}
@@ -216,7 +216,7 @@ const S: Record<string, React.CSSProperties> = {
   cta: { position: "relative", display: "flex", gap: 12, marginTop: 26, flexWrap: "wrap" },
   moodRow: { display: "flex", flexWrap: "wrap", gap: 9, alignItems: "center", margin: "22px 2px 0", position: "relative", zIndex: 1 },
   moodLabel: { color: "#6f6276", fontSize: 12.5, letterSpacing: ".04em", marginRight: 2 },
-  moodChip: { fontSize: 12.5, color: "#CBBBD0", background: "#1C1422", border: "1px solid #3A2E44", borderRadius: 999, padding: "6px 13px", textDecoration: "none", textTransform: "capitalize" },
+  moodChip: { fontSize: 12.5, color: "#CBBBD0", background: "#241B2D", border: "1px solid #3A2E44", borderRadius: 999, padding: "6px 13px", textDecoration: "none", textTransform: "capitalize" },
   steps: { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 14, margin: "52px 0 8px", position: "relative", zIndex: 1 },
   step: { background: "linear-gradient(180deg,#1C1524,#171120)", border: "1px solid #2f2438", borderRadius: 16, padding: "18px 18px 20px" },
   stepTop: { display: "flex", alignItems: "center", justifyContent: "space-between" },
@@ -228,7 +228,7 @@ const S: Record<string, React.CSSProperties> = {
   section: { fontSize: 12, letterSpacing: ".14em", textTransform: "uppercase", color: "#9A8AA0", fontWeight: 700, margin: "52px 0 16px" },
   seeAll: { color: "#E9A06B", textDecoration: "none", fontSize: 13, fontWeight: 600, whiteSpace: "nowrap" },
   grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(250px,1fr))", gap: 16 },
-  card: { display: "flex", flexDirection: "column", gap: 11, background: "#1C1422", border: "1px solid #3A2E44", borderRadius: 16, padding: 18, textDecoration: "none", color: "#F4EAF0" },
+  card: { display: "flex", flexDirection: "column", gap: 11, background: "#241B2D", border: "1px solid #3A2E44", borderRadius: 16, padding: 18, textDecoration: "none", color: "#F4EAF0" },
   cardHead: { display: "flex", alignItems: "center", gap: 11 },
   cardHeadText: { display: "flex", flexDirection: "column", gap: 2, minWidth: 0 },
   cardName: { fontFamily: "Georgia, serif", fontSize: 18, lineHeight: 1.2 },

@@ -72,7 +72,7 @@ const S: Record<string, React.CSSProperties> = {
   hint: { color: "#6f6276", fontSize: 13 },
   link: { color: "#E9A06B" },
   grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))", gap: 14 },
-  card: { display: "flex", flexDirection: "column", gap: 10, background: "#1C1422", border: "1px solid #3A2E44", borderRadius: 14, padding: 16, textDecoration: "none", color: "#F4EAF0" },
+  card: { display: "flex", flexDirection: "column", gap: 10, background: "#241B2D", border: "1px solid #3A2E44", borderRadius: 14, padding: 16, textDecoration: "none", color: "#F4EAF0" },
   head: { display: "flex", alignItems: "center", gap: 10 },
   title: { fontFamily: "Georgia, serif", fontSize: 17, lineHeight: 1.2 },
   meta: { color: "#8A7A90", fontSize: 12.5 },

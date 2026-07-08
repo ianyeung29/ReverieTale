@@ -72,7 +72,7 @@ const S: Record<string, React.CSSProperties> = {
   sub: { color: "#AC9CB0", margin: "0 0 28px", fontSize: 14.5, fontVariantNumeric: "tabular-nums" },
   link: { color: "#E9A06B" },
   grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(250px,1fr))", gap: 15 },
-  card: { display: "flex", flexDirection: "column", gap: 9, background: "#1C1422", border: "1px solid #3A2E44", borderRadius: 14, padding: 16, textDecoration: "none", color: "#F4EAF0" },
+  card: { display: "flex", flexDirection: "column", gap: 9, background: "#241B2D", border: "1px solid #3A2E44", borderRadius: 14, padding: 16, textDecoration: "none", color: "#F4EAF0" },
   head: { display: "flex", alignItems: "center", gap: 11 },
   name: { fontFamily: "Georgia, serif", fontSize: 19, lineHeight: 1.1 },
   persona: { color: "#AC9CB0", fontSize: 13.5, margin: 0, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" },

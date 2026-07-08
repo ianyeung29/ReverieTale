@@ -316,6 +316,7 @@ export default function CreateCharacterPage() {
             <button
               key={g.value}
               type="button"
+              className="rv-chip"
               style={{ ...S.chip, ...(gender === g.value ? S.chipOn : {}) }}
               onClick={() => setGender(gender === g.value ? "" : g.value)}
             >
@@ -349,7 +350,7 @@ export default function CreateCharacterPage() {
       {tags.length ? (
         <div style={S.chips}>
           {tags.map((t) => (
-            <button key={t} type="button" style={{ ...S.chip, ...S.chipOn }} onClick={() => toggleTag(t)} title="remove">{t} ✕</button>
+            <button key={t} type="button" className="rv-chip" style={{ ...S.chip, ...S.chipOn }} onClick={() => toggleTag(t)} title="remove">{t} ✕</button>
           ))}
         </div>
       ) : null}
@@ -362,11 +363,11 @@ export default function CreateCharacterPage() {
           style={S.tagInput}
           maxLength={30}
         />
-        <button type="button" style={{ ...S.tagAdd, opacity: !tagInput.trim() || tags.length >= 8 ? 0.5 : 1 }} onClick={() => addTag(tagInput)} disabled={!tagInput.trim() || tags.length >= 8}>Add</button>
+        <button type="button" className="rv-chip" style={{ ...S.tagAdd, opacity: !tagInput.trim() || tags.length >= 8 ? 0.5 : 1 }} onClick={() => addTag(tagInput)} disabled={!tagInput.trim() || tags.length >= 8}>Add</button>
       </div>
       <div style={S.chips}>
         {TAG_SUGGESTIONS.filter((t) => !tags.includes(t)).map((t) => (
-          <button key={t} type="button" style={S.chip} onClick={() => toggleTag(t)}>+ {t}</button>
+          <button key={t} type="button" className="rv-chip" style={S.chip} onClick={() => toggleTag(t)}>+ {t}</button>
         ))}
       </div>
 
