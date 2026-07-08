@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Avatar } from "@/components/Avatar";
 import { EntryGate } from "@/components/EntryGate";
+import { ImageLightbox } from "@/components/ImageLightbox";
 
 const GENDER_OPTIONS = [
   { value: "female", label: "Female" },
@@ -48,6 +49,7 @@ export default function CreateCharacterPage() {
   const [portraitPrice, setPortraitPrice] = useState(5);
   const [portraitPaywall, setPortraitPaywall] = useState(false);
   const [portraitErr, setPortraitErr] = useState("");
+  const [showPortraitLightbox, setShowPortraitLightbox] = useState(false);
   const [previewErr, setPreviewErr] = useState("");
   const [genErr, setGenErr] = useState<{ where: string; msg: string } | null>(null);
   const [loadErr, setLoadErr] = useState(false);
@@ -265,7 +267,18 @@ export default function CreateCharacterPage() {
 
       {imageEnabled && editId ? (
         <div style={S.portraitRow}>
-          {portraitSrc ? <img src={portraitSrc} alt="portrait" style={S.portraitBig} /> : <div style={S.portraitPlaceholder}>no portrait yet</div>}
+          {portraitSrc ? (
+            <img
+              src={portraitSrc}
+              alt="portrait"
+              style={{ ...S.portraitBig, cursor: "zoom-in" }}
+              onClick={() => setShowPortraitLightbox(true)}
+              role="button"
+              aria-label="View portrait full-size"
+            />
+          ) : (
+            <div style={S.portraitPlaceholder}>no portrait yet</div>
+          )}
           <div style={S.portraitCol}>
             <input value={outfit} onChange={(e) => setOutfit(e.target.value)} placeholder="outfit & style (optional) — e.g. red silk dress, cozy knit" style={S.portraitOutfit} maxLength={200} />
             <button type="button" style={{ ...S.portraitBtn, opacity: portraitBusy ? 0.6 : 1 }} onClick={generatePortrait} disabled={portraitBusy}>
@@ -390,6 +403,7 @@ export default function CreateCharacterPage() {
         <a href={editId ? "/characters" : "/"} style={S.cancel}>Cancel</a>
       </div>
       {editId ? null : <p style={S.foot}>We&apos;ll draw a default portrait from these details automatically — you can regenerate it later from the edit page. Next you&apos;ll set the scene for her opening story. Writing a chapter costs credits; reading is always free.</p>}
+      {showPortraitLightbox && portraitSrc ? <ImageLightbox src={portraitSrc} alt={name || "portrait"} onClose={() => setShowPortraitLightbox(false)} /> : null}
     </main>
   );
 }
