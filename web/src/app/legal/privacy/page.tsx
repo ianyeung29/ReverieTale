@@ -11,7 +11,7 @@ export default function PrivacyPage() {
       intro={`${OPERATOR_NAME} ("we", "us", "our") is operated by an individual based in ${GOVERNING_LAW}. This notice describes what we actually collect and why — grounded in what the app does today, not a generic template.`}
     >
       <Section title="1. Information we collect">
-        <p style={S.p}><strong style={S.strong}>Account data:</strong> your email address and password (stored as a salted hash, never in plain text), and an optional public display name if you create companions.</p>
+        <p style={S.p}><strong style={S.strong}>Account data:</strong> your email address, and an optional public display name if you create companions. Signing in currently only requires your email (or a Google sign-in) — there is no password to store.</p>
         <p style={S.p}><strong style={S.strong}>Age confirmation:</strong> your confirmation that you meet our minimum age requirement ({MIN_AGE}+). See our <a href="/legal/underage" style={S.link}>Underage Policy</a> — this is currently a self-attestation, not third-party identity verification.</p>
         <p style={S.p}><strong style={S.strong}>Content you create:</strong> companion definitions (name, personality, backstory, tags, portraits), stories, and chat messages. Chat and story content is used to generate responses and is retained so a conversation can continue with memory of what you&apos;ve shared.</p>
         <p style={S.p}><strong style={S.strong}>Interaction data:</strong> ratings you give, stories you bookmark, companions you hide from your own browsing, and reports you file. Reporter identity on a report is visible to moderators only, never to the person reported.</p>
