@@ -5,6 +5,7 @@ import { CharacterAvatar } from "@/components/CharacterAvatar";
 import { StarRating } from "@/components/StarRating";
 import { listCharacters, trendingScore } from "@/lib/discovery";
 import { ratingAggregates } from "@/lib/ratings";
+import { getCurrentUserId } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -59,7 +60,8 @@ const STEPS = [
 ];
 
 export default async function Home() {
-  const [feed, allChars, storyTotal] = await Promise.all([recentStories(), listCharacters().catch(() => []), storyCount()]);
+  const viewerId = await getCurrentUserId();
+  const [feed, allChars, storyTotal] = await Promise.all([recentStories(), listCharacters({ viewerId: viewerId ?? undefined }).catch(() => []), storyCount()]);
   const trending = [...allChars].sort((a, b) => trendingScore(b.reads, b.createdAt) - trendingScore(a.reads, a.createdAt)).slice(0, 6);
   const companions = allChars.length;
   const empty = trending.length === 0 && feed.length === 0;
@@ -186,6 +188,7 @@ export default async function Home() {
           <a href="/stories" style={S.footLink}>Stories</a>
           <a href="/create" style={S.footLink}>Create</a>
           <a href="/credits" style={S.footLink}>Credits</a>
+          <a href="/guidelines" style={S.footLink}>Guidelines</a>
         </span>
       </footer>
     </main>

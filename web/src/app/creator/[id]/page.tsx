@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { CharacterAvatar } from "@/components/CharacterAvatar";
 import { listCharacters } from "@/lib/discovery";
+import { getCurrentUserId } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -21,12 +22,13 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 export default async function CreatorPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
+  const viewerId = await getCurrentUserId();
   let name = "Anonymous creator";
   let chars: Awaited<ReturnType<typeof listCharacters>> = [];
   try {
     const [u] = await db.select({ dn: users.displayName }).from(users).where(eq(users.id, id)).limit(1);
     if (u) name = u.dn?.trim() || "Anonymous creator";
-    chars = await listCharacters({ creatorId: id });
+    chars = await listCharacters({ creatorId: id, viewerId: viewerId ?? undefined });
   } catch {
     /* fall through to empty state */
   }

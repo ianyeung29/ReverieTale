@@ -112,6 +112,45 @@ export const bookmarks = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// Reports. A reader flags a character or story for a human to check - distinct
+// from the automated pre-publish gate, which only ever sees the content once
+// at submit time. Open until an admin resolves it (see /admin/review).
+// ---------------------------------------------------------------------------
+export const reports = pgTable(
+  "reports",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    reporterId: uuid("reporter_id").notNull().references(() => users.id),
+    targetType: text("target_type").notNull(), // character | story
+    targetId: uuid("target_id").notNull(),
+    reason: text("reason").notNull(), // short category code, e.g. "minor_safety"
+    note: text("note"), // optional free text from the reporter
+    status: text("status").notNull().default("open"), // open | resolved
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({ byStatus: index("reports_status_idx").on(t.status) }),
+);
+
+// ---------------------------------------------------------------------------
+// Character blocks. A reader hides a specific companion from their own
+// discovery surfaces (browse/home/tags) - a personal preference, not a
+// takedown. Separate from admin disable, which removes it for everyone.
+// ---------------------------------------------------------------------------
+export const characterBlocks = pgTable(
+  "character_blocks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    characterId: uuid("character_id").notNull().references(() => characters.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    userCharUniq: uniqueIndex("character_blocks_user_char_uniq").on(t.userId, t.characterId),
+    byUser: index("character_blocks_user_idx").on(t.userId),
+  }),
+);
+
+// ---------------------------------------------------------------------------
 // Ratings. A reader gives a 1-5 star rating to a character or a story. One rating
 // per (user, target); re-rating overwrites. Averages power social proof + sorting.
 // ---------------------------------------------------------------------------

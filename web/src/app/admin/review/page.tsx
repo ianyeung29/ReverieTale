@@ -15,8 +15,27 @@ type Pending = {
   creator: string;
 };
 
+type Report = {
+  id: string;
+  targetType: "character" | "story";
+  targetId: string;
+  targetTitle: string;
+  reason: string;
+  note: string;
+  createdAt: string;
+};
+
+const REASON_LABELS: Record<string, string> = {
+  minor_safety: "Underage or age-ambiguous",
+  real_person: "Impersonates a real person",
+  illegal: "Illegal or non-consensual content",
+  hateful: "Hateful or abusive",
+  other: "Something else",
+};
+
 export default function AdminReviewPage() {
   const [items, setItems] = useState<Pending[] | null>(null);
+  const [reports, setReports] = useState<Report[] | null>(null);
   const [forbidden, setForbidden] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -28,6 +47,10 @@ export default function AdminReviewPage() {
       })
       .then((d: Pending[]) => setItems(Array.isArray(d) ? d : []))
       .catch(() => setItems([]));
+    fetch("/api/admin/reports")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d: Report[]) => setReports(Array.isArray(d) ? d : []))
+      .catch(() => setReports([]));
   }
   useEffect(() => { load(); }, []);
 
@@ -41,6 +64,15 @@ export default function AdminReviewPage() {
         body: JSON.stringify({ action }),
       });
       if (res.ok) setItems((cur) => (cur ? cur.filter((x) => x.id !== id) : cur));
+    } catch {} finally { setBusyId(null); }
+  }
+
+  async function resolveReport(id: string) {
+    if (busyId) return;
+    setBusyId(id);
+    try {
+      const res = await fetch(`/api/admin/reports/${id}`, { method: "POST" });
+      if (res.ok) setReports((cur) => (cur ? cur.filter((x) => x.id !== id) : cur));
     } catch {} finally { setBusyId(null); }
   }
 
@@ -85,6 +117,35 @@ export default function AdminReviewPage() {
           ))}
         </div>
       )}
+
+      <h1 style={{ ...S.h1, marginTop: 44 }}>Reports</h1>
+      <p style={S.sub}>Content readers have flagged. Resolving here doesn&apos;t change the content itself — open it and unpublish/edit separately if it&apos;s warranted.</p>
+
+      {reports === null ? (
+        <p style={S.muted}>Loading…</p>
+      ) : reports.length === 0 ? (
+        <p style={S.muted}>No open reports. ✨</p>
+      ) : (
+        <div style={S.list}>
+          {reports.map((r) => (
+            <div key={r.id} className="rv-card" style={S.card}>
+              <div style={S.head}>
+                <div>
+                  <div style={S.name}>
+                    <a href={r.targetType === "character" ? `/c/${r.targetId}` : `/story/${r.targetId}`} style={S.targetLink}>{r.targetTitle}</a>
+                  </div>
+                  <div style={S.by}>{r.targetType} · reported {new Date(r.createdAt).toLocaleDateString()}</div>
+                </div>
+              </div>
+              <div style={S.flag}>⚑ {REASON_LABELS[r.reason] ?? r.reason}</div>
+              {r.note ? <Field label="Reporter's note" value={r.note} /> : null}
+              <div style={S.actions}>
+                <button style={{ ...S.approve, opacity: busyId === r.id ? 0.5 : 1 }} onClick={() => resolveReport(r.id)} disabled={busyId === r.id}>Mark resolved</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </main>
   );
 }
@@ -108,6 +169,7 @@ const S: Record<string, React.CSSProperties> = {
   card: { background: "#241B2D", border: "1px solid #3A2E44", borderRadius: 16, padding: 20, display: "flex", flexDirection: "column", gap: 12 },
   head: { display: "flex", alignItems: "center", gap: 12 },
   name: { fontFamily: "Georgia, serif", fontSize: 21, color: "#F4EAF0" },
+  targetLink: { color: "#F4EAF0", textDecoration: "none" },
   by: { color: "#8A7A90", fontSize: 13 },
   flag: { background: "#2A1A1E", border: "1px solid #6b3a44", borderRadius: 10, padding: "9px 13px", color: "#F0C9B0", fontSize: 13.5 },
   tags: { display: "flex", flexWrap: "wrap", gap: 6 },

@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { CharacterAvatar } from "@/components/CharacterAvatar";
 import { ChatDock } from "@/components/ChatDock";
 import { RatingBar } from "@/components/RatingBar";
+import { ReportLink } from "@/components/TrustControls";
 
 type Story = {
   id: string; title: string; content: string; characterId: string; characterName: string;
@@ -325,6 +326,7 @@ export default function StoryReadPage() {
           canRate={story.canRate}
           label="Rate this story"
         />
+        {story.canRate ? <ReportLink targetType="story" targetId={story.id} /> : null}
       </div>
 
       <a

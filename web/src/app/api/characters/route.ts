@@ -3,6 +3,7 @@ import { z } from "zod";
 import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { characters, stories } from "@/db/schema";
+import { blockedCharacterIds } from "@/lib/blocks";
 import { buildPortraitPrompt, generateImage, imageConfigured } from "@/lib/image";
 import { moderateContent, screenImagePrompt } from "@/lib/moderation";
 import { ratingAggregates } from "@/lib/ratings";
@@ -30,7 +31,19 @@ export async function GET() {
   const byChar = new Map(agg.map((a) => [a.cid, a]));
   const ratingByChar = await ratingAggregates("character", rows.map((r) => r.id));
 
-  const list = rows.map((r) => {
+  // Personal blocks are optional (migration 0012) and only apply when signed in;
+  // never let a missing table or anonymous browsing break this list.
+  let blocked = new Set<string>();
+  const viewerId = await getCurrentUserId();
+  if (viewerId) {
+    try {
+      blocked = new Set(await blockedCharacterIds(viewerId));
+    } catch {
+      /* character_blocks table not migrated yet */
+    }
+  }
+
+  const list = rows.filter((r) => !blocked.has(r.id)).map((r) => {
     const def = (r.definition ?? {}) as Record<string, unknown>;
     const a = byChar.get(r.id);
     const rating = ratingByChar.get(r.id) ?? { average: 0, count: 0 };

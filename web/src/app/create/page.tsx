@@ -525,6 +525,7 @@ export default function CreateCharacterPage() {
               </div>
               {!canSave ? <p style={S.fieldErr}>Go back to Basics — name, gender, and a valid age (18+) are required.</p> : null}
               <p style={S.foot}>We&apos;ll draw a default portrait from these details automatically — you can regenerate it later from the edit page. Next you&apos;ll set the scene for her opening story. Writing a chapter costs credits; reading is always free.</p>
+              <p style={S.foot}>By publishing, you confirm they&apos;re a fictional adult and agree to our <a href="/guidelines" style={S.errLink}>community guidelines</a>.</p>
             </div>
           ) : null}
 

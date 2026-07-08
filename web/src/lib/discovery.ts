@@ -2,6 +2,7 @@ import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { characters, stories } from "@/db/schema";
 import { ratingAggregates } from "@/lib/ratings";
+import { blockedCharacterIds } from "@/lib/blocks";
 
 export type DiscoverChar = {
   id: string;
@@ -22,7 +23,7 @@ export type DiscoverChar = {
  * Published characters enriched with per-character engagement (total reads + public
  * story count), for the browse/discovery surfaces. Optional creator/tag narrowing.
  */
-export async function listCharacters(opts?: { creatorId?: string; tag?: string }): Promise<DiscoverChar[]> {
+export async function listCharacters(opts?: { creatorId?: string; tag?: string; viewerId?: string }): Promise<DiscoverChar[]> {
   const rows = await db
     .select({ id: characters.id, definition: characters.definition, createdAt: characters.createdAt, creatorId: characters.creatorId })
     .from(characters)
@@ -81,6 +82,17 @@ export async function listCharacters(opts?: { creatorId?: string; tag?: string }
   if (opts?.tag) {
     const t = opts.tag.toLowerCase();
     list = list.filter((c) => c.tags.some((x) => x.toLowerCase() === t));
+  }
+
+  // Personal blocks are optional (migration 0012); never let a missing table
+  // break discovery for everyone else.
+  if (opts?.viewerId) {
+    try {
+      const blocked = new Set(await blockedCharacterIds(opts.viewerId));
+      if (blocked.size) list = list.filter((c) => !blocked.has(c.id));
+    } catch {
+      /* character_blocks table not migrated yet */
+    }
   }
   return list;
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { CharacterAvatar } from "@/components/CharacterAvatar";
 import { listCharacters, trendingScore } from "@/lib/discovery";
+import { getCurrentUserId } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -14,9 +15,10 @@ export default async function TagPage({ params }: { params: Promise<{ tag: strin
   const { tag: raw } = await params;
   const tag = decodeURIComponent(raw);
 
+  const viewerId = await getCurrentUserId();
   let chars: Awaited<ReturnType<typeof listCharacters>> = [];
   try {
-    chars = await listCharacters({ tag });
+    chars = await listCharacters({ tag, viewerId: viewerId ?? undefined });
     chars.sort((a, b) => trendingScore(b.reads, b.createdAt) - trendingScore(a.reads, a.createdAt));
   } catch {
     /* empty state */

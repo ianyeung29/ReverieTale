@@ -5,10 +5,13 @@ import { CharacterAvatar } from "@/components/CharacterAvatar";
 import { EntryGate } from "@/components/EntryGate";
 
 type Char = { id: string; name: string; persona: string; tags: string[]; status: string };
+type Blocked = { id: string; name: string };
 
 export default function MyCharactersPage() {
   const [authEmail, setAuthEmail] = useState<string | null | undefined>(undefined);
   const [items, setItems] = useState<Char[] | null>(null);
+  const [blocked, setBlocked] = useState<Blocked[]>([]);
+  const [unblockBusy, setUnblockBusy] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState("");
   const [savedName, setSavedName] = useState("");
@@ -35,8 +38,18 @@ export default function MyCharactersPage() {
 
   function load() {
     fetch("/api/characters/mine").then((r) => (r.ok ? r.json() : [])).then((d: Char[]) => setItems(Array.isArray(d) ? d : [])).catch(() => setItems([]));
+    fetch("/api/characters/blocked").then((r) => (r.ok ? r.json() : [])).then((d: Blocked[]) => setBlocked(Array.isArray(d) ? d : [])).catch(() => {});
   }
   useEffect(() => { if (authEmail) load(); }, [authEmail]);
+
+  async function unblock(id: string) {
+    if (unblockBusy) return;
+    setUnblockBusy(id);
+    try {
+      const res = await fetch(`/api/characters/${id}/block`, { method: "POST" });
+      if (res.ok) setBlocked((cur) => cur.filter((b) => b.id !== id));
+    } catch {} finally { setUnblockBusy(null); }
+  }
 
   async function patchStatus(c: Char, target: "published" | "disabled") {
     if (busyId) return;
@@ -118,6 +131,21 @@ export default function MyCharactersPage() {
           })}
         </div>
       )}
+
+      {blocked.length > 0 ? (
+        <>
+          <p style={S.blockedTitle}>Blocked companions · {blocked.length}</p>
+          <p style={S.blockedSub}>Hidden from your Browse, Home, and tag pages. This doesn&apos;t affect anyone else.</p>
+          <div style={S.blockedList}>
+            {blocked.map((b) => (
+              <div key={b.id} style={S.blockedRow}>
+                <a href={`/c/${b.id}`} style={S.blockedName}>{b.name}</a>
+                <button style={{ ...S.action, opacity: unblockBusy === b.id ? 0.5 : 1 }} onClick={() => unblock(b.id)} disabled={unblockBusy === b.id}>Unblock</button>
+              </div>
+            ))}
+          </div>
+        </>
+      ) : null}
     </main>
   );
 }
@@ -159,4 +187,9 @@ const S: Record<string, React.CSSProperties> = {
   actions: { display: "flex", flexWrap: "wrap", gap: 8, marginTop: "auto", paddingTop: 6 },
   action: { fontSize: 13, color: "#E9A06B", background: "transparent", border: "1px solid #4a3a50", borderRadius: 8, padding: "7px 12px", cursor: "pointer", textDecoration: "none" },
   toggle: { color: "#CBBBD0" },
+  blockedTitle: { fontSize: 12, letterSpacing: ".14em", textTransform: "uppercase", color: "#9A8AA0", fontWeight: 700, margin: "44px 0 4px" },
+  blockedSub: { color: "#6f6276", fontSize: 13, margin: "0 0 14px" },
+  blockedList: { display: "flex", flexDirection: "column", gap: 8 },
+  blockedRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, background: "#1A1420", border: "1px solid #2f2438", borderRadius: 10, padding: "10px 14px" },
+  blockedName: { color: "#F4EAF0", textDecoration: "none", fontSize: 14.5 },
 };

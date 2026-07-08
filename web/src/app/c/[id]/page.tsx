@@ -5,6 +5,8 @@ import { characters, stories, users } from "@/db/schema";
 import { CharacterAvatar } from "@/components/CharacterAvatar";
 import { RatingBar } from "@/components/RatingBar";
 import { StarRating } from "@/components/StarRating";
+import { BlockToggle, ReportLink } from "@/components/TrustControls";
+import { isCharacterBlocked } from "@/lib/blocks";
 import { ratingAggregates, userRating } from "@/lib/ratings";
 import { getCurrentUserId } from "@/lib/session";
 
@@ -46,6 +48,7 @@ type Profile = {
   creator: string; // display attribution ("Reverie" for first-party)
   creatorId: string | null; // links to the creator catalog; null = first-party
   rating: number; ratingCount: number; myRating: number | null; canRate: boolean;
+  canModerate: boolean; isBlocked: boolean;
   stories: { id: string; title: string; snippet: string; chapters: number; reads: number; rating: number; ratingCount: number }[];
 };
 
@@ -86,6 +89,16 @@ async function loadProfile(id: string): Promise<Profile | null> {
     const myRating = userId ? await userRating(userId, "character", char.id) : null;
     const storyRatings = await ratingAggregates("story", rows.map((r) => r.id));
 
+    // Blocked state is optional (migration 0012); never let a missing table break the profile.
+    let blocked = false;
+    if (userId && !isOwner) {
+      try {
+        blocked = await isCharacterBlocked(userId, char.id);
+      } catch {
+        /* character_blocks table not migrated yet */
+      }
+    }
+
     return {
       id: char.id,
       name: (def.name as string) ?? "Unknown",
@@ -102,6 +115,8 @@ async function loadProfile(id: string): Promise<Profile | null> {
       ratingCount: charRating.count,
       myRating,
       canRate: Boolean(userId) && !isOwner,
+      canModerate: Boolean(userId) && !isOwner,
+      isBlocked: blocked,
       stories: rows.map((r) => {
         const sr = storyRatings.get(r.id) ?? { average: 0, count: 0 };
         return {
@@ -154,6 +169,14 @@ export default async function CharacterProfile({ params }: { params: Promise<{ i
         {p.isOwner ? <a href={`/create?id=${p.id}`} className="rv-btn" style={S.secondary}>Edit</a> : null}
       </div>
 
+      {p.canModerate ? (
+        <div style={S.trustRow}>
+          <BlockToggle characterId={p.id} initialBlocked={p.isBlocked} />
+          <span style={S.trustDot}>·</span>
+          <ReportLink targetType="character" targetId={p.id} />
+        </div>
+      ) : null}
+
       {p.canRate ? (
         <div style={S.rateBox} className="rv-reveal rv-d1">
           <RatingBar targetType="character" targetId={p.id} average={p.rating} count={p.ratingCount} mine={p.myRating} canRate={p.canRate} label={`Rate ${p.name}`} showAverage={false} />
@@ -199,6 +222,8 @@ const S: Record<string, React.CSSProperties> = {
   tags: { display: "flex", flexWrap: "wrap", gap: 6 },
   tag: { fontSize: 11.5, color: "#E9A06B", border: "1px solid #4a3a50", borderRadius: 999, padding: "2px 9px", textDecoration: "none" },
   cta: { display: "flex", flexWrap: "wrap", gap: 10, margin: "0 0 30px" },
+  trustRow: { display: "flex", alignItems: "center", gap: 8, margin: "-20px 0 30px" },
+  trustDot: { color: "#4a3a50" },
   primary: { color: "#1A1220", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", padding: "12px 20px", borderRadius: 11, fontWeight: 650, textDecoration: "none", fontSize: 15 },
   secondary: { color: "#F4EAF0", background: "#231A2B", border: "1px solid #3A2E44", padding: "12px 18px", borderRadius: 11, fontWeight: 600, textDecoration: "none", fontSize: 15 },
   section: { fontSize: 12, letterSpacing: ".14em", textTransform: "uppercase", color: "#8A7A90", fontWeight: 700, margin: "28px 0 12px" },
