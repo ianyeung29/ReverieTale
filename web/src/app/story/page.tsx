@@ -71,8 +71,7 @@ export default function StoryPage() {
   const [tone, setTone] = useState("");
   const [setting, setSetting] = useState("");
   const [details, setDetails] = useState("");
-  const [length, setLength] = useState<"short" | "medium">("short");
-  const [tier, setTier] = useState<"standard" | "explicit">("standard");
+  const [tier, setTier] = useState<"standard" | "explicit">("explicit");
   const [explicitEnabled, setExplicitEnabled] = useState(false);
   const [chapterPrice, setChapterPrice] = useState(10);
   const [busy, setBusy] = useState(false);
@@ -123,7 +122,6 @@ export default function StoryPage() {
           tone: tone || undefined,
           setting: setting.trim() || undefined,
           details: details.trim() || undefined,
-          length,
           tier,
         }),
       });
@@ -182,13 +180,6 @@ export default function StoryPage() {
 
       <p style={S.section}>Anything else? (optional)</p>
       <textarea value={details} onChange={(e) => setDetails(e.target.value)} placeholder="a detail or idea to weave in - e.g. 'she just got back from a trip', 'we're hiding from the rain'…" style={S.textarea} maxLength={400} />
-
-      <p style={S.section}>Length</p>
-      <div style={S.chips}>
-        {(["short", "medium"] as const).map((l) => (
-          <button key={l} className="rv-chip" style={{ ...S.chip, ...(l === length ? S.chipOn : {}) }} onClick={() => setLength(l)}>{l}</button>
-        ))}
-      </div>
 
       {explicitEnabled ? (
         <>
