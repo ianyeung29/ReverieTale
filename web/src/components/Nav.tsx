@@ -58,6 +58,7 @@ export function Nav() {
           </a>
         ) : null}
         {credits !== null ? <a href="/credits" style={S.credits} title="Your credit balance — view history">◈ {credits}</a> : null}
+        {me ? <a href="/profile" style={{ ...S.link, ...(isActive("/profile") ? S.linkOn : {}) }}>Profile</a> : null}
         {me ? <button type="button" style={S.signOut} onClick={signOut} title={me.email}>Sign out</button> : null}
       </div>
     </nav>

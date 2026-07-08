@@ -6,51 +6,22 @@ import { EntryGate } from "@/components/EntryGate";
 import { MIN_AGE } from "@/lib/legal";
 
 type Char = { id: string; name: string; persona: string; greeting?: string; tags: string[]; status: string };
-type Blocked = { id: string; name: string };
 
 export default function MyCharactersPage() {
   const [authEmail, setAuthEmail] = useState<string | null | undefined>(undefined);
   const [items, setItems] = useState<Char[] | null>(null);
-  const [blocked, setBlocked] = useState<Blocked[]>([]);
-  const [unblockBusy, setUnblockBusy] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [displayName, setDisplayName] = useState("");
-  const [savedName, setSavedName] = useState("");
-  const [savingName, setSavingName] = useState(false);
-  const [admin, setAdmin] = useState(false);
 
   useEffect(() => {
     fetch("/api/auth/me").then((r) => r.json()).then((d) => {
       setAuthEmail(d.user?.email ?? null);
-      setDisplayName(d.user?.displayName ?? "");
-      setSavedName(d.user?.displayName ?? "");
-      setAdmin(Boolean(d.user?.isAdmin));
     }).catch(() => setAuthEmail(null));
   }, []);
 
-  async function saveName() {
-    if (savingName || displayName === savedName) return;
-    setSavingName(true);
-    try {
-      const res = await fetch("/api/profile", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ displayName: displayName.trim() }) });
-      if (res.ok) setSavedName(displayName.trim());
-    } catch {} finally { setSavingName(false); }
-  }
-
   function load() {
     fetch("/api/characters/mine").then((r) => (r.ok ? r.json() : [])).then((d: Char[]) => setItems(Array.isArray(d) ? d : [])).catch(() => setItems([]));
-    fetch("/api/characters/blocked").then((r) => (r.ok ? r.json() : [])).then((d: Blocked[]) => setBlocked(Array.isArray(d) ? d : [])).catch(() => {});
   }
   useEffect(() => { if (authEmail) load(); }, [authEmail]);
-
-  async function unblock(id: string) {
-    if (unblockBusy) return;
-    setUnblockBusy(id);
-    try {
-      const res = await fetch(`/api/characters/${id}/block`, { method: "POST" });
-      if (res.ok) setBlocked((cur) => cur.filter((b) => b.id !== id));
-    } catch {} finally { setUnblockBusy(null); }
-  }
 
   async function patchStatus(c: Char, target: "published" | "disabled") {
     if (busyId) return;
@@ -76,20 +47,10 @@ export default function MyCharactersPage() {
       <div style={S.titleRow}>
         <h1 style={S.h1}>Your companions</h1>
         <div style={S.titleActions}>
-          {admin ? <a href="/admin/review" style={S.reviewLink}>Review queue →</a> : null}
           <a href="/create" className="rv-btn rv-btn-primary" style={S.newBtn}>＋ Create a companion</a>
         </div>
       </div>
-      <p style={S.sub}>Every published companion can be met in stories and chats — and earns you credits when readers talk to them.</p>
-
-      <div style={S.nameBox}>
-        <label style={S.nameLabel}>Displayed as</label>
-        <input style={S.nameInput} value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="a public creator name (optional)" maxLength={40} />
-        <button style={{ ...S.nameSave, opacity: savingName || displayName.trim() === savedName.trim() ? 0.5 : 1 }} onClick={saveName} disabled={savingName || displayName.trim() === savedName.trim()}>
-          {savingName ? "Saving…" : displayName.trim() === savedName.trim() ? "Saved" : "Save"}
-        </button>
-        <span style={S.nameHint}>Shown as the creator on your companions&apos; profiles. Blank = &quot;Anonymous creator.&quot; Your email is never shown.</span>
-      </div>
+      <p style={S.sub}>Every published companion can be met in stories and chats — and earns you credits when readers talk to them. Your creator name and hidden companions live on your <a href="/profile" style={S.link}>profile</a>.</p>
 
       {items === null ? (
         <p style={S.muted}>Loading…</p>
@@ -132,21 +93,6 @@ export default function MyCharactersPage() {
           })}
         </div>
       )}
-
-      {blocked.length > 0 ? (
-        <>
-          <p style={S.blockedTitle}>Hidden companions · {blocked.length}</p>
-          <p style={S.blockedSub}>Hidden from your Browse, Home, and tag pages. This doesn&apos;t affect anyone else.</p>
-          <div style={S.blockedList}>
-            {blocked.map((b) => (
-              <div key={b.id} style={S.blockedRow}>
-                <a href={`/c/${b.id}`} style={S.blockedName}>{b.name}</a>
-                <button style={{ ...S.action, opacity: unblockBusy === b.id ? 0.5 : 1 }} onClick={() => unblock(b.id)} disabled={unblockBusy === b.id}>Show again</button>
-              </div>
-            ))}
-          </div>
-        </>
-      ) : null}
     </main>
   );
 }
@@ -156,15 +102,9 @@ const S: Record<string, React.CSSProperties> = {
   back: { color: "#8A7A90", textDecoration: "none", fontSize: 14, letterSpacing: ".04em" },
   titleRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", margin: "22px 0 6px" },
   titleActions: { display: "flex", alignItems: "center", gap: 12 },
-  reviewLink: { color: "#E9A06B", textDecoration: "none", fontSize: 14, fontWeight: 600, whiteSpace: "nowrap" },
   h1: { fontFamily: "Georgia, serif", fontSize: 38, margin: 0 },
   newBtn: { color: "#1A1220", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", padding: "10px 16px", borderRadius: 10, fontWeight: 650, textDecoration: "none", fontSize: 14, whiteSpace: "nowrap" },
   sub: { color: "#AC9CB0", margin: "0 0 20px", fontSize: 14.5 },
-  nameBox: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, background: "#241B2D", border: "1px solid #3A2E44", borderRadius: 12, padding: "14px 16px", margin: "0 0 28px" },
-  nameLabel: { fontSize: 12, letterSpacing: ".1em", textTransform: "uppercase", color: "#8A7A90", fontWeight: 700 },
-  nameInput: { flex: "1 1 200px", background: "#1A121F", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 9, padding: "9px 12px", fontSize: 14 },
-  nameSave: { color: "#1A1220", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", border: 0, borderRadius: 9, padding: "9px 16px", cursor: "pointer", fontWeight: 650, fontSize: 13.5 },
-  nameHint: { flexBasis: "100%", color: "#6f6276", fontSize: 12.5 },
   muted: { color: "#AC9CB0" },
   link: { color: "#E9A06B" },
   emptyPanel: { textAlign: "center", background: "#1A1420", border: "1px solid #2f2438", borderRadius: 18, padding: "44px 24px" },
@@ -190,9 +130,4 @@ const S: Record<string, React.CSSProperties> = {
   actions: { display: "flex", flexWrap: "wrap", gap: 8, marginTop: "auto", paddingTop: 6 },
   action: { fontSize: 13, color: "#E9A06B", background: "transparent", border: "1px solid #4a3a50", borderRadius: 8, padding: "7px 12px", cursor: "pointer", textDecoration: "none" },
   toggle: { color: "#CBBBD0" },
-  blockedTitle: { fontSize: 12, letterSpacing: ".14em", textTransform: "uppercase", color: "#9A8AA0", fontWeight: 700, margin: "44px 0 4px" },
-  blockedSub: { color: "#6f6276", fontSize: 13, margin: "0 0 14px" },
-  blockedList: { display: "flex", flexDirection: "column", gap: 8 },
-  blockedRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, background: "#1A1420", border: "1px solid #2f2438", borderRadius: 10, padding: "10px 14px" },
-  blockedName: { color: "#F4EAF0", textDecoration: "none", fontSize: 14.5 },
 };
