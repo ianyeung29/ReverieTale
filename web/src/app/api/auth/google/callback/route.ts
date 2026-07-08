@@ -9,7 +9,7 @@ import { SESSION_COOKIE, signToken } from "@/lib/session";
 export const dynamic = "force-dynamic";
 
 const STATE_COOKIE = "rv_oauth_state";
-const WELCOME_CREDITS = Number(process.env.WELCOME_CREDITS || 10);
+const WELCOME_CREDITS = Number(process.env.WELCOME_CREDITS || 20);
 
 function fail(origin: string, returnTo: string) {
   const sep = returnTo.includes("?") ? "&" : "?";

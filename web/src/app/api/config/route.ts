@@ -18,6 +18,7 @@ export async function GET() {
       chapter: Number(process.env.CHAPTER_PRICE || 10),
       portrait: Number(process.env.PORTRAIT_PRICE || 5),
       portraitFree: Number(process.env.FREE_PORTRAITS || 2),
+      chatFree: Number(process.env.FREE_CHAT_MESSAGES || 5),
       dailyDrip: Number(process.env.DAILY_DRIP || 20),
       creatorRewardRate: REWARD_RATE,
     },

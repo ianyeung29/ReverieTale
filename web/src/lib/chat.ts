@@ -1,12 +1,24 @@
 import { db } from "@/db";
 import { characters, messages, stories, threads } from "@/db/schema";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { chat as modelChat, type ChatMessage } from "./model";
 import { screen } from "./moderation";
 import { extractAndStoreMemory, maybeUpdateSummary, retrieveMemory } from "./memory";
 import { rewardCreatorShare, spend, userBalance, type Balance, type SpendResult } from "./ledger";
 
 const CHAT_PRICE = Number(process.env.CHAT_PRICE || 1);
+// First N messages a reader sends to any one companion are free, across all of
+// their threads with that companion (a fresh story thread doesn't reset it).
+const FREE_CHAT_MESSAGES = Number(process.env.FREE_CHAT_MESSAGES || 5);
+
+async function freeMessagesUsed(userId: string, characterId: string): Promise<number> {
+  const [row] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(messages)
+    .innerJoin(threads, eq(messages.threadId, threads.id))
+    .where(and(eq(threads.userId, userId), eq(threads.characterId, characterId), eq(messages.role, "user")));
+  return row?.n ?? 0;
+}
 
 type Params = { userId: string; characterId: string; threadId?: string; message: string; storyId?: string; chapter?: number };
 type CharRow = typeof characters.$inferSelect;
@@ -98,8 +110,13 @@ export async function prepareChat(params: Params): Promise<Prep> {
     }
   }
 
-  const charge = await spend(userId, CHAT_PRICE, { threadId, characterId });
-  if (!charge.ok) return { status: "paywall", balance: charge.balance };
+  const used = await freeMessagesUsed(userId, characterId);
+  const isFreeMessage = used < FREE_CHAT_MESSAGES;
+  const spendResult: SpendResult = isFreeMessage
+    ? { ok: true, charged: 0, fromPurchased: 0, fromEarned: 0, balance: await userBalance(userId) }
+    : await spend(userId, CHAT_PRICE, { threadId, characterId });
+  if (!spendResult.ok) return { status: "paywall", balance: spendResult.balance };
+  const charge = spendResult;
 
   await db.insert(messages).values({ threadId, role: "user", content: message });
   const [tRow] = await db.select({ sc: threads.storyContext }).from(threads).where(eq(threads.id, threadId)).limit(1);

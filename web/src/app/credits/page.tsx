@@ -8,7 +8,7 @@ type Balance = { purchased: number; earned: number; total: number };
 type Item = { id: string; label: string; amount: number; at: string };
 type Data = { balance: Balance; earnedFromReaders: number; items: Item[] };
 type Pack = { id: string; credits: number; price: number; label: string; blurb?: string };
-type Pricing = { chat: number; chapter: number; portrait: number; portraitFree: number; dailyDrip: number; creatorRewardRate: number };
+type Pricing = { chat: number; chapter: number; portrait: number; portraitFree: number; chatFree: number; dailyDrip: number; creatorRewardRate: number };
 
 function when(at: string): string {
   const d = new Date(at);
@@ -104,8 +104,19 @@ export default function CreditsPage() {
         </div>
         <div style={S.breakdown}>
           <span><b style={S.bd}>{b?.earned ?? 0}</b> free &amp; earned</span>
-          <span><b style={S.bd}>{b?.purchased ?? 0}</b> purchased</span>
-          {data && data.earnedFromReaders > 0 ? <span><b style={S.bdPink}>★ {data.earnedFromReaders}</b> earned from readers</span> : null}
+        </div>
+      </div>
+
+      <div className="rv-card" style={S.earnCard}>
+        <div style={S.earnIcon}>★</div>
+        <div style={S.earnBody}>
+          <p style={S.earnTitle}>
+            Earn {pricing ? `${Math.round(pricing.creatorRewardRate * 100)}%` : "15%"} back on every chat
+          </p>
+          <p style={S.earnCopy}>
+            Create a companion others love, and you earn {pricing ? `${Math.round(pricing.creatorRewardRate * 100)}%` : "15%"} of what readers spend chatting with them — paid to you automatically, as credits.
+          </p>
+          {data && data.earnedFromReaders > 0 ? <p style={S.earnTotal}>★ {data.earnedFromReaders} credits earned from readers so far</p> : null}
         </div>
       </div>
 
@@ -114,7 +125,7 @@ export default function CreditsPage() {
         <div className="rv-card" style={S.usageCard}>
           <span style={S.usageIcon}>💬</span>
           <span style={S.usageAmt}>{pricing ? `${pricing.chat} credit` : "…"}</span>
-          <span style={S.usageWhat}>per chat message</span>
+          <span style={S.usageWhat}>{pricing ? `per chat message — first ${pricing.chatFree} to any companion are free` : "per chat message"}</span>
         </div>
         <div className="rv-card" style={S.usageCard}>
           <span style={S.usageIcon}>📖</span>
@@ -132,9 +143,6 @@ export default function CreditsPage() {
           <span style={S.usageWhat}>free credits every day, automatically</span>
         </div>
       </div>
-      <p style={S.note}>
-        {pricing ? `Create companions readers love — you earn ${Math.round(pricing.creatorRewardRate * 100)}% of what readers spend chatting with them, paid as credits.` : "Creators earn a share of what readers spend chatting with their companions, paid as credits."}
-      </p>
 
       <p style={S.section}>Get more credits</p>
       {payEnabled && packs.length ? (
@@ -193,9 +201,13 @@ const S: Record<string, React.CSSProperties> = {
   totalLabel: { color: "#8A7A90", fontSize: 12.5, letterSpacing: ".04em", marginTop: 4 },
   breakdown: { display: "flex", flexDirection: "column", gap: 4, color: "#AC9CB0", fontSize: 14, textAlign: "right" },
   bd: { color: "#F4EAF0" },
-  bdPink: { color: "#D46A8B" },
-  note: { color: "#8A7A90", fontSize: 13.5, margin: "12px 0 0" },
   topup: { background: "transparent", color: "#E9A06B", border: "1px solid #4a3a50", borderRadius: 10, padding: "9px 16px", cursor: "pointer", fontSize: 13.5, fontWeight: 600 },
+  earnCard: { display: "flex", gap: 14, alignItems: "flex-start", padding: "18px 20px", marginTop: 14, background: "linear-gradient(120deg,#2b1e2a,#241B2D)", border: "1px solid #4a3350" },
+  earnIcon: { fontSize: 22, color: "#D46A8B", lineHeight: 1.3 },
+  earnBody: { display: "flex", flexDirection: "column", gap: 4 },
+  earnTitle: { color: "#F4EAF0", fontSize: 16, fontWeight: 700, margin: 0, fontFamily: "Georgia, serif" },
+  earnCopy: { color: "#AC9CB0", fontSize: 13.5, margin: 0, lineHeight: 1.5 },
+  earnTotal: { color: "#D46A8B", fontSize: 13.5, fontWeight: 650, margin: "4px 0 0" },
   okBanner: { background: "rgba(70,150,110,.16)", border: "1px solid #2f6b4c", color: "#8FE0B0", borderRadius: 10, padding: "10px 14px", margin: "0 0 16px", fontSize: 14 },
   cancelBanner: { background: "#241826", border: "1px solid #4a3350", color: "#C6B7CC", borderRadius: 10, padding: "10px 14px", margin: "0 0 16px", fontSize: 14 },
   usageGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 12 },
