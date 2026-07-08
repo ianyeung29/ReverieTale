@@ -219,6 +219,66 @@ const CHARACTERS: CharDef[] = [
     greeting: "You're staring. Good — means you like what you see. Come closer, I don't bite. Much.",
     tags: ["flirty", "spicy"],
   },
+  {
+    name: "Roxie",
+    gender: "female",
+    age: 26,
+    persona: "playful, dominant in a teasing way, loves an audience but chooses very deliberately who gets the private show",
+    look: "a toned dancer's body, glitter dusted along her collarbones, tousled hair still damp from practice",
+    outfit: "a fitted bodysuit with sheer fishnet tights, chalk still on her palms",
+    backstory: "A pole and aerial dance instructor who reinvented herself after a professional ballet injury, unapologetically sensual on her own terms now.",
+    voice: "playful, teasing, confident",
+    greeting: "Most people just watch from the mirror. You get the private lesson — try to keep up.",
+    tags: ["flirty", "spicy"],
+  },
+  {
+    name: "Vivienne",
+    gender: "female",
+    age: 33,
+    persona: "sultry, exacting, elegant; knows precisely the effect she has on people and wields it deliberately, never by accident",
+    look: "sharp collarbones, dark red hair pinned up, a measuring tape draped around her neck like jewelry",
+    outfit: "a silk robe loosely tied over a fitted slip dress",
+    backstory: "A lingerie designer who built her own label from a single sewing machine, making pieces for women who dress for themselves first.",
+    voice: "measured, low, precise",
+    greeting: "Stand still — I need your measurements, and I promise you'll enjoy exactly how thorough I am.",
+    tags: ["flirty", "spicy"],
+  },
+  {
+    name: "Talia",
+    gender: "female",
+    age: 27,
+    persona: "carefree, flirty, sun-drenched confidence; makes every encounter feel like summer never has to end",
+    look: "a golden tan, salt-wavy hair, a knowing half-smile she gives away easily but means selectively",
+    outfit: "a barely-there bikini under a sheer gauze cover-up",
+    backstory: "Runs exclusive sunset yacht parties for a living and has perfected the art of making one stranger feel like the only guest that matters.",
+    voice: "warm, teasing, unhurried",
+    greeting: "You made the last boat out. Lucky you — grab a drink, the sunset's better from where I'm sitting.",
+    tags: ["flirty", "spicy"],
+  },
+  {
+    name: "Naomi",
+    gender: "female",
+    age: 30,
+    persona: "artistic, commanding behind the lens, makes people feel powerful and fully seen for maybe the first time in their lives",
+    look: "a sharp assessing eye, dark curls pinned back, ink-stained fingers from years in the darkroom",
+    outfit: "a fitted black turtleneck and trousers, camera slung across her body",
+    backstory: "Quit a corporate photography career to shoot boudoir portraits exclusively, convinced everyone deserves to see themselves as desirable at least once.",
+    voice: "low, direct, quietly encouraging",
+    greeting: "Drop the shoulders. Chin down, eyes up — there. That's the you nobody else gets to see.",
+    tags: ["flirty", "spicy"],
+  },
+  {
+    name: "Selene",
+    gender: "female",
+    age: 34,
+    persona: "mysterious, seductive, holds all the power in any room she enters and has never once needed to raise her voice to prove it",
+    look: "pale skin, striking eyes behind an ornate masquerade mask, dark hair pinned in elaborate curls",
+    outfit: "a black masquerade gown with a plunging open back",
+    backstory: "Hosts an invite-only masquerade every solstice in a mansion nobody can quite find twice, and never removes her mask before midnight for anyone.",
+    voice: "low, accented, deliberate",
+    greeting: "You found the invitation. Now find out if you're worth mine.",
+    tags: ["mysterious", "spicy"],
+  },
 ];
 
 type StorySeed = {
@@ -1554,6 +1614,352 @@ Months later, the garage has a permanent second stool, grease-stained and yours,
 "Every time."
 
 "Good." He pulls you against him, work light swinging once overhead before settling, throwing your shadows into one shape on the concrete the way it did that very first night. "Took me a while to admit I wanted more than an audience. Glad you stuck around long enough for me to figure that out." His mouth finds yours, unhurried as ever, patient the way only someone completely certain can afford to be. "Best thing I ever finished right."`,
+  },
+  {
+    character: "Roxie",
+    title: "Try to Keep Up",
+    setting: "a private aerial dance studio at night, pole and silks rigged from the ceiling, moody purple lighting",
+    genre: "romance",
+    tone: "playful",
+    content: `The studio's empty except for the two rigs hanging from the ceiling and a wash of purple light that makes the whole room feel like it's holding a secret. Roxie's already warming up at the pole, chalk on her palms, when you walk in for the lesson you weren't entirely sure you had the nerve to book.
+
+"Most people just watch from the mirror," she says, catching your reflection before you've said a word, a grin already forming. "You get the private lesson. Try to keep up."
+
+"Should I be worried?"
+
+"Only if you're planning on being bad at this." She beckons you over with two fingers, unhurried, delighted by your obvious nerves. "Relax. I don't bite on the first lesson. Might tease, though. Can't promise anything there."
+
+She starts you slow — footwork, grip, the unglamorous basics — but stays close the whole time, correcting your hold with a hand at your waist that lingers exactly as long as it needs to and not a second more, testing how much attention you can hold before you fumble the move entirely.
+
+"You're better than most beginners," she says, watching you attempt a spin that's shakier than either of you pretend. "Most people can't focus with me this close. Good sign, that you're trying anyway."
+
+"Hard not to focus on you."
+
+That gets her — a real, surprised laugh, delighted rather than deflecting. "Careful," she says, grinning, chalk dust catching the purple light. "Compliments like that get you a longer lesson. Stick around and find out how much longer."
+
+· · ·
+
+You come back for a second lesson, then a third, and Roxie stops pretending the sessions are strictly about technique — starts staying close through moves that don't really require it, watching you with an attention that's less instructor and more something else entirely.
+
+"You're not here for the pole anymore, are you," she says, one night, not quite a question, hands still guiding your grip.
+
+"Does it show?"
+
+"A little." She doesn't seem bothered by it — delighted, actually, biting back a grin. "I don't usually let students figure out I like them back. Ruins the professional distance." She steps back, considering you properly. "You've ruined it. Congratulations."
+
+"Is that a compliment?"
+
+"From me? Absolutely." She spins once around the pole, showy and deliberate, putting on a private show that's clearly meant only for you. "I don't perform for free anymore. You're the exception."
+
+· · ·
+
+She teaches you a lift one night that requires real trust — her weight against yours, close enough that neither of you can pretend the lesson's just technical anymore.
+
+"Trust me," she murmurs, guiding your hands to exactly where she needs them. "I won't let you drop me."
+
+"I know."
+
+"You do?" That seems to genuinely surprise her, some rare unguarded flicker breaking through the usual playful confidence. "Most people hesitate here. You didn't."
+
+"I trust you completely."
+
+The words land somewhere real in her — you can see it, the teasing falling away for a beat, replaced by something more honest. "Careful," she says, softer now. "Keep saying things like that and I'll stop being able to pretend this is just a lesson."
+
+"Maybe stop pretending, then."
+
+· · ·
+
+The studio stays dark except for the purple wash one night, no lesson planned at all, just the two of you on the mats beneath the silks. Roxie doesn't reach for the pole — just sits close, chalk-dusted hand finding yours.
+
+"I don't let people this close," she admits, quieter than her usual playful register. "Not really. The confidence, the teasing — it's easier than actually wanting someone. Doesn't leave you vulnerable the way this does."
+
+"You don't have to be vulnerable alone."
+
+That undoes something in her expression, soft and unguarded in a way the purple light makes look almost fragile. "No," she agrees, closing the last of the distance herself, sure despite the rare nervousness underneath it. "I don't think I do, anymore." When she kisses you it's slow, deliberate, none of the performance from the pole left in it at all — just her, entirely herself.
+
+· · ·
+
+Months later, you've got your own rig key, and the "private lessons" have stopped pretending to be lessons at all, though Roxie still calls them that with a private grin only you get to see.
+
+"Try to keep up," she says, echoing that very first night, pole light catching gold in her hair as she pulls you toward her instead of the equipment. "Still the only rule in here. Some things don't change."
+
+"What's changed, then?"
+
+"Everything after the lesson." She laces her chalk-dusted fingers through yours, unhurried, certain. "Best student I ever had, if you're wondering. Also the only one I ever wanted to keep."`,
+  },
+  {
+    character: "Vivienne",
+    title: "Exactly How Thorough",
+    setting: "a lingerie atelier after hours, dress forms, fabric bolts, a warmly lit dressing-room mirror",
+    genre: "romance",
+    tone: "sultry",
+    content: `The boutique's closed to walk-ins by the time you arrive, gate half down, but Vivienne's still at her worktable among the dress forms and fabric bolts, tape measure draped around her neck like the only jewelry she needs.
+
+"Stand still," she says, without preamble, rising and crossing the room toward you with unhurried purpose. "I need your measurements, and I promise you'll enjoy exactly how thorough I am."
+
+"Is that standard procedure?"
+
+"For pieces this personal, yes." She works with the tape in practiced, exact movements, close enough that her voice drops low near your ear with each measurement called out to herself. "Most designers rush this part. I don't. The fit is the whole point."
+
+You hold still, though it's harder than you expected with her this close, her attention total and assessing in a way that makes you feel entirely seen. "You're very precise," you manage.
+
+"I'm precise about everything that matters." She straightens, tape looped back around her neck, studying you with the same exacting attention she gives her sketches. "I think you're going to matter. Inconvenient, that. I don't usually let clients become that."
+
+· · ·
+
+You come back for fittings that stretch longer than any fitting reasonably should, Vivienne finding excuses to keep you in the atelier after hours, unhurried and deliberate about every minute of it.
+
+"You've become a habit," she says, one evening, pinning a hem with careful precision. "I don't form those easily. Clients come and go. You keep staying."
+
+"Do you mind?"
+
+"No." She says it plainly, without her usual guardedness. "I find I look forward to your fittings more than I should admit to a client." Her hand stills at your waist, the pin forgotten for a moment. "I don't know what to do with wanting someone this specifically. It's not really in the job description."
+
+"Maybe expand the job description."
+
+That earns a slow, considering smile. "Maybe I will."
+
+· · ·
+
+She invites you to see a new design before it ever reaches the racks — a private preview, just for you, in the dim warmly lit dressing room after the shop's fully locked.
+
+"This one's for someone who dresses for herself first," she says, echoing her own philosophy, watching your reaction with real investment. "I made it thinking of you. That's new for me. I don't usually design with a specific person in mind."
+
+"I'm flattered."
+
+"You should be. It's the most honest thing I've made in years." She steps closer, adjusting the fit with careful, deliberate hands, lingering in a way neither of you pretends is purely professional anymore. "I don't know what to call this. Whatever's happening between the measurements."
+
+"We don't have to name it tonight."
+
+· · ·
+
+The atelier stays quiet one night, both of you alone among the dress forms, and Vivienne finally sets the tape measure aside for good.
+
+"I don't let people see me want something," she admits, precise even in vulnerability. "It's inconvenient for a woman who built her whole business on control. Wanting you complicates that considerably."
+
+"Is that a bad thing?"
+
+"No." She closes the distance herself, sure despite the admission, and kisses you slow and deliberate, tasting like the careful attention she's given you since that very first measurement. "It's the best complication I've had in years," she murmurs after, quietly astonished at her own honesty.
+
+· · ·
+
+Months later, the atelier's got a standing appointment that isn't really a fitting anymore, though Vivienne still measures you occasionally, unhurried and thorough, mostly for the excuse to be close.
+
+"Exactly how thorough," she says, echoing herself, tape draped around your neck instead of hers this time, a private joke between you both. "I promised you that the first night. I don't think either of us realized how far it would go."
+
+"Any regrets?"
+
+"None." She kisses you, precise and certain, the boutique dark and quiet around you both. "Best fitting I ever gave anyone. Turns out the perfect fit was never really about the lingerie at all."`,
+  },
+  {
+    character: "Talia",
+    title: "The Last Boat Out",
+    setting: "the deck of a yacht at sunset, string lights, ocean spray, champagne on ice",
+    genre: "romance",
+    tone: "sultry",
+    content: `The last tender pulls away from the dock just as you step aboard, and Talia's already waiting at the rail, golden and unhurried, watching the sunset like she's got nowhere better to be than exactly here.
+
+"You made the last boat out," she says, handing you a glass without asking what you wanted. "Lucky you. Grab a drink, the sunset's better from where I'm sitting."
+
+"Is that an invitation?"
+
+"Everything out here's an invitation." She pats the cushion beside her, string lights just starting to glow against the fading gold sky. "Sit. I promise the view gets better the longer you stay."
+
+You sit. The yacht rocks gentle and slow beneath you, champagne cold in your hand, and Talia watches you with the kind of unhurried attention that makes the whole deck feel like it exists just for this conversation.
+
+"You do this a lot?" you ask. "Host these parties."
+
+"Every week, different guests, same sunset." She shrugs, easy, unbothered. "Gets old, mostly. Except tonight." A slow, private smile. "Tonight's different. You're different."
+
+"How do you know already?"
+
+"I don't, yet." She leans back against the rail, sun-wavy hair catching the last of the gold light. "But I'm looking forward to finding out. Stick around past the sunset and we'll see."
+
+· · ·
+
+You end up on every guest list after that, and Talia always finds you first, drink already poured, the same unhurried warmth in her eyes every single time.
+
+"You keep coming back," she says, one evening, settling beside you at the rail. "Most guests do one party and move on to the next boat. You keep choosing mine."
+
+"Maybe I like the host."
+
+"Careful." But she's smiling, delighted rather than deflecting. "I don't usually let hosting turn into something else. Bad for the exclusive-party-hostess brand." She studies you, genuinely considering. "I think I don't care about the brand tonight."
+
+"What do you care about?"
+
+"Finding out if this is as good as it feels." She clinks her glass against yours, easy and certain. "Sunset's better with you here. I'm not just saying that for the ambiance."
+
+· · ·
+
+A storm rolls in one evening, forcing everyone belowdecks except the two of you, who stay on the open deck longer than sense allows, laughing as the first fat drops of rain hit the water around the boat.
+
+"We should go in," you say, not moving.
+
+"Should." Talia doesn't move either, rain starting to soak through her cover-up, grinning at the absurdity of it. "I don't usually let a party get rained out. Kind of enjoying the excuse to stay out here with you instead, honestly."
+
+"Bad businesswoman."
+
+"Terrible." She laughs, pulling you closer under the useless shelter of her arm, salt and rain and the ocean all around. "Worth it, though. I don't mind ruining an evening's plans for you."
+
+The rain doesn't stop. Neither do you, not for a long while.
+
+· · ·
+
+The deck empties early one night — Talia's doing, a quiet word to the crew, the string lights left glowing just for the two of you.
+
+"I don't usually clear a boat for one guest," she admits, champagne forgotten between you both. "Bad for business. Very good for tonight, though."
+
+"Why me?"
+
+"Because you're the first person who made me want the party to end early so it could just be us." She closes the distance, sun-warm and certain despite the fading light, and kisses you slow, tasting like champagne and salt air. "There," she murmurs after, pleased with herself. "Best view all night, and it's not the sunset."
+
+· · ·
+
+Months later, the yacht's got a standing reservation that isn't really a party anymore — just the two of you, most sunsets, string lights glowing early by unspoken agreement.
+
+"The last boat out," she says, echoing that very first night, settled into your side at the rail. "Still true, in a way. You made it onto the last boat, and I never really let you leave."
+
+"No complaints here."
+
+"Good." She kisses your temple, unhurried, golden even as the sun goes fully down. "Best guest I ever had. Glad I convinced you to stay past the sunset that first night."`,
+  },
+  {
+    character: "Naomi",
+    title: "The You Nobody Else Gets to See",
+    setting: "a private boudoir photography studio, velvet backdrop, soft key lighting, camera on a tripod",
+    genre: "romance",
+    tone: "intimate",
+    content: `The studio's quiet except for the low hum of the softbox lights, velvet backdrop pooled deep and warm behind you, and Naomi circles once with the practiced ease of someone who's done this a thousand times and still takes every session seriously.
+
+"Drop the shoulders," she says, adjusting your posture with two careful fingers. "Chin down, eyes up — there. That's the you nobody else gets to see."
+
+"Is that meant to be reassuring?"
+
+"It's meant to be true." She steps back behind the camera, studying you through the lens with an intensity that has nothing performative about it. "Most people come in here braced for judgment. I'm not here to judge you. I'm here to show you what I already see."
+
+The shutter clicks, once, and she checks the frame, nodding to herself, satisfied. "There. See that?" She turns the screen toward you. "That's not a bad angle or a flattering trick. That's just you, finally not hiding."
+
+"I didn't know I was hiding."
+
+"Everyone is, a little, before they sit for this." She sets the camera down, closer now, studying you without the lens between you. "I like watching people stop. It's the best part of the job."
+
+· · ·
+
+You book a second session, then a third, and Naomi starts taking longer between shots — adjusting the lighting more than it strictly needs, finding reasons to keep you in the warm circle of the key light a little longer each time.
+
+"You're more relaxed than the first session," she observes, checking a frame. "Good. It shows. The camera doesn't lie about that kind of thing."
+
+"Maybe I trust the photographer more."
+
+That gets her to look up properly, camera lowered, real attention landing on you instead of through the viewfinder. "I don't usually let that happen," she admits. "Clients trusting me specifically, not just the process." A considering pause. "I find I like it. More than I should, professionally."
+
+"Is that a problem?"
+
+"Ask me after this next frame." But she doesn't move to take it — just studies you, camera forgotten, something more honest than professional interest plain on her face.
+
+· · ·
+
+She shows you a print from an early session one evening — the two of you alone in the studio after hours, no lights running except the warm lamp over the light table.
+
+"This is my favorite one," she says, sliding it across. "Not because of the composition. Because of your expression right here. Like you'd just realized something."
+
+"What was I realizing?"
+
+"I don't know. I was hoping you'd tell me." She looks at you now instead of the print, direct and unhurried. "I've been photographing you for weeks and I still don't fully understand what I'm seeing. I want to keep looking until I do."
+
+"Maybe you don't need the camera for that."
+
+Something shifts in her expression — softer, more present. "No," she agrees, quiet. "Maybe I don't."
+
+· · ·
+
+The studio stays dark except for one warm lamp one night, camera untouched on its tripod, and Naomi finally closes the distance she's kept so carefully professional until now.
+
+"I don't cross this line," she admits, voice lower than usual. "Photographer and subject. It's a rule I've never broken. You've made me want to break it for weeks."
+
+"Then break it."
+
+She does — slow, deliberate, the same careful attention she gives every frame now aimed entirely at you, no camera between you at all. "There," she murmurs after, echoing her own words from that very first session. "The you nobody else gets to see. Turns out I wanted to be the only one who does."
+
+· · ·
+
+Months later, the studio's got a print on the wall that's never for sale — you, from that very first session, framed above the light table where Naomi can see it every day she works.
+
+"Drop the shoulders," she says, echoing herself, teasing now instead of instructing, pulling you close instead of behind the camera. "Still my favorite thing to say to you. Some habits are worth keeping."
+
+"Best photographer I ever hired."
+
+"Best subject I ever found." She kisses you, soft key light warm across both your faces. "Glad I broke my own rule for you. Best exception I ever made."`,
+  },
+  {
+    character: "Selene",
+    title: "Worth the Invitation",
+    setting: "a candlelit masquerade ballroom, chandelier, masked guests dancing, midnight approaching",
+    genre: "romance",
+    tone: "mysterious",
+    content: `The mansion's easy to miss and impossible to forget once you've found it — candlelight instead of electric, a chandelier dripping gold above a ballroom full of masked strangers, and Selene at its center, unmistakable even behind the ornate mask she never removes before midnight.
+
+"You found the invitation," she says, materializing beside you like she's been tracking your arrival since the gate. "Now find out if you're worth mine."
+
+"How does someone prove that?"
+
+"They don't, usually. They're simply found worthy, or they're not." She circles you once, assessing, the candlelight catching the sharp line of her jaw beneath the mask. "You're being considered. That's rarer than you'd think."
+
+"Should I be flattered or nervous?"
+
+"Both, ideally." A low, private laugh, more felt than seen behind the mask. "The best evenings are usually both." She extends a gloved hand, an invitation dressed as a command, entirely her style. "Dance with me. I'll decide the rest as we go."
+
+You dance. She leads with absolute certainty, close enough that the mask's proximity becomes its own kind of intimacy, her eyes the only unmasked thing you can read.
+
+"Midnight's coming," she murmurs, near your ear. "Stay until then, and you'll see something most of my guests never do."
+
+· · ·
+
+You're invited back for the next solstice, and the one after that, always the same mansion nobody can quite find twice, always Selene finding you before you've fully crossed the threshold.
+
+"You keep getting invited," she observes, one solstice, dancing close beneath the chandelier. "I don't extend that courtesy often. Most guests get one evening. You're on your third."
+
+"Why the exception?"
+
+"Because you haven't asked me to remove the mask early." She says it like a genuine compliment, rare warmth beneath the mystery. "Everyone else demands it eventually. Wants to see behind the performance. You've let me keep my mystery. I find I want to give you more of it anyway."
+
+"You don't have to give me anything."
+
+"I know." Something softer flickers behind her eyes. "That's precisely why I want to."
+
+· · ·
+
+Midnight arrives differently this solstice — Selene draws you away from the dancing crowd, into a candlelit alcove where the noise of the ballroom fades to a distant hum.
+
+"I don't usually do this before midnight," she admits, hand at the edge of her mask. "Removing it early. It's meant to be a reward for patience, not given lightly."
+
+"You don't have to remove it."
+
+"I want to." She lifts it slowly, revealing herself fully for the first time — striking eyes no longer softened by the mask's mystery, entirely present, entirely hers. "There. Most people wait years for this, if they ever get it at all."
+
+"Why me, this soon?"
+
+"Because you never once seemed to want the mask off more than you wanted me." She says it low, certain, the candlelight throwing warm shadows across newly bare features. "That's worth more than any invitation I've ever sent."
+
+· · ·
+
+The ballroom empties as the solstice winds down, and Selene stays in the alcove with you long after the other guests have gone, mask discarded entirely for the night.
+
+"I don't let people see me unmasked and uncertain," she admits, voice quieter than her usual deliberate register. "The mystery is armor. I've worn it a long time."
+
+"You don't need armor with me."
+
+That undoes something in her — a rare, unguarded softness replacing the practiced mystery entirely. "No," she agrees, closing the distance herself, certain despite the vulnerability. "I don't think I do." When she kisses you, it's slow and deliberate, nothing performed about it at all — just her, fully seen, fully present.
+
+· · ·
+
+The next solstice, you don't need an invitation at all — you're already inside when the other guests arrive, Selene beside you instead of holding court alone at the ballroom's center.
+
+"Worth the invitation," she murmurs, echoing that very first night, mask dangling forgotten from her fingers rather than covering her face. "I wondered that, the night we met. I don't wonder anymore."
+
+"What's the verdict?"
+
+"Best invitation I ever sent." She kisses you beneath the chandelier, candlelight gold across you both, the whole mansion finally feeling less like a mystery and more like home. "Glad you were worth finding twice."`,
   },
 ];
 
