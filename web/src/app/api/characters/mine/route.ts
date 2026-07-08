@@ -24,6 +24,7 @@ export async function GET() {
       id: r.id,
       name: (def.name as string) ?? "Unknown",
       persona: (def.persona as string) ?? "",
+      greeting: (def.greeting as string) ?? "",
       tags: Array.isArray(def.tags) ? (def.tags as string[]) : [],
       status: r.status,
     };

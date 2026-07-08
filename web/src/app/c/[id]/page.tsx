@@ -44,6 +44,7 @@ type Profile = {
   look: string;
   persona: string;
   backstory: string;
+  greeting: string;
   tags: string[];
   isOwner: boolean;
   creator: string; // display attribution ("Reverie" for first-party)
@@ -108,6 +109,7 @@ async function loadProfile(id: string): Promise<Profile | null> {
       look: (def.look as string) ?? "",
       persona: (def.persona as string) ?? "",
       backstory: (def.backstory as string) ?? "",
+      greeting: (def.greeting as string) ?? "",
       tags: Array.isArray(def.tags) ? (def.tags as string[]) : [],
       isOwner,
       creator,
@@ -153,14 +155,17 @@ export default async function CharacterProfile({ params }: { params: Promise<{ i
     <main style={S.wrap}>
       <a href="/browse" style={S.back}>← Companions</a>
 
-      <div style={S.head} className="rv-reveal">
-        <CharacterAvatar characterId={p.id} name={p.name} size={72} enlargeable />
+      <div style={S.head} className="rv-reveal rv-profile-head">
+        <div style={S.portraitWrap} className="rv-profile-portrait">
+          <CharacterAvatar characterId={p.id} name={p.name} shape="rect" enlargeable />
+        </div>
         <div style={S.headText}>
           <h1 style={S.name}>{p.name}</h1>
           <p style={S.by}>by {p.creatorId ? <a href={`/creator/${p.creatorId}`} style={S.byLink}>{p.creator}</a> : p.creator}</p>
           {p.age || p.gender || p.look ? <p style={S.look}>{[p.age ? `Age ${p.age}` : null, p.gender ? cap(p.gender) : null, p.look || null].filter(Boolean).join(" · ")}</p> : null}
           <div style={S.headRating}><StarRating value={p.rating} count={p.ratingCount} size={15} /></div>
           {p.tags.length ? <div style={S.tags}>{p.tags.map((t) => <a key={t} href={`/tag/${encodeURIComponent(t)}`} style={S.tag}>{t}</a>)}</div> : null}
+          {p.greeting ? <p style={S.greeting}>&ldquo;{p.greeting}&rdquo;</p> : null}
         </div>
       </div>
 
@@ -212,13 +217,15 @@ const S: Record<string, React.CSSProperties> = {
   wrap: { maxWidth: 760, margin: "0 auto", padding: "36px 24px 90px", lineHeight: 1.6 },
   back: { color: "#8A7A90", textDecoration: "none", fontSize: 14, letterSpacing: ".04em" },
   link: { color: "#E9A06B" },
-  head: { display: "flex", alignItems: "center", gap: 18, margin: "24px 0 20px" },
-  headText: { display: "flex", flexDirection: "column", gap: 8 },
+  head: { display: "flex", alignItems: "flex-start", gap: 22, margin: "24px 0 20px" },
+  portraitWrap: { flexShrink: 0 },
+  headText: { display: "flex", flexDirection: "column", gap: 8, paddingTop: 4 },
   name: { fontFamily: "Georgia, serif", fontSize: 36, margin: 0, lineHeight: 1.1 },
   by: { color: "#8A7A90", margin: 0, fontSize: 13.5 },
   byLink: { color: "#E9A06B", textDecoration: "none" },
   look: { color: "#AC9CB0", margin: 0, fontSize: 14.5 },
   headRating: { marginTop: 2 },
+  greeting: { color: "#EadFe6", fontSize: 15.5, fontStyle: "italic", margin: "6px 0 0", lineHeight: 1.5, borderLeft: "2px solid #E9A06B", paddingLeft: 12, maxWidth: 460 },
   rateBox: { background: "#241B2D", border: "1px solid #3A2E44", borderRadius: 14, padding: "14px 16px", margin: "0 0 30px" },
   tags: { display: "flex", flexWrap: "wrap", gap: 6 },
   tag: { fontSize: 11.5, color: "#E9A06B", border: "1px solid #4a3a50", borderRadius: 999, padding: "2px 9px", textDecoration: "none" },

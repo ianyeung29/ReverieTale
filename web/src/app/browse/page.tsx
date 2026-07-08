@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CharacterAvatar } from "@/components/CharacterAvatar";
-import { StarRating } from "@/components/StarRating";
+import { CharacterCard } from "@/components/CharacterCard";
 
-type Char = { id: string; name: string; tagline: string; persona: string; tags: string[]; reads: number; stories: number; rating: number; ratingCount: number; createdAt: string };
+type Char = { id: string; name: string; tagline: string; persona: string; greeting: string; tags: string[]; reads: number; stories: number; rating: number; ratingCount: number; createdAt: string };
 type Sort = "trend" | "newest" | "read" | "rated";
 
 // Same gravity formula as lib/discovery.trendingScore (kept inline so this client
@@ -83,21 +82,16 @@ export default function BrowsePage() {
       ) : (
         <div style={S.grid}>
           {shown.map((c) => (
-            <div key={c.id} className="rv-card" style={S.card}>
-              <a href={`/c/${c.id}`} style={S.headLink}>
-                <div style={S.head}><CharacterAvatar characterId={c.id} name={c.name} size={48} /><div><div style={S.name}>{c.name}</div><div style={S.tags}>{c.tags.map((t) => <span key={t} style={S.tag}>{t}</span>)}</div></div></div>
-              </a>
-              <p style={S.persona}>{c.persona}</p>
-              <p style={S.tagline}>{c.tagline}</p>
-              <div style={S.meta}>
-                {c.reads} read{c.reads === 1 ? "" : "s"} · {c.stories} stor{c.stories === 1 ? "y" : "ies"}
-                {c.ratingCount ? <> · <StarRating value={c.rating} count={c.ratingCount} size={12} showNumber={false} /> {c.rating.toFixed(1)} ({c.ratingCount})</> : null}
-              </div>
-              <div style={S.actions}>
-                <a className="rv-btn rv-btn-primary" style={S.primary} href={`/story?characterId=${c.id}`}>Begin a story</a>
-                <a className="rv-btn" style={S.secondary} href={`/chat?characterId=${c.id}`}>Chat</a>
-              </div>
-            </div>
+            <CharacterCard
+              key={c.id}
+              c={c}
+              actions={
+                <>
+                  <a className="rv-btn rv-btn-primary" style={S.primary} href={`/story?characterId=${c.id}`}>Begin a story</a>
+                  <a className="rv-btn" style={S.secondary} href={`/chat?characterId=${c.id}`}>Chat</a>
+                </>
+              }
+            />
           ))}
         </div>
       )}
@@ -123,16 +117,6 @@ const S: Record<string, React.CSSProperties> = {
   empty: { color: "#AC9CB0" },
   reset: { background: "transparent", color: "#E9A06B", border: 0, cursor: "pointer", fontSize: 15, textDecoration: "underline" },
   grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: 18 },
-  card: { background: "#241B2D", border: "1px solid #3A2E44", borderRadius: 16, padding: 20, display: "flex", flexDirection: "column", gap: 10 },
-  headLink: { textDecoration: "none", color: "inherit", display: "block" },
-  head: { display: "flex", alignItems: "center", gap: 12 },
-  name: { fontFamily: "Georgia, serif", fontSize: 22, color: "#F4EAF0" },
-  tags: { display: "flex", flexWrap: "wrap", gap: 6, marginTop: 4 },
-  tag: { fontSize: 11, color: "#E9A06B", border: "1px solid #4a3a50", borderRadius: 999, padding: "2px 9px" },
-  persona: { color: "#CBBBD0", fontSize: 14.5, margin: 0, lineHeight: 1.5 },
-  tagline: { color: "#8A7A90", fontSize: 13.5, margin: 0, fontStyle: "italic" },
-  meta: { color: "#8A7A90", fontSize: 12.5, fontVariantNumeric: "tabular-nums", display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" },
-  actions: { display: "flex", gap: 10, marginTop: 6 },
   primary: { flex: 1, textAlign: "center", color: "#1A1220", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", padding: "11px", borderRadius: 10, fontWeight: 650, textDecoration: "none", fontSize: 14 },
   secondary: { flex: 1, textAlign: "center", color: "#F4EAF0", background: "#231A2B", border: "1px solid #3A2E44", padding: "11px", borderRadius: 10, fontWeight: 600, textDecoration: "none", fontSize: 14 },
 };

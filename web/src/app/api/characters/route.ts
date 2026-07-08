@@ -54,6 +54,7 @@ export async function GET() {
       tagline: (def.backstory as string) ?? "",
       persona: (def.persona as string) ?? "",
       tags: Array.isArray(def.tags) ? (def.tags as string[]) : [],
+      greeting: (def.greeting as string) ?? "",
       reads: a?.reads ?? 0,
       stories: a?.stories ?? 0,
       rating: rating.average,
@@ -75,6 +76,7 @@ const Body = z.object({
   look: z.string().trim().max(400).optional(),
   backstory: z.string().trim().max(600).optional(),
   voice: z.string().trim().max(300).optional(),
+  greeting: z.string().trim().max(300).optional(), // their first line, shown on cards/profile/chat
   tags: z.array(z.string().trim().min(1).max(30)).max(8).optional(),
   image: z.string().max(12_000_000).optional(), // base64 portrait
   imageMime: z.string().max(60).optional(),
@@ -93,7 +95,7 @@ export async function POST(req: Request) {
 
   // Hybrid pre-publish gate: hard filter -> classifier -> auto-approve / hold /
   // reject. Creators never publish directly; only auto-approve or an admin does.
-  const blob = [body.name, body.persona, body.look, body.backstory, body.voice, ...(body.tags ?? [])].filter(Boolean).join(" ");
+  const blob = [body.name, body.persona, body.look, body.backstory, body.voice, body.greeting, ...(body.tags ?? [])].filter(Boolean).join(" ");
   const mod = await moderateContent(blob);
   if (mod.decision === "reject") {
     return NextResponse.json({ error: "blocked", reason: mod.reason }, { status: 422 });
@@ -108,6 +110,7 @@ export async function POST(req: Request) {
     look: body.look ?? "",
     backstory: body.backstory ?? "",
     voice: body.voice ?? "",
+    greeting: body.greeting ?? "",
     tags: body.tags ?? [],
   };
 

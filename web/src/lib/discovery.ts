@@ -10,6 +10,7 @@ export type DiscoverChar = {
   name: string;
   persona: string;
   tagline: string; // backstory, used as a one-liner
+  greeting: string; // their first line in their own voice, shown on cards/profile
   tags: string[];
   reads: number;
   stories: number;
@@ -68,6 +69,7 @@ export async function listCharacters(opts?: { creatorId?: string; tag?: string; 
       name: (def.name as string) ?? "Unknown",
       persona: (def.persona as string) ?? "",
       tagline: (def.backstory as string) ?? "",
+      greeting: (def.greeting as string) ?? "",
       tags: Array.isArray(def.tags) ? (def.tags as string[]) : [],
       reads: a?.reads ?? 0,
       stories: a?.stories ?? 0,

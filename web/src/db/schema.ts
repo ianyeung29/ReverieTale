@@ -59,7 +59,7 @@ export const characters = pgTable("characters", {
   imageMime: text("image_mime"),
   // Portrait generations for this character: first is free, regens cost credits.
   portraitGens: integer("portrait_gens").notNull().default(0),
-  // { name, persona, look, backstory, voice, tags }
+  // { name, persona, look, backstory, voice, greeting, tags }
   definition: jsonb("definition").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

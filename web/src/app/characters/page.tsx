@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { CharacterAvatar } from "@/components/CharacterAvatar";
 import { EntryGate } from "@/components/EntryGate";
 
-type Char = { id: string; name: string; persona: string; tags: string[]; status: string };
+type Char = { id: string; name: string; persona: string; greeting?: string; tags: string[]; status: string };
 type Blocked = { id: string; name: string };
 
 export default function MyCharactersPage() {
@@ -108,13 +108,13 @@ export default function MyCharactersPage() {
             return (
               <div key={c.id} className="rv-card" style={S.card}>
                 <div style={S.head}>
-                  <CharacterAvatar characterId={c.id} name={c.name} size={40} />
+                  <div style={S.portraitWrap}><CharacterAvatar characterId={c.id} name={c.name} shape="rect" /></div>
                   <div style={S.headText}>
                     <div style={S.name}>{c.name}</div>
                     <span style={{ ...S.badge, ...badge.st }}>{badge.label}</span>
                   </div>
                 </div>
-                {c.persona ? <p style={S.persona}>{c.persona}</p> : null}
+                {c.greeting ? <p style={S.greeting}>&ldquo;{c.greeting}&rdquo;</p> : c.persona ? <p style={S.persona}>{c.persona}</p> : null}
                 {inReview ? <p style={S.reviewHint}>Awaiting a safety check before it goes public.</p> : null}
                 {c.tags.length ? <div style={S.tags}>{c.tags.map((t) => <span key={t} style={S.tag}>{t}</span>)}</div> : null}
                 <div style={S.actions}>
@@ -134,13 +134,13 @@ export default function MyCharactersPage() {
 
       {blocked.length > 0 ? (
         <>
-          <p style={S.blockedTitle}>Blocked companions · {blocked.length}</p>
+          <p style={S.blockedTitle}>Hidden companions · {blocked.length}</p>
           <p style={S.blockedSub}>Hidden from your Browse, Home, and tag pages. This doesn&apos;t affect anyone else.</p>
           <div style={S.blockedList}>
             {blocked.map((b) => (
               <div key={b.id} style={S.blockedRow}>
                 <a href={`/c/${b.id}`} style={S.blockedName}>{b.name}</a>
-                <button style={{ ...S.action, opacity: unblockBusy === b.id ? 0.5 : 1 }} onClick={() => unblock(b.id)} disabled={unblockBusy === b.id}>Unblock</button>
+                <button style={{ ...S.action, opacity: unblockBusy === b.id ? 0.5 : 1 }} onClick={() => unblock(b.id)} disabled={unblockBusy === b.id}>Show again</button>
               </div>
             ))}
           </div>
@@ -173,8 +173,9 @@ const S: Record<string, React.CSSProperties> = {
   emptyBtn: { color: "#1A1220", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", padding: "12px 20px", borderRadius: 11, fontWeight: 650, textDecoration: "none", fontSize: 14.5 },
   grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))", gap: 16 },
   card: { display: "flex", flexDirection: "column", gap: 11, background: "#241B2D", border: "1px solid #3A2E44", borderRadius: 14, padding: 17 },
-  head: { display: "flex", alignItems: "center", gap: 11 },
-  headText: { display: "flex", flexDirection: "column", gap: 4 },
+  head: { display: "flex", alignItems: "flex-start", gap: 12 },
+  portraitWrap: { width: 64, flexShrink: 0 },
+  headText: { display: "flex", flexDirection: "column", gap: 4, paddingTop: 2 },
   name: { fontFamily: "Georgia, serif", fontSize: 18, lineHeight: 1.1, color: "#F4EAF0" },
   badge: { fontSize: 11, letterSpacing: ".08em", textTransform: "uppercase", fontWeight: 700, padding: "2px 8px", borderRadius: 999, width: "fit-content" },
   badgeLive: { color: "#8FE0B0", background: "rgba(70,150,110,.16)", border: "1px solid #2f6b4c" },
@@ -182,6 +183,7 @@ const S: Record<string, React.CSSProperties> = {
   badgeOff: { color: "#AC9CB0", background: "rgba(120,110,130,.12)", border: "1px solid #4a3a50" },
   reviewHint: { color: "#C9A98A", fontSize: 12.5, margin: 0 },
   persona: { color: "#AC9CB0", fontSize: 13.5, margin: 0, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" },
+  greeting: { color: "#CBBBD0", fontSize: 13.5, fontStyle: "italic", margin: 0, lineHeight: 1.5, borderLeft: "2px solid #E9A06B", paddingLeft: 9 },
   tags: { display: "flex", flexWrap: "wrap", gap: 6 },
   tag: { fontSize: 11.5, color: "#CBBBD0", background: "#231A2B", border: "1px solid #3A2E44", borderRadius: 999, padding: "3px 9px" },
   actions: { display: "flex", flexWrap: "wrap", gap: 8, marginTop: "auto", paddingTop: 6 },

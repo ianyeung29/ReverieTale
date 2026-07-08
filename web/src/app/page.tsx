@@ -2,6 +2,7 @@ import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { characters, stories } from "@/db/schema";
 import { CharacterAvatar } from "@/components/CharacterAvatar";
+import { CharacterCard } from "@/components/CharacterCard";
 import { StarRating } from "@/components/StarRating";
 import { listCharacters, trendingScore } from "@/lib/discovery";
 import { ratingAggregates } from "@/lib/ratings";
@@ -133,20 +134,7 @@ export default async function Home() {
           <div style={S.sectionRow}><p style={{ ...S.section, margin: 0 }}>✦ Trending companions</p><a href="/browse" style={S.seeAll}>See all →</a></div>
           <div style={S.grid}>
             {trending.map((c) => (
-              <a key={c.id} href={`/c/${c.id}`} className="rv-card" style={S.card}>
-                <div style={S.cardHead}>
-                  <CharacterAvatar characterId={c.id} name={c.name} size={44} />
-                  <div style={S.cardHeadText}>
-                    <div style={S.cardName}>{c.name}</div>
-                    <span style={S.with}>
-                      {c.reads} read{c.reads === 1 ? "" : "s"} · {c.stories} stor{c.stories === 1 ? "y" : "ies"}
-                      {c.ratingCount ? <> · <StarRating value={c.rating} count={c.ratingCount} size={11} showNumber={false} /> {c.rating.toFixed(1)}</> : null}
-                    </span>
-                  </div>
-                </div>
-                {c.persona ? <p style={S.cardSnip}>{c.persona.slice(0, 110)}…</p> : null}
-                {c.tags.length ? <div style={S.tags}>{c.tags.slice(0, 3).map((t) => <span key={t} style={S.tag}>{t}</span>)}</div> : null}
-              </a>
+              <CharacterCard key={c.id} c={c} />
             ))}
           </div>
         </section>

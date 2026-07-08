@@ -5,7 +5,7 @@ import { CharacterAvatar } from "@/components/CharacterAvatar";
 import { EntryGate } from "@/components/EntryGate";
 
 type Msg = { role: "user" | "character" | "system"; content: string };
-type Char = { id: string; name: string; tagline: string };
+type Char = { id: string; name: string; tagline: string; greeting?: string };
 type Convo = { id: string; characterId: string; name: string; lastActiveAt: string };
 
 const OPENERS = [
@@ -220,7 +220,13 @@ export default function ChatPage() {
           <div style={S.empty}>
             {active ? <CharacterAvatar characterId={active.id} name={active.name} size={60} /> : null}
             <p style={S.emptyName}>{active?.name ?? "your companion"}</p>
-            <p style={S.emptyHint}>Say hello — they&apos;ll remember what you share.</p>
+            {active?.greeting ? (
+              <div style={{ ...S.row, justifyContent: "flex-start" }}>
+                <div style={{ ...S.bubble, ...S.bot }}>{active.greeting}</div>
+              </div>
+            ) : (
+              <p style={S.emptyHint}>Say hello — they&apos;ll remember what you share.</p>
+            )}
             <div style={S.openers}>
               {OPENERS.map((o) => (
                 <button key={o} style={S.opener} onClick={() => setInput(o)}>{o}</button>

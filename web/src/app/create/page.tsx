@@ -33,6 +33,7 @@ export default function CreateCharacterPage() {
   const [persona, setPersona] = useState("");
   const [backstory, setBackstory] = useState("");
   const [voice, setVoice] = useState("");
+  const [greeting, setGreeting] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -65,7 +66,7 @@ export default function CreateCharacterPage() {
     setEditId(id);
     fetch(`/api/characters/${id}`).then((r) => (r.ok ? r.json() : Promise.reject(r.status))).then((d) => {
       setName(d.name || ""); setLook(d.look || ""); setPersona(d.persona || "");
-      setBackstory(d.backstory || ""); setVoice(d.voice || ""); setTags(Array.isArray(d.tags) ? d.tags : []);
+      setBackstory(d.backstory || ""); setVoice(d.voice || ""); setGreeting(d.greeting || ""); setTags(Array.isArray(d.tags) ? d.tags : []);
       setAge(d.age ? String(d.age) : ""); setGender(d.gender || "");
       setHasImage(!!d.hasImage);
     }).catch(() => setLoadErr(true));
@@ -131,7 +132,7 @@ export default function CreateCharacterPage() {
   }
 
   // AI-assist: generate one or more fields from the details so far.
-  async function suggest(targets: ("look" | "voice" | "persona" | "backstory")[]) {
+  async function suggest(targets: ("look" | "voice" | "persona" | "backstory" | "greeting")[]) {
     if (genBusy) return;
     const where = targets.length > 1 ? "all" : targets[0];
     setGenBusy(where);
@@ -146,6 +147,7 @@ export default function CreateCharacterPage() {
           persona: persona.trim() || undefined,
           backstory: backstory.trim() || undefined,
           voice: voice.trim() || undefined,
+          greeting: greeting.trim() || undefined,
           tags: tags.length ? tags : undefined,
           targets,
         }),
@@ -157,6 +159,7 @@ export default function CreateCharacterPage() {
         if (d.fields.voice !== undefined) setVoice(d.fields.voice);
         if (d.fields.persona !== undefined) setPersona(d.fields.persona);
         if (d.fields.backstory !== undefined) setBackstory(d.fields.backstory);
+        if (d.fields.greeting !== undefined) setGreeting(d.fields.greeting);
       } else {
         setGenErr({ where, msg: "Couldn't generate just now — try again." });
       }
@@ -184,6 +187,7 @@ export default function CreateCharacterPage() {
       persona: persona.trim() || undefined,
       backstory: backstory.trim() || undefined,
       voice: voice.trim() || undefined,
+      greeting: greeting.trim() || undefined,
       tags: tags.length ? tags : undefined,
       image: portrait?.image,
       imageMime: portrait?.mime,
@@ -331,6 +335,11 @@ export default function CreateCharacterPage() {
         <FieldLabel label="Voice & style" onSuggest={() => suggest(["voice"])} busy={genBusy === "voice"} disabled={!!genBusy} />
         <input value={voice} onChange={(e) => setVoice(e.target.value)} placeholder="how they talk — dry wit, soft-spoken, poetic, blunt…" style={S.input} maxLength={300} />
         {genErr?.where === "voice" ? <p style={S.fieldErr}>{genErr.msg}</p> : null}
+
+        <FieldLabel label="Greeting" onSuggest={() => suggest(["greeting"])} busy={genBusy === "greeting"} disabled={!!genBusy} />
+        <input value={greeting} onChange={(e) => setGreeting(e.target.value)} placeholder="the first thing they'd say to you — e.g. “I wasn't sure you'd actually come back.”" style={S.input} maxLength={300} />
+        <p style={S.genHint}>Shown on their card and profile, and said first when someone opens a new chat.</p>
+        {genErr?.where === "greeting" ? <p style={S.fieldErr}>{genErr.msg}</p> : null}
 
         <label style={S.label}>Tags <span style={S.hint}>({tags.length}/8)</span></label>
         {tags.length ? (
@@ -487,6 +496,11 @@ export default function CreateCharacterPage() {
               <input value={voice} onChange={(e) => setVoice(e.target.value)} placeholder="how they talk — dry wit, soft-spoken, poetic, blunt…" style={S.input} maxLength={300} />
               {genErr?.where === "voice" ? <p style={S.fieldErr}>{genErr.msg}</p> : null}
               <p style={S.genHint}>This shapes how they sound in stories and chat. Skip it and they&apos;ll default to a natural, unforced voice.</p>
+
+              <FieldLabel label="Greeting" onSuggest={() => suggest(["greeting"])} busy={genBusy === "greeting"} disabled={!!genBusy} />
+              <input value={greeting} onChange={(e) => setGreeting(e.target.value)} placeholder="the first thing they'd say to you — e.g. “I wasn't sure you'd actually come back.”" style={S.input} maxLength={300} />
+              {genErr?.where === "greeting" ? <p style={S.fieldErr}>{genErr.msg}</p> : null}
+              <p style={S.genHint}>This is what makes {name.trim() || "them"} feel real before anyone even says hello — shown on their card, profile, and as their first line in a new chat.</p>
             </div>
           ) : null}
 
@@ -547,8 +561,19 @@ export default function CreateCharacterPage() {
         </div>
 
         <aside style={S.previewPanel} className="rv-card">
+          {imageEnabled ? (
+            portraitSrc ? (
+              <img src={portraitSrc} alt={name || "portrait"} style={S.previewPanelPortrait} />
+            ) : (
+              <button type="button" style={{ ...S.previewPanelPortraitBtn, opacity: portraitBusy || !basicsValid ? 0.6 : 1 }} onClick={generatePortrait} disabled={portraitBusy || !basicsValid}>
+                <Avatar name={name || "?"} size={40} />
+                <span>{portraitBusy ? "🎨 Generating…" : "🎨 Generate a portrait"}</span>
+              </button>
+            )
+          ) : null}
+          {portraitErr ? <p style={{ ...S.fieldErr, margin: "8px 0 0" }}>{portraitErr}</p> : null}
           <div style={S.previewPanelHead}>
-            <Avatar name={name || "?"} size={64} />
+            {!imageEnabled || !portraitSrc ? <Avatar name={name || "?"} size={imageEnabled ? 40 : 64} /> : null}
             <div>
               <div style={S.previewPanelName}>{name.trim() || "Your character"}</div>
               {gender || ageOk ? <div style={S.previewPanelMeta}>{[ageOk ? `Age ${ageNum}` : null, gender ? cap(gender) : null].filter(Boolean).join(" · ")}</div> : null}
@@ -559,7 +584,11 @@ export default function CreateCharacterPage() {
               {tags.slice(0, 6).map((t) => <span key={t} style={S.previewPanelTag}>{t}</span>)}
             </div>
           ) : null}
-          {persona || look ? <p style={S.previewPanelSnip}>{(persona || look).slice(0, 130)}{(persona || look).length > 130 ? "…" : ""}</p> : null}
+          {greeting.trim() ? (
+            <p style={S.previewPanelGreeting}>&ldquo;{greeting.trim()}&rdquo;</p>
+          ) : persona || look ? (
+            <p style={S.previewPanelSnip}>{(persona || look).slice(0, 130)}{(persona || look).length > 130 ? "…" : ""}</p>
+          ) : null}
           {previewReply ? (
             <div style={S.previewPanelReply}>
               <span style={S.previewPanelReplyLabel}>Sample reply</span>
@@ -621,12 +650,15 @@ const S: Record<string, React.CSSProperties> = {
   navBtn: { background: "#231A2B", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 10, padding: "11px 18px", cursor: "pointer", fontSize: 14, fontWeight: 600 },
   navPrimary: { color: "#1A1220", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", border: "1px solid transparent" },
   previewPanel: { background: "#241B2D", border: "1px solid #3A2E44", borderRadius: 16, padding: 20, height: "fit-content", display: "flex", flexDirection: "column", gap: 14, position: "sticky", top: 76 },
+  previewPanelPortrait: { width: "100%", aspectRatio: "4 / 5", objectFit: "cover", borderRadius: 12, display: "block", background: "#1A121F" },
+  previewPanelPortraitBtn: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, width: "100%", aspectRatio: "4 / 5", borderRadius: 12, background: "#1A121F", border: "1px dashed #4a3a50", color: "#E9A06B", cursor: "pointer", fontSize: 13.5, fontWeight: 650 },
   previewPanelHead: { display: "flex", alignItems: "center", gap: 12 },
   previewPanelName: { fontFamily: "Georgia, serif", fontSize: 19, color: "#F4EAF0", lineHeight: 1.2 },
   previewPanelMeta: { color: "#8A7A90", fontSize: 12.5, marginTop: 2 },
   previewPanelTags: { display: "flex", flexWrap: "wrap", gap: 6 },
   previewPanelTag: { fontSize: 11, color: "#E9A06B", border: "1px solid #4a3a50", borderRadius: 999, padding: "2px 9px" },
   previewPanelSnip: { color: "#CBBBD0", fontSize: 13.5, margin: 0, lineHeight: 1.5 },
+  previewPanelGreeting: { color: "#EadFe6", fontSize: 14.5, fontStyle: "italic", margin: 0, lineHeight: 1.5, borderLeft: "2px solid #E9A06B", paddingLeft: 11 },
   previewPanelReply: { display: "flex", flexDirection: "column", gap: 6, borderTop: "1px solid #3A2E44", paddingTop: 12 },
   previewPanelReplyLabel: { fontSize: 11, letterSpacing: ".08em", textTransform: "uppercase", color: "#8A7A90", fontWeight: 700 },
   previewPanelHint: { color: "#6f6276", fontSize: 12, margin: 0, borderTop: "1px solid #3A2E44", paddingTop: 12 },

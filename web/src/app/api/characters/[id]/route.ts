@@ -9,7 +9,7 @@ import { getCurrentUserId } from "@/lib/session";
 export const dynamic = "force-dynamic";
 
 // Gender is intentionally NOT here: it's set at creation and immutable thereafter.
-const FIELDS = ["name", "look", "persona", "backstory", "voice", "tags"] as const;
+const FIELDS = ["name", "look", "persona", "backstory", "voice", "greeting", "tags"] as const;
 
 // GET /api/characters/:id -> owner-only detail for editing.
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -46,6 +46,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     persona: (def.persona as string) ?? "",
     backstory: (def.backstory as string) ?? "",
     voice: (def.voice as string) ?? "",
+    greeting: (def.greeting as string) ?? "",
     tags: Array.isArray(def.tags) ? (def.tags as string[]) : [],
     age: typeof def.age === "number" ? def.age : null,
   });
@@ -61,6 +62,7 @@ const Patch = z.object({
   persona: z.string().trim().max(600).optional(),
   backstory: z.string().trim().max(600).optional(),
   voice: z.string().trim().max(300).optional(),
+  greeting: z.string().trim().max(300).optional(),
   tags: z.array(z.string().trim().min(1).max(30)).max(8).optional(),
   status: z.enum(["published", "disabled"]).optional(),
   image: z.string().max(12_000_000).optional(),
@@ -108,7 +110,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   for (const k of FIELDS) if (body[k] !== undefined) def[k] = body[k];
   if (body.age !== undefined) def.age = body.age;
 
-  const blob = [def.name, def.look, def.persona, def.backstory, def.voice, ...(Array.isArray(def.tags) ? def.tags : [])]
+  const blob = [def.name, def.look, def.persona, def.backstory, def.voice, def.greeting, ...(Array.isArray(def.tags) ? def.tags : [])]
     .filter(Boolean)
     .join(" ");
   const mod = await moderateContent(String(blob));

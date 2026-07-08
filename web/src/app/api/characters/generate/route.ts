@@ -7,7 +7,7 @@ import { getCurrentUserId } from "@/lib/session";
 export const dynamic = "force-dynamic";
 export const maxDuration = 45;
 
-const TARGETS = ["look", "voice", "persona", "backstory"] as const;
+const TARGETS = ["look", "voice", "persona", "backstory", "greeting"] as const;
 type Target = (typeof TARGETS)[number];
 
 const Body = z.object({
@@ -16,8 +16,9 @@ const Body = z.object({
   persona: z.string().max(600).optional(),
   backstory: z.string().max(600).optional(),
   voice: z.string().max(300).optional(),
+  greeting: z.string().max(300).optional(),
   tags: z.array(z.string().max(30)).max(8).optional(),
-  targets: z.array(z.enum(TARGETS)).min(1).max(4),
+  targets: z.array(z.enum(TARGETS)).min(1).max(5),
 });
 
 const SPEC: Record<Target, string> = {
@@ -25,6 +26,7 @@ const SPEC: Record<Target, string> = {
   voice: "voice = 1 sentence on how they speak (tone, rhythm, verbal habits)",
   persona: "persona = 2-3 sentences on their personality (temperament, quirks, how they treat people)",
   backstory: "backstory = 2-3 sentences of history (where they're from, what they want, what weighs on them)",
+  greeting: "greeting = 1-2 sentences, IN CHARACTER and FIRST PERSON, the very first thing they'd say to you when a conversation opens — warm, specific, sets the mood immediately, no stage directions",
 };
 
 // The model sometimes returns a synonym key (e.g. "personality" for persona);
@@ -34,6 +36,7 @@ const ALIASES: Record<Target, string[]> = {
   voice: ["voice", "voice_and_style", "voice & style", "voicestyle", "style"],
   persona: ["persona", "personality", "personality_traits"],
   backstory: ["backstory", "background", "history", "back_story"],
+  greeting: ["greeting", "opening_line", "opener", "first_message", "hello"],
 };
 
 // POST /api/characters/generate -> AI suggestions for character fields. Tasteful,
@@ -56,6 +59,7 @@ export async function POST(req: Request) {
     body.persona ? `Personality: ${body.persona}` : "",
     body.backstory ? `Backstory: ${body.backstory}` : "",
     body.voice ? `Voice: ${body.voice}` : "",
+    body.greeting ? `Existing greeting: ${body.greeting}` : "",
   ].filter(Boolean).join("\n") || "(no details yet - invent a coherent, appealing character)";
 
   const wanted = body.targets.map((t) => SPEC[t]).join("\n");

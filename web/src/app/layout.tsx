@@ -68,6 +68,15 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 @media (min-width: 860px) {
   .rv-wizard-grid { grid-template-columns: 1fr 300px; }
 }
+
+/* Character profile hero: portrait beside details on wide screens, stacked
+   (portrait on top, capped width) on narrow ones. */
+.rv-profile-head { flex-direction: row; }
+.rv-profile-portrait { width: 148px; }
+@media (max-width: 560px) {
+  .rv-profile-head { flex-direction: column; }
+  .rv-profile-portrait { width: 200px; max-width: 60vw; }
+}
 `;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
