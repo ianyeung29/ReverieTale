@@ -20,6 +20,14 @@ function usd(cents: number): string {
 function perCredit(pack: Pack): string {
   return `${((pack.price / 100) / pack.credits).toFixed(3)} /credit`;
 }
+// % cheaper per-credit than the entry-level pack (packs are ordered smallest to largest).
+function discountPct(pack: Pack, packs: Pack[]): number {
+  const base = packs[0];
+  if (!base || pack.id === base.id) return 0;
+  const baseRate = base.price / base.credits;
+  const rate = pack.price / pack.credits;
+  return Math.max(0, Math.round((1 - rate / baseRate) * 100));
+}
 
 export default function CreditsPage() {
   const [authed, setAuthed] = useState<boolean | undefined>(undefined);
@@ -84,7 +92,7 @@ export default function CreditsPage() {
     <main style={S.wrap}>
       <a href="/" style={S.back}>← Reverie</a>
       <h1 style={S.h1}>Credits</h1>
-      <p style={S.sub}>One currency for every companion — chat, write chapters, and generate portraits. No subscriptions, nothing expires on purchased credits.</p>
+      <p style={S.sub}>One currency for every companion — chat, write chapters, and generate portraits. No subscriptions: buy what you need, and bigger packs cost less per credit. Nothing expires on purchased credits.</p>
 
       {checkout === "success" ? <div style={S.okBanner}>Payment received — your credits will appear here in a moment.</div> : null}
       {checkout === "cancel" ? <div style={S.cancelBanner}>Checkout canceled — no charge was made.</div> : null}
@@ -134,12 +142,14 @@ export default function CreditsPage() {
           <div style={S.packs}>
             {packs.map((p) => {
               const isBest = best?.id === p.id;
+              const pct = discountPct(p, packs);
               return (
                 <button key={p.id} style={{ ...S.pack, ...(isBest ? S.packBest : {}), opacity: buyingId ? 0.6 : 1 }} onClick={() => buyPack(p.id)} disabled={!!buyingId}>
                   {isBest ? <span style={S.packRibbon}>Best value</span> : null}
                   <span style={S.packCredits}>◈ {p.credits}</span>
                   <span style={S.packPrice}>{buyingId === p.id ? "…" : usd(p.price)}</span>
                   <span style={S.packPer}>{perCredit(p)}</span>
+                  {pct > 0 ? <span style={S.packDiscount}>{pct}% cheaper per credit</span> : null}
                   {p.blurb ? <span style={S.packBlurb}>{p.blurb}</span> : null}
                 </button>
               );
@@ -200,6 +210,7 @@ const S: Record<string, React.CSSProperties> = {
   packCredits: { color: "#E9A06B", fontSize: 20, fontWeight: 700 },
   packPrice: { color: "#F4EAF0", fontSize: 16, fontWeight: 650 },
   packPer: { color: "#6f6276", fontSize: 11.5 },
+  packDiscount: { color: "#8FE0B0", fontSize: 12, fontWeight: 650 },
   packBlurb: { color: "#8A7A90", fontSize: 12.5 },
   secureNote: { color: "#6f6276", fontSize: 12.5, margin: "10px 0 0" },
   section: { fontSize: 12, letterSpacing: ".14em", textTransform: "uppercase", color: "#8A7A90", fontWeight: 700, margin: "34px 0 12px" },

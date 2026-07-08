@@ -33,9 +33,12 @@ export async function POST(req: Request) {
       try {
         await grantPurchase(userId, credits, `stripe:${session.id}`);
       } catch (e) {
-        const err = e as { code?: string; message?: string };
+        // Postgres wraps the actual driver error under `.cause` - checking only
+        // the top-level `.code` misses it (same bug class as lib/db-errors.ts).
+        const err = e as { code?: string; message?: string; cause?: { code?: string } };
+        const code = err?.cause?.code ?? err?.code;
         // Duplicate idempotency key => already granted for this session; that's fine.
-        if (!(err?.code === "23505" || /duplicate|unique/i.test(String(err?.message)))) {
+        if (!(code === "23505" || /duplicate|unique/i.test(String(err?.message)))) {
           return NextResponse.json({ error: "grant failed" }, { status: 500 });
         }
       }

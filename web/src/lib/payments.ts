@@ -2,12 +2,16 @@ import Stripe from "stripe";
 
 export type Pack = { id: string; credits: number; price: number; label: string; blurb?: string };
 
-// One-time credit packs. `price` is in USD cents. Tune freely; the webhook grants
-// `credits` on successful payment. Keep ids stable (used in Stripe metadata).
+// One-time credit packs only - no subscriptions. `price` is in USD cents. Tune
+// freely; the webhook grants `credits` on successful payment. Keep ids stable
+// (used in Stripe metadata). Ordered smallest to largest so the per-credit price
+// steadily improves - the credits page computes and displays that discount, so
+// it's fine to retune these amounts without touching any UI copy.
 export const PACKS: Pack[] = [
   { id: "starter", credits: 100, price: 499, label: "100 credits", blurb: "~10 chapters or 100 messages" },
-  { id: "plus", credits: 550, price: 1999, label: "550 credits", blurb: "10% bonus" },
-  { id: "pro", credits: 1200, price: 3999, label: "1,200 credits", blurb: "best value" },
+  { id: "popular", credits: 300, price: 1299, label: "300 credits" },
+  { id: "plus", credits: 700, price: 2499, label: "700 credits" },
+  { id: "mega", credits: 1500, price: 4499, label: "1,500 credits" },
 ];
 
 export function paymentsEnabled(): boolean {
