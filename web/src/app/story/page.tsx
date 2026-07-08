@@ -234,7 +234,7 @@ const S: Record<string, React.CSSProperties> = {
   cardOn: { border: "1px solid #E9A06B", background: "#241726", boxShadow: "0 0 0 1px #E9A06B inset" },
   cardHead: { display: "flex", alignItems: "center", gap: 10 },
   cardName: { fontFamily: "Georgia, serif", fontSize: 20 },
-  cardPersona: { color: "#AC9CB0", fontSize: 13.5, lineHeight: 1.45 },
+  cardPersona: { color: "#AC9CB0", fontSize: 13.5, lineHeight: 1.45, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" },
   tags: { display: "flex", flexWrap: "wrap", gap: 6, marginTop: 2 },
   tag: { fontSize: 11, letterSpacing: ".04em", color: "#E9A06B", border: "1px solid #4a3a50", borderRadius: 999, padding: "2px 9px" },
   chips: { display: "flex", flexWrap: "wrap", gap: 8 },
