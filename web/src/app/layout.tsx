@@ -61,6 +61,13 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   .rv-nav-links.rv-nav-open a { padding: 12px 4px; border-bottom: 1px solid #241a2b !important; }
   .rv-nav-links.rv-nav-open > :last-child { border-bottom: 0; }
 }
+
+/* Character-create wizard: stacked on narrow screens, form + sticky live
+   preview side-by-side on wide ones. */
+.rv-wizard-grid { grid-template-columns: 1fr; }
+@media (min-width: 860px) {
+  .rv-wizard-grid { grid-template-columns: 1fr 300px; }
+}
 `;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
