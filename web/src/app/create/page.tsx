@@ -39,6 +39,7 @@ export default function CreateCharacterPage() {
   const [error, setError] = useState("");
   const [editId, setEditId] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState<string | null>(null);
+  const [editSaved, setEditSaved] = useState<"published" | "in_review" | null>(null);
   const [genBusy, setGenBusy] = useState<string | null>(null); // which field(s) are generating
   const [tagInput, setTagInput] = useState("");
   const [previewMsg, setPreviewMsg] = useState("");
@@ -201,7 +202,13 @@ export default function CreateCharacterPage() {
           body: JSON.stringify(payload),
         });
         const d = await res.json();
-        if (res.ok) { window.location.href = "/characters"; return; }
+        if (res.ok) {
+          // Editing the definition re-triggers the moderation gate (see the
+          // PATCH route) - if it landed back in review, say so instead of
+          // silently returning to a list that just shows an "In review" badge.
+          if (d.status === "in_review") { setEditSaved("in_review"); setBusy(false); return; }
+          window.location.href = "/characters"; return;
+        }
         if (res.status === 401) { setAuthEmail(null); setBusy(false); return; }
         setError(d.error === "blocked" ? "That description isn't allowed." : d.error || "Something went wrong.");
         setBusy(false);
@@ -258,10 +265,31 @@ export default function CreateCharacterPage() {
     ? `/api/characters/${editId}/image`
     : null;
 
-  // ---- Edit mode: the existing dense, single-page form. An editor already
-  // knows this character and wants direct access to any field (plus the
-  // portrait regenerate tool) - a step wizard would only add friction here.
+  // ---- Edit mode: the existing dense form (now organized into collapsible
+  // sections) plus a sticky live preview. An editor already knows this
+  // character and wants direct access to any field (plus the portrait
+  // regenerate tool) - a step wizard would only add friction here.
   if (editId) {
+    if (editSaved === "in_review") {
+      return (
+        <main style={S.wrap}>
+          <a href="/" style={S.back}>← Reverie</a>
+          <div style={S.head}>
+            {portraitSrc ? <img src={portraitSrc} alt={name} style={S.headPortrait} /> : <Avatar name={name || "?"} size={54} />}
+            <div>
+              <p style={S.mark}>Back under review</p>
+              <h1 style={S.h1}>{name.trim() || "Your character"}</h1>
+            </div>
+          </div>
+          <p style={S.sub}>
+            Your changes go through a quick safety check before they&apos;re visible — {name.trim() || "they"} stays live with the previous version until it&apos;s approved. You&apos;ll see the status update under Your companions.
+          </p>
+          <div style={S.actions}>
+            <a href="/characters" style={S.primary}>Back to your companions →</a>
+          </div>
+        </main>
+      );
+    }
     return (
       <main style={S.wrap}>
         <a href="/" style={S.back}>← Reverie</a>
@@ -277,126 +305,163 @@ export default function CreateCharacterPage() {
 
         {loadErr ? <p style={S.fieldErr}>Couldn&apos;t load this companion&apos;s details. Refresh to try again.</p> : null}
 
-        {imageEnabled ? (
-          <div style={S.portraitRow}>
-            {portraitSrc ? (
-              <img
-                src={portraitSrc}
-                alt="portrait"
-                style={{ ...S.portraitBig, cursor: "zoom-in" }}
-                onClick={() => setShowPortraitLightbox(true)}
-                role="button"
-                aria-label="View portrait full-size"
-              />
-            ) : (
-              <div style={S.portraitPlaceholder}>no portrait yet</div>
-            )}
-            <div style={S.portraitCol}>
-              <input value={outfit} onChange={(e) => setOutfit(e.target.value)} placeholder="outfit & style (optional) — e.g. red silk dress, cozy knit" style={S.portraitOutfit} maxLength={200} />
-              <button type="button" style={{ ...S.portraitBtn, opacity: portraitBusy ? 0.6 : 1 }} onClick={generatePortrait} disabled={portraitBusy}>
-                {portraitBusy ? "🎨 Generating…" : portraitSrc ? "🎨 Regenerate portrait" : "🎨 Generate portrait"}
+        <div className="rv-wizard-grid" style={S.wizardGrid}>
+          <div>
+            {imageEnabled ? (
+              <Section title="Portrait">
+                <div style={S.portraitRow}>
+                  {portraitSrc ? (
+                    <img
+                      src={portraitSrc}
+                      alt="portrait"
+                      style={{ ...S.portraitBig, cursor: "zoom-in" }}
+                      onClick={() => setShowPortraitLightbox(true)}
+                      role="button"
+                      aria-label="View portrait full-size"
+                    />
+                  ) : (
+                    <div style={S.portraitPlaceholder}>no portrait yet</div>
+                  )}
+                  <div style={S.portraitCol}>
+                    <input value={outfit} onChange={(e) => setOutfit(e.target.value)} placeholder="outfit & style (optional) — e.g. red silk dress, cozy knit" style={S.portraitOutfit} maxLength={200} />
+                    <button type="button" style={{ ...S.portraitBtn, opacity: portraitBusy ? 0.6 : 1 }} onClick={generatePortrait} disabled={portraitBusy}>
+                      {portraitBusy ? "🎨 Generating…" : portraitSrc ? "🎨 Regenerate portrait" : "🎨 Generate portrait"}
+                    </button>
+                    <p style={S.genHint}>
+                      {hasImage || portrait ? `Regenerating costs ${portraitPrice} credits.` : "This character's first portrait is free."}
+                    </p>
+                    {portraitErr ? <p style={S.fieldErr}>{portraitErr}{portraitPaywall ? <> <a href="/credits" style={S.errLink}>Get credits →</a></> : null}</p> : null}
+                  </div>
+                </div>
+              </Section>
+            ) : null}
+
+            <Section title="Basics">
+              <label style={S.label}>Name</label>
+              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Mara, Kai, Sable…" style={S.input} maxLength={60} />
+
+              <label style={S.label}>Gender <span style={S.hint}>(set at creation — can&apos;t be changed)</span></label>
+              <div style={S.lockedField}>{gender ? cap(gender) : "Not specified"}</div>
+
+              <label style={S.label}>Age <span style={S.hint}>(must be 18+)</span></label>
+              <input value={age} onChange={(e) => setAge(e.target.value.replace(/[^0-9]/g, "").slice(0, 3))} placeholder="e.g. 24" style={S.input} inputMode="numeric" />
+              {age && !ageOk ? <p style={S.fieldErr}>Characters must be adults — enter an age of 18 or older.</p> : null}
+            </Section>
+
+            <Section title="Personality">
+              <button type="button" style={{ ...S.genAll, opacity: genBusy ? 0.6 : 1 }} onClick={() => suggest(["look", "voice", "persona", "backstory"])} disabled={!!genBusy}>
+                {genBusy === "all" ? "✨ Generating…" : "✨ Generate details for me"}
               </button>
-              <p style={S.genHint}>
-                {hasImage || portrait ? `Regenerating costs ${portraitPrice} credits.` : "This character's first portrait is free."}
-              </p>
-              {portraitErr ? <p style={S.fieldErr}>{portraitErr}{portraitPaywall ? <> <a href="/credits" style={S.errLink}>Get credits →</a></> : null}</p> : null}
+              <p style={S.genHint}>Fills look, personality, backstory &amp; voice from the name and tags. Edit anything after.</p>
+              {genErr?.where === "all" ? <p style={S.fieldErr}>{genErr.msg}</p> : null}
+
+              <FieldLabel label="Look" onSuggest={() => suggest(["look"])} busy={genBusy === "look"} disabled={!!genBusy} />
+              <input value={look} onChange={(e) => setLook(e.target.value)} placeholder="how they appear — hair, style, the way they carry themselves" style={S.input} maxLength={400} />
+              {genErr?.where === "look" ? <p style={S.fieldErr}>{genErr.msg}</p> : null}
+
+              <FieldLabel label="Personality" onSuggest={() => suggest(["persona"])} busy={genBusy === "persona"} disabled={!!genBusy} />
+              <textarea value={persona} onChange={(e) => setPersona(e.target.value)} placeholder="who they are — warm and teasing? guarded but loyal? quick to laugh?" style={S.textarea} maxLength={600} />
+              {genErr?.where === "persona" ? <p style={S.fieldErr}>{genErr.msg}</p> : null}
+
+              <FieldLabel label="Backstory" onSuggest={() => suggest(["backstory"])} busy={genBusy === "backstory"} disabled={!!genBusy} />
+              <textarea value={backstory} onChange={(e) => setBackstory(e.target.value)} placeholder="where they come from, what they want, what haunts them" style={S.textarea} maxLength={600} />
+              {genErr?.where === "backstory" ? <p style={S.fieldErr}>{genErr.msg}</p> : null}
+
+              <label style={S.label}>Tags <span style={S.hint}>({tags.length}/8)</span></label>
+              {tags.length ? (
+                <div style={S.chips}>
+                  {tags.map((t) => (
+                    <button key={t} type="button" className="rv-chip" style={{ ...S.chip, ...S.chipOn }} onClick={() => toggleTag(t)} title="remove">{t} ✕</button>
+                  ))}
+                </div>
+              ) : null}
+              <div style={S.tagAddRow}>
+                <input
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTag(tagInput); } }}
+                  placeholder="add your own tag"
+                  style={S.tagInput}
+                  maxLength={30}
+                />
+                <button type="button" className="rv-chip" style={{ ...S.tagAdd, opacity: !tagInput.trim() || tags.length >= 8 ? 0.5 : 1 }} onClick={() => addTag(tagInput)} disabled={!tagInput.trim() || tags.length >= 8}>Add</button>
+              </div>
+              <div style={S.chips}>
+                {TAG_SUGGESTIONS.filter((t) => !tags.includes(t)).map((t) => (
+                  <button key={t} type="button" className="rv-chip" style={S.chip} onClick={() => toggleTag(t)}>+ {t}</button>
+                ))}
+              </div>
+            </Section>
+
+            <Section title="Voice">
+              <FieldLabel label="Voice & style" onSuggest={() => suggest(["voice"])} busy={genBusy === "voice"} disabled={!!genBusy} />
+              <input value={voice} onChange={(e) => setVoice(e.target.value)} placeholder="how they talk — dry wit, soft-spoken, poetic, blunt…" style={S.input} maxLength={300} />
+              {genErr?.where === "voice" ? <p style={S.fieldErr}>{genErr.msg}</p> : null}
+
+              <FieldLabel label="Greeting" onSuggest={() => suggest(["greeting"])} busy={genBusy === "greeting"} disabled={!!genBusy} />
+              <input value={greeting} onChange={(e) => setGreeting(e.target.value)} placeholder="the first thing they'd say to you — e.g. “I wasn't sure you'd actually come back.”" style={S.input} maxLength={300} />
+              <p style={S.genHint}>Shown on their card and profile, and said first when someone opens a new chat.</p>
+              {genErr?.where === "greeting" ? <p style={S.fieldErr}>{genErr.msg}</p> : null}
+            </Section>
+
+            <Section title="Preview a reply" defaultOpen={false}>
+              <div style={S.previewBox}>
+                <div style={S.tagAddRow}>
+                  <input
+                    value={previewMsg}
+                    onChange={(e) => setPreviewMsg(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); preview(); } }}
+                    placeholder="say something to them… (optional)"
+                    style={S.tagInput}
+                    maxLength={500}
+                  />
+                  <button type="button" style={{ ...S.tagAdd, opacity: previewBusy ? 0.5 : 1 }} onClick={preview} disabled={previewBusy}>{previewBusy ? "…" : "Preview"}</button>
+                </div>
+                {previewReply ? (
+                  <div style={S.previewReply}>
+                    <Avatar name={name || "?"} size={26} />
+                    <p style={S.previewText}>{previewReply}</p>
+                  </div>
+                ) : (
+                  <p style={S.genHint}>Hear how they respond before publishing — uses the details above.</p>
+                )}
+                {previewErr ? <p style={S.fieldErr}>{previewErr}</p> : null}
+              </div>
+            </Section>
+
+            <p style={S.reviewNote}>
+              Changing any of these details sends {name.trim() || "them"} through a quick safety check again before the update goes live — the current version stays visible until then.
+            </p>
+            {error ? <p style={S.err}>{error}</p> : null}
+
+            <div style={S.actions}>
+              <button style={{ ...S.primary, opacity: !canSave || busy ? 0.55 : 1 }} onClick={create} disabled={!canSave || busy}>
+                {busy ? "Saving…" : "Save changes"}
+              </button>
+              <a href="/characters" style={S.cancel}>Cancel</a>
             </div>
           </div>
-        ) : null}
 
-        <button type="button" style={{ ...S.genAll, opacity: genBusy ? 0.6 : 1 }} onClick={() => suggest(["look", "voice", "persona", "backstory"])} disabled={!!genBusy}>
-          {genBusy === "all" ? "✨ Generating…" : "✨ Generate details for me"}
-        </button>
-        <p style={S.genHint}>Fills look, personality, backstory &amp; voice from the name and tags. Edit anything after.</p>
-        {genErr?.where === "all" ? <p style={S.fieldErr}>{genErr.msg}</p> : null}
-
-        <label style={S.label}>Name</label>
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Mara, Kai, Sable…" style={S.input} maxLength={60} />
-
-        <label style={S.label}>Gender <span style={S.hint}>(set at creation — can&apos;t be changed)</span></label>
-        <div style={S.lockedField}>{gender ? cap(gender) : "Not specified"}</div>
-
-        <label style={S.label}>Age <span style={S.hint}>(must be 18+)</span></label>
-        <input value={age} onChange={(e) => setAge(e.target.value.replace(/[^0-9]/g, "").slice(0, 3))} placeholder="e.g. 24" style={S.input} inputMode="numeric" />
-        {age && !ageOk ? <p style={S.fieldErr}>Characters must be adults — enter an age of 18 or older.</p> : null}
-
-        <FieldLabel label="Look" onSuggest={() => suggest(["look"])} busy={genBusy === "look"} disabled={!!genBusy} />
-        <input value={look} onChange={(e) => setLook(e.target.value)} placeholder="how they appear — hair, style, the way they carry themselves" style={S.input} maxLength={400} />
-        {genErr?.where === "look" ? <p style={S.fieldErr}>{genErr.msg}</p> : null}
-
-        <FieldLabel label="Personality" onSuggest={() => suggest(["persona"])} busy={genBusy === "persona"} disabled={!!genBusy} />
-        <textarea value={persona} onChange={(e) => setPersona(e.target.value)} placeholder="who they are — warm and teasing? guarded but loyal? quick to laugh?" style={S.textarea} maxLength={600} />
-        {genErr?.where === "persona" ? <p style={S.fieldErr}>{genErr.msg}</p> : null}
-
-        <FieldLabel label="Backstory" onSuggest={() => suggest(["backstory"])} busy={genBusy === "backstory"} disabled={!!genBusy} />
-        <textarea value={backstory} onChange={(e) => setBackstory(e.target.value)} placeholder="where they come from, what they want, what haunts them" style={S.textarea} maxLength={600} />
-        {genErr?.where === "backstory" ? <p style={S.fieldErr}>{genErr.msg}</p> : null}
-
-        <FieldLabel label="Voice & style" onSuggest={() => suggest(["voice"])} busy={genBusy === "voice"} disabled={!!genBusy} />
-        <input value={voice} onChange={(e) => setVoice(e.target.value)} placeholder="how they talk — dry wit, soft-spoken, poetic, blunt…" style={S.input} maxLength={300} />
-        {genErr?.where === "voice" ? <p style={S.fieldErr}>{genErr.msg}</p> : null}
-
-        <FieldLabel label="Greeting" onSuggest={() => suggest(["greeting"])} busy={genBusy === "greeting"} disabled={!!genBusy} />
-        <input value={greeting} onChange={(e) => setGreeting(e.target.value)} placeholder="the first thing they'd say to you — e.g. “I wasn't sure you'd actually come back.”" style={S.input} maxLength={300} />
-        <p style={S.genHint}>Shown on their card and profile, and said first when someone opens a new chat.</p>
-        {genErr?.where === "greeting" ? <p style={S.fieldErr}>{genErr.msg}</p> : null}
-
-        <label style={S.label}>Tags <span style={S.hint}>({tags.length}/8)</span></label>
-        {tags.length ? (
-          <div style={S.chips}>
-            {tags.map((t) => (
-              <button key={t} type="button" className="rv-chip" style={{ ...S.chip, ...S.chipOn }} onClick={() => toggleTag(t)} title="remove">{t} ✕</button>
-            ))}
-          </div>
-        ) : null}
-        <div style={S.tagAddRow}>
-          <input
-            value={tagInput}
-            onChange={(e) => setTagInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTag(tagInput); } }}
-            placeholder="add your own tag"
-            style={S.tagInput}
-            maxLength={30}
-          />
-          <button type="button" className="rv-chip" style={{ ...S.tagAdd, opacity: !tagInput.trim() || tags.length >= 8 ? 0.5 : 1 }} onClick={() => addTag(tagInput)} disabled={!tagInput.trim() || tags.length >= 8}>Add</button>
-        </div>
-        <div style={S.chips}>
-          {TAG_SUGGESTIONS.filter((t) => !tags.includes(t)).map((t) => (
-            <button key={t} type="button" className="rv-chip" style={S.chip} onClick={() => toggleTag(t)}>+ {t}</button>
-          ))}
-        </div>
-
-        <label style={S.label}>Preview a reply</label>
-        <div style={S.previewBox}>
-          <div style={S.tagAddRow}>
-            <input
-              value={previewMsg}
-              onChange={(e) => setPreviewMsg(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); preview(); } }}
-              placeholder="say something to them… (optional)"
-              style={S.tagInput}
-              maxLength={500}
-            />
-            <button type="button" style={{ ...S.tagAdd, opacity: previewBusy ? 0.5 : 1 }} onClick={preview} disabled={previewBusy}>{previewBusy ? "…" : "Preview"}</button>
-          </div>
-          {previewReply ? (
-            <div style={S.previewReply}>
-              <Avatar name={name || "?"} size={26} />
-              <p style={S.previewText}>{previewReply}</p>
+          <aside style={S.previewPanel} className="rv-card">
+            {portraitSrc ? (
+              <img src={portraitSrc} alt={name || "portrait"} style={S.previewPanelPortrait} />
+            ) : (
+              <div style={S.previewPanelPortraitEmpty}><Avatar name={name || "?"} size={40} /><span>No portrait yet</span></div>
+            )}
+            <div style={S.previewPanelHead}>
+              <div>
+                <div style={S.previewPanelName}>{name.trim() || "Your character"}</div>
+                {gender || ageOk ? <div style={S.previewPanelMeta}>{[ageOk ? `Age ${ageNum}` : null, gender ? cap(gender) : null].filter(Boolean).join(" · ")}</div> : null}
+              </div>
             </div>
-          ) : (
-            <p style={S.genHint}>Hear how they respond before publishing — uses the details above.</p>
-          )}
-          {previewErr ? <p style={S.fieldErr}>{previewErr}</p> : null}
-        </div>
-
-        {error ? <p style={S.err}>{error}</p> : null}
-
-        <div style={S.actions}>
-          <button style={{ ...S.primary, opacity: !canSave || busy ? 0.55 : 1 }} onClick={create} disabled={!canSave || busy}>
-            {busy ? "Saving…" : "Save changes"}
-          </button>
-          <a href="/characters" style={S.cancel}>Cancel</a>
+            {tags.length ? (
+              <div style={S.previewPanelTags}>
+                {tags.slice(0, 6).map((t) => <span key={t} style={S.previewPanelTag}>{t}</span>)}
+              </div>
+            ) : null}
+            {greeting.trim() ? <p style={S.previewPanelGreeting}>&ldquo;{greeting.trim()}&rdquo;</p> : null}
+            <p style={S.previewPanelHint}>This is roughly how readers see {name.trim() || "them"} today.</p>
+          </aside>
         </div>
         {showPortraitLightbox && portraitSrc ? <ImageLightbox src={portraitSrc} alt={name || "portrait"} onClose={() => setShowPortraitLightbox(false)} /> : null}
       </main>
@@ -602,6 +667,20 @@ export default function CreateCharacterPage() {
   );
 }
 
+// Collapsible edit-mode section. `open` is a static per-call value (never
+// derived from state that changes independently), so React never re-forces
+// it after the user's own click toggles the native <details> - see the CSS
+// comment in layout.tsx for why this has to be a real DOM attribute rather
+// than JS-tracked state to get the chevron rotation for free.
+function Section({ title, defaultOpen = true, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
+  return (
+    <details className="rv-section" open={defaultOpen}>
+      <summary>{title}</summary>
+      <div className="rv-section-body">{children}</div>
+    </details>
+  );
+}
+
 function FieldLabel({ label, onSuggest, busy, disabled }: { label: string; onSuggest: () => void; busy: boolean; disabled: boolean }) {
   return (
     <div style={S.labelRow}>
@@ -652,6 +731,7 @@ const S: Record<string, React.CSSProperties> = {
   previewPanel: { background: "#241B2D", border: "1px solid #3A2E44", borderRadius: 16, padding: 20, height: "fit-content", display: "flex", flexDirection: "column", gap: 14, position: "sticky", top: 76 },
   previewPanelPortrait: { width: "100%", aspectRatio: "4 / 5", objectFit: "cover", borderRadius: 12, display: "block", background: "#1A121F" },
   previewPanelPortraitBtn: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, width: "100%", aspectRatio: "4 / 5", borderRadius: 12, background: "#1A121F", border: "1px dashed #4a3a50", color: "#E9A06B", cursor: "pointer", fontSize: 13.5, fontWeight: 650 },
+  previewPanelPortraitEmpty: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, width: "100%", aspectRatio: "4 / 5", borderRadius: 12, background: "#1A121F", border: "1px dashed #4a3a50", color: "#6f6276", fontSize: 13.5, fontWeight: 600 },
   previewPanelHead: { display: "flex", alignItems: "center", gap: 12 },
   previewPanelName: { fontFamily: "Georgia, serif", fontSize: 19, color: "#F4EAF0", lineHeight: 1.2 },
   previewPanelMeta: { color: "#8A7A90", fontSize: 12.5, marginTop: 2 },
@@ -690,6 +770,7 @@ const S: Record<string, React.CSSProperties> = {
   err: { color: "#E88", fontSize: 14, margin: "16px 0 0" },
   errLink: { color: "#E9A06B", fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" },
   fieldErr: { color: "#E88", fontSize: 13, margin: "6px 0 0" },
+  reviewNote: { color: "#8A7A90", fontSize: 13, margin: "18px 0 0", lineHeight: 1.5 },
   actions: { display: "flex", alignItems: "center", gap: 16, marginTop: 26 },
   primary: { border: 0, cursor: "pointer", color: "#1A1220", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", borderRadius: 12, padding: "13px 22px", fontWeight: 650, fontSize: 15.5, width: "100%" },
   cancel: { color: "#8A7A90", textDecoration: "none", fontSize: 14 },

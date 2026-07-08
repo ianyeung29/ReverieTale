@@ -77,6 +77,22 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   .rv-profile-head { flex-direction: column; }
   .rv-profile-portrait { width: 200px; max-width: 60vw; }
 }
+
+/* Edit-mode collapsible sections: a chevron that rotates on [open] - state
+   that lives on the <details> element itself, not in React, so it can only
+   be styled from a real stylesheet rule (an inline style has no way to
+   express an attribute selector like [open] at all). */
+.rv-section { background: #241B2D; border: 1px solid #3A2E44; border-radius: 14px; margin-bottom: 14px; overflow: hidden; }
+.rv-section > summary {
+  list-style: none; cursor: pointer; padding: 16px 18px;
+  display: flex; align-items: center; justify-content: space-between;
+  font-family: Georgia, serif; font-size: 16px; color: #F4EAF0;
+}
+.rv-section > summary::-webkit-details-marker { display: none; }
+.rv-section > summary::after { content: "⌄"; color: #8A7A90; font-size: 18px; transition: transform .15s ease; }
+.rv-section[open] > summary::after { transform: rotate(180deg); }
+.rv-section > summary:hover { background: #2a2033; }
+.rv-section-body { padding: 2px 18px 18px; }
 `;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
