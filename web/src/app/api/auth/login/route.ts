@@ -8,7 +8,7 @@ import { SESSION_COOKIE, signToken } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
-const WELCOME_CREDITS = Number(process.env.WELCOME_CREDITS || 20);
+const WELCOME_CREDITS = Number(process.env.WELCOME_CREDITS || 10);
 const Body = z.object({ email: z.string().email(), over18: z.boolean().optional() });
 
 // POST /api/auth/login { email } -> find/create the user, grant a welcome
