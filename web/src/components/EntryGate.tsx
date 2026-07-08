@@ -9,12 +9,16 @@ import { MIN_AGE } from "@/lib/legal";
  * exposes no birthdate/age claim to third-party apps, so the age attestation
  * still applies the same either way (see lib/session.ts, lib/google.ts).
  */
-export function EntryGate({ onDone, subtitle = `Continue with your email. ${MIN_AGE}+ only.` }: { onDone: (email: string) => void; subtitle?: string }) {
+export function EntryGate({ onDone, subtitle = `Sign in or create an account. ${MIN_AGE}+ only.` }: { onDone: (email: string) => void; subtitle?: string }) {
+  const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [over18, setOver18] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [googleEnabled, setGoogleEnabled] = useState(false);
+  const [checkEmail, setCheckEmail] = useState<string | null>(null);
+  const [devUrl, setDevUrl] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/config").then((r) => r.json()).then((d) => setGoogleEnabled(!!d.googleEnabled)).catch(() => {});
@@ -27,19 +31,42 @@ export function EntryGate({ onDone, subtitle = `Continue with your email. ${MIN_
   }, []);
 
   async function submit() {
-    if (!over18) return setErr(`You must be ${MIN_AGE} or older to enter.`);
+    if (mode === "signup" && !over18) return setErr(`You must be ${MIN_AGE} or older to enter.`);
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return setErr("Enter a valid email.");
+    if (mode === "signup" && password.length < 8) return setErr("Password must be at least 8 characters.");
+    if (mode === "login" && !password) return setErr("Enter your password.");
     setBusy(true); setErr("");
     try {
-      const res = await fetch("/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, over18 }) });
+      const url = mode === "signup" ? "/api/auth/signup" : "/api/auth/login";
+      const body = mode === "signup" ? { email, password, over18 } : { email, password };
+      const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const d = await res.json();
-      if (res.ok) onDone(d.email); else setErr(d.error || "Something went wrong.");
+      if (!res.ok) return setErr(d.error || "Something went wrong.");
+      if (mode === "signup") { setCheckEmail(email); setDevUrl(d.devVerifyUrl ?? null); return; }
+      onDone(d.email);
     } catch { setErr("Network error."); } finally { setBusy(false); }
   }
 
   function continueWithGoogle() {
     const returnTo = window.location.pathname + window.location.search;
     window.location.href = `/api/auth/google?returnTo=${encodeURIComponent(returnTo)}`;
+  }
+
+  if (checkEmail) {
+    return (
+      <div style={G.center}>
+        <div style={G.gate}>
+          <p style={G.mk}>{MIN_AGE}+ only</p>
+          <h2 style={G.h}>Check your email</h2>
+          <p style={G.sub}>We sent a confirmation link to <b style={{ color: "#F4EAF0" }}>{checkEmail}</b>. Click it to finish creating your account.</p>
+          {devUrl ? (
+            <p style={G.sub}>
+              Email isn&apos;t configured in this environment — <a href={devUrl} style={{ color: "#E9A06B" }}>use this link</a> instead.
+            </p>
+          ) : null}
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -58,10 +85,30 @@ export function EntryGate({ onDone, subtitle = `Continue with your email. ${MIN_
           </>
         ) : null}
 
-        <input style={G.input} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@email.com" onKeyDown={(e) => { if (e.key === "Enter") submit(); }} />
-        <label style={G.chk}><input type="checkbox" checked={over18} onChange={(e) => setOver18(e.target.checked)} /> I am {MIN_AGE} or older</label>
+        <div style={G.tabs}>
+          <button type="button" style={{ ...G.tab, ...(mode === "login" ? G.tabOn : {}) }} onClick={() => { setMode("login"); setErr(""); }}>Log in</button>
+          <button type="button" style={{ ...G.tab, ...(mode === "signup" ? G.tabOn : {}) }} onClick={() => { setMode("signup"); setErr(""); }}>Sign up</button>
+        </div>
+
+        <input style={G.input} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@email.com" autoComplete="email" onKeyDown={(e) => { if (e.key === "Enter") submit(); }} />
+        <input
+          style={G.input}
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder={mode === "signup" ? "Choose a password (8+ characters)" : "Password"}
+          autoComplete={mode === "signup" ? "new-password" : "current-password"}
+          onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
+        />
+        {mode === "signup" ? (
+          <label style={G.chk}><input type="checkbox" checked={over18} onChange={(e) => setOver18(e.target.checked)} /> I am {MIN_AGE} or older</label>
+        ) : (
+          <a href="/forgot-password" style={G.forgot}>Forgot password?</a>
+        )}
         {err ? <p style={G.err}>{err}</p> : null}
-        <button style={{ ...G.btn, opacity: busy ? 0.6 : 1 }} onClick={submit} disabled={busy}>{busy ? "…" : "Continue"}</button>
+        <button style={{ ...G.btn, opacity: busy ? 0.6 : 1 }} onClick={submit} disabled={busy}>
+          {busy ? "…" : mode === "signup" ? "Create account" : "Log in"}
+        </button>
       </div>
     </div>
   );
@@ -92,4 +139,8 @@ const G: Record<string, React.CSSProperties> = {
   divider: { display: "flex", alignItems: "center", gap: 10, margin: "2px 0" },
   dividerLine: { flex: 1, height: 1, background: "#3A2E44" },
   dividerText: { color: "#6f6276", fontSize: 12, letterSpacing: ".08em", textTransform: "uppercase" },
+  tabs: { display: "flex", gap: 6, background: "#1A121F", border: "1px solid #3A2E44", borderRadius: 12, padding: 4 },
+  tab: { flex: 1, background: "transparent", color: "#AC9CB0", border: 0, borderRadius: 9, padding: "8px 0", fontSize: 13.5, fontWeight: 600, cursor: "pointer" },
+  tabOn: { background: "#3A2E44", color: "#F4EAF0" },
+  forgot: { color: "#8A7A90", fontSize: 13, textDecoration: "none", alignSelf: "flex-end" },
 };

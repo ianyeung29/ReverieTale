@@ -3,12 +3,14 @@ import { cookies } from "next/headers";
 
 /**
  * Lightweight session: a signed cookie holding the userId, HMAC'd with
- * SESSION_SECRET. Primary path is "email to continue" with no external
- * provider, since OAuth vendors can suspend client credentials for apps in
- * adult/mature categories. Google Sign-In (lib/google.ts, /api/auth/google) is
- * offered as an added convenience login on top of this - same account model,
- * same ageVerified stub - accepted knowingly despite that suspension risk.
- * Add passwords / real verification before a real launch either way.
+ * SESSION_SECRET. Primary path is email + password (see lib/password.ts,
+ * /api/auth/signup, /api/auth/login), with account creation gated on clicking
+ * an emailed confirmation link (/api/auth/verify-email) so nobody can create
+ * or take over an account using an email they don't control. Google Sign-In
+ * (lib/google.ts, /api/auth/google) is offered as an added convenience login
+ * on top of this - same account model, same ageVerified stub - since OAuth
+ * vendors can suspend client credentials for apps in adult/mature categories
+ * and email + password has no such dependency.
  */
 export const SESSION_COOKIE = "rv_session";
 

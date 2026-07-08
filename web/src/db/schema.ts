@@ -31,8 +31,33 @@ export const users = pgTable("users", {
   // Age gate: attestation now, verification-vendor token later (see exec-3 sec 3).
   ageVerified: boolean("age_verified").notNull().default(false),
   verifiedJurisdiction: text("verified_jurisdiction"),
+  // Null until email ownership is proven via emailVerifications - a Google-only
+  // account (no password ever set) has no password login at all.
+  passwordHash: text("password_hash"),
+  emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// One-time tokens proving email ownership - both new-account signup and
+// password resets go through here before users.passwordHash is ever set or
+// changed. Only the tokenHash (sha256 of the raw token) is stored; the raw
+// token exists only in the emailed link, briefly.
+export const emailVerifications = pgTable(
+  "email_verifications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    tokenHash: text("token_hash").notNull(),
+    purpose: text("purpose").notNull(), // "signup" | "reset"
+    // Captured at signup time (before verification); reset flows fill this in
+    // only once the new password is actually submitted, alongside the token.
+    pendingPasswordHash: text("pending_password_hash"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    consumedAt: timestamp("consumed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({ byToken: index("email_verifications_token_idx").on(t.tokenHash) }),
+);
 
 // Immutable acceptance records, by version (exec-3 sec 10 / consent_record).
 export const consentRecords = pgTable("consent_records", {
