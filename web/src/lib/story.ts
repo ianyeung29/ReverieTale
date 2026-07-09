@@ -16,7 +16,7 @@ export type StoryElements = {
 };
 
 export async function generateStory(def: Record<string, string>, elements: StoryElements = {}, tier: Tier = "standard") {
-  const words = elements.length === "medium" ? "1000-1600 words" : "600-1000 words";
+  const words = elements.length === "medium" ? "1000-1600 words" : "550-1000 words";
   const maxTokens = elements.length === "medium" ? 2200 : 1400;
 
   // Standard (non-explicit) system prompt - the only one authored here.
@@ -70,7 +70,7 @@ export async function generateNextChapter(
   tier: Tier = "standard",
 ) {
   const standardSystem =
-    "You are a skilled fiction writer continuing an ongoing story. Write the NEXT chapter (600-1000 words) that " +
+    "You are a skilled fiction writer continuing an ongoing story. Write the NEXT chapter (550-1000 words) that " +
     "moves the scene forward with new events - do not repeat what already happened. Second person, present tense. " +
     "Tasteful and non-explicit.";
 
