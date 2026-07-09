@@ -1,6 +1,6 @@
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { characters, stories } from "@/db/schema";
+import { characters, stories, threads } from "@/db/schema";
 import { CharacterAvatar } from "@/components/CharacterAvatar";
 import { CharacterCard } from "@/components/CharacterCard";
 import { StarRating } from "@/components/StarRating";
@@ -42,6 +42,36 @@ async function recentStories() {
   }
 }
 
+// The signed-in reader's most recent conversations, one per companion (a
+// companion might have several threads across different stories - only the
+// latest one matters here), so "Continue" always resumes where they left off.
+async function recentThreads(userId: string) {
+  try {
+    const rows = await db
+      .select({
+        characterId: threads.characterId,
+        name: sql<string>`${characters.definition}->>'name'`,
+        lastActiveAt: threads.lastActiveAt,
+      })
+      .from(threads)
+      .innerJoin(characters, eq(threads.characterId, characters.id))
+      .where(and(eq(threads.userId, userId), eq(characters.status, "published")))
+      .orderBy(desc(threads.lastActiveAt))
+      .limit(30);
+    const seen = new Set<string>();
+    const out: { characterId: string; name: string; lastActiveAt: Date }[] = [];
+    for (const r of rows) {
+      if (seen.has(r.characterId)) continue;
+      seen.add(r.characterId);
+      out.push(r);
+      if (out.length >= 8) break;
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
 async function storyCount() {
   try {
     const [row] = await db
@@ -63,7 +93,12 @@ const STEPS = [
 
 export default async function Home() {
   const viewerId = await getCurrentUserId();
-  const [feed, allChars, storyTotal] = await Promise.all([recentStories(), listCharacters({ viewerId: viewerId ?? undefined }).catch(() => []), storyCount()]);
+  const [feed, allChars, storyTotal, continueWith] = await Promise.all([
+    recentStories(),
+    listCharacters({ viewerId: viewerId ?? undefined }).catch(() => []),
+    storyCount(),
+    viewerId ? recentThreads(viewerId) : Promise.resolve([]),
+  ]);
   const trending = [...allChars].sort((a, b) => trendingScore(b.reads, b.createdAt) - trendingScore(a.reads, a.createdAt)).slice(0, 6);
   const companions = allChars.length;
   const empty = trending.length === 0 && feed.length === 0;
@@ -110,6 +145,21 @@ export default async function Home() {
           <a href="/create" className="rv-btn" style={btn(false)}>Create your own</a>
         </div>
       </section>
+
+      {continueWith.length > 0 ? (
+        <section className="rv-reveal rv-d1">
+          <p style={{ ...S.section, margin: "36px 0 14px" }}>Continue</p>
+          <div style={S.continueRow}>
+            {continueWith.map((c) => (
+              <a key={c.characterId} href={`/chat?characterId=${c.characterId}`} style={S.continueItem}>
+                <div style={S.continueRing}><CharacterAvatar characterId={c.characterId} name={c.name} size={64} /></div>
+                <span style={S.continueName}>{c.name}</span>
+                <span style={S.continueWhen}>{new Date(c.lastActiveAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
+              </a>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {moods.length ? (
         <div style={S.moodRow} className="rv-reveal rv-d1">
@@ -207,6 +257,11 @@ const S: Record<string, React.CSSProperties> = {
   spotlightArrow: { color: "#E9A06B", fontWeight: 700 },
   stat: { position: "relative", color: "#8A7A90", fontSize: 13.5, margin: "16px 0 0", letterSpacing: ".02em", fontVariantNumeric: "tabular-nums" },
   cta: { position: "relative", display: "flex", gap: 12, marginTop: 26, flexWrap: "wrap" },
+  continueRow: { display: "flex", gap: 18, overflowX: "auto", paddingBottom: 4, position: "relative", zIndex: 1 },
+  continueItem: { display: "flex", flexDirection: "column", alignItems: "center", gap: 6, textDecoration: "none", flexShrink: 0, width: 76 },
+  continueRing: { padding: 3, borderRadius: "50%", background: "linear-gradient(135deg,#E9A06B,#D46A8B)" },
+  continueName: { color: "#F4EAF0", fontSize: 12.5, fontWeight: 600, textAlign: "center", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 76 },
+  continueWhen: { color: "#6f6276", fontSize: 11 },
   moodRow: { display: "flex", flexWrap: "wrap", gap: 9, alignItems: "center", margin: "22px 2px 0", position: "relative", zIndex: 1 },
   moodLabel: { color: "#6f6276", fontSize: 12.5, letterSpacing: ".04em", marginRight: 2 },
   moodChip: { fontSize: 12.5, color: "#CBBBD0", background: "#241B2D", border: "1px solid #3A2E44", borderRadius: 999, padding: "6px 13px", textDecoration: "none", textTransform: "capitalize" },
