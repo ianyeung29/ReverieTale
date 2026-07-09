@@ -85,6 +85,32 @@ async function storyCount() {
   }
 }
 
+/** A public story to send the "Read their story" spotlight CTA to - most-read first. */
+async function topStoryFor(characterId: string): Promise<string | null> {
+  try {
+    const [row] = await db
+      .select({ id: stories.id })
+      .from(stories)
+      .where(and(eq(stories.characterId, characterId), eq(stories.isPublic, true)))
+      .orderBy(desc(stories.reads))
+      .limit(1);
+    return row?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// Deterministic "random" pick that only changes once a day, so the spotlight
+// doesn't reshuffle on every request - but a different seed (e.g. the viewer's
+// id) gives different visitors a different pick on the same day.
+function dailyPick<T>(list: T[], seed: string): T | null {
+  if (!list.length) return null;
+  const day = new Date().toISOString().slice(0, 10);
+  let h = 0;
+  for (const ch of day + seed) h = (h * 31 + ch.charCodeAt(0)) % 1_000_000;
+  return list[h % list.length];
+}
+
 const STEPS = [
   { n: "01", icon: "🎭", title: "Meet a companion", body: "Pick a character — or craft your own with a persona, look, and history." },
   { n: "02", icon: "✍️", title: "Shape a story", body: "Write an opening chapter together and steer every twist that follows." },
@@ -104,9 +130,17 @@ export default async function Home() {
   const empty = trending.length === 0 && feed.length === 0;
   const hasStats = companions > 0 || storyTotal > 0;
 
-  // Hero spotlight: the single highest-trending companion who actually has a
-  // portrait, so the hero shows real art instead of only gradient decoration.
-  const spotlight = trending.find((c) => c.hasImage) ?? null;
+  // Spotlight: a companion with a real portrait, rotated once a day. Personalized
+  // when signed in - prefer someone the reader hasn't met yet (a discovery nudge;
+  // the "Continue" row already covers who they already know), falling back to the
+  // full catalog once they've tried everyone. A per-viewer seed means different
+  // readers can get a different pick on the same day, not just one global choice.
+  const withImage = allChars.filter((c) => c.hasImage);
+  const knownIds = new Set(continueWith.map((c) => c.characterId));
+  const undiscovered = withImage.filter((c) => !knownIds.has(c.id));
+  const spotlightPool = undiscovered.length > 0 ? undiscovered : withImage;
+  const spotlight = dailyPick(spotlightPool, viewerId ?? "anon");
+  const spotlightStoryId = spotlight ? await topStoryFor(spotlight.id) : null;
 
   // "Pick tonight's mood": the most common tags across the live catalog, so every
   // chip is guaranteed to lead somewhere populated.
@@ -120,22 +154,9 @@ export default async function Home() {
       <div style={S.auroraB} />
 
       <section style={S.hero} className="rv-reveal">
-        {spotlight ? (
-          <div aria-hidden style={S.heroBgLayer}>
-            <div style={{ ...S.heroBgImage, backgroundImage: `url(/api/characters/${spotlight.id}/image)` }} />
-            <div style={S.heroScrim} />
-          </div>
-        ) : null}
         <p style={S.eyebrow}>{MIN_AGE}+ · companions who remember you</p>
         <h1 style={S.h1}><span className="rv-title">Reverie</span></h1>
         <p style={S.sub}>Begin with a story. Meet a character. Then stay and talk to someone who remembers every word.</p>
-        {spotlight ? (
-          <a href={`/c/${spotlight.id}`} style={S.spotlight} className="rv-reveal rv-d1">
-            <CharacterAvatar characterId={spotlight.id} name={spotlight.name} size={30} />
-            <span>Tonight&apos;s spotlight: <strong style={S.spotlightName}>{spotlight.name}</strong></span>
-            <span style={S.spotlightArrow}>→</span>
-          </a>
-        ) : null}
         {hasStats ? (
           <p style={S.stat}>{companions} companion{companions === 1 ? "" : "s"} · {storyTotal} stor{storyTotal === 1 ? "y" : "ies"} · always remembering</p>
         ) : null}
@@ -145,6 +166,37 @@ export default async function Home() {
           <a href="/create" className="rv-btn" style={btn(false)}>Create your own</a>
         </div>
       </section>
+
+      {spotlight ? (
+        <section style={S.spot} className="rv-reveal rv-d1">
+          <div aria-hidden style={S.spotBgLayer}>
+            <div style={{ ...S.spotBgImage, backgroundImage: `url(/api/characters/${spotlight.id}/image)` }} />
+            <div style={S.spotScrim} />
+          </div>
+          <div style={S.spotPortrait}>
+            <CharacterAvatar characterId={spotlight.id} name={spotlight.name} shape="rect" />
+          </div>
+          <div style={S.spotBody}>
+            <p style={S.spotEyebrow}>Tonight&apos;s spotlight</p>
+            <h2 style={S.spotName}>{spotlight.name}</h2>
+            {spotlight.tagline ? <p style={S.spotHook}>{spotlight.tagline}</p> : null}
+            {spotlight.tags.length ? (
+              <div style={S.spotTags}>
+                {spotlight.tags.slice(0, 4).map((t) => <span key={t} style={S.spotTag}>{t}</span>)}
+              </div>
+            ) : null}
+            {spotlight.greeting ? <p style={S.spotQuote}>&ldquo;{spotlight.greeting}&rdquo;</p> : null}
+            <div style={S.spotCta}>
+              {spotlightStoryId ? (
+                <a href={`/story/${spotlightStoryId}`} className="rv-btn rv-btn-primary" style={btn(true)}>Read their story →</a>
+              ) : (
+                <a href={`/story?characterId=${spotlight.id}`} className="rv-btn rv-btn-primary" style={btn(true)}>Begin their story →</a>
+              )}
+              <a href={`/chat?characterId=${spotlight.id}`} className="rv-btn" style={btn(false)}>Chat with {spotlight.name}</a>
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       {continueWith.length > 0 ? (
         <section className="rv-reveal rv-d1">
@@ -246,17 +298,24 @@ const S: Record<string, React.CSSProperties> = {
   auroraA: { position: "absolute", top: -180, left: "18%", width: 520, height: 420, background: "radial-gradient(closest-side, rgba(233,160,107,.18), transparent)", pointerEvents: "none", zIndex: 0, filter: "blur(6px)" },
   auroraB: { position: "absolute", top: -120, right: "10%", width: 480, height: 400, background: "radial-gradient(closest-side, rgba(212,106,139,.20), transparent)", pointerEvents: "none", zIndex: 0, filter: "blur(6px)" },
   hero: { position: "relative", zIndex: 1, padding: 4, borderRadius: 24, overflow: "hidden" },
-  heroBgLayer: { position: "absolute", inset: 0, zIndex: 0, overflow: "hidden", pointerEvents: "none" },
-  heroBgImage: { position: "absolute", inset: -30, backgroundSize: "cover", backgroundPosition: "center 25%", filter: "blur(9px) brightness(.5) saturate(1.15)", transform: "scale(1.08)" },
-  heroScrim: { position: "absolute", inset: 0, background: "radial-gradient(85% 70% at 22% 30%, rgba(21,15,26,.35), rgba(21,15,26,.88) 72%), linear-gradient(100deg, rgba(21,15,26,.55), rgba(21,15,26,.75))" },
   eyebrow: { position: "relative", letterSpacing: ".22em", textTransform: "uppercase", fontSize: 12, color: "#E9A06B", fontWeight: 700, margin: 0 },
   h1: { position: "relative", fontFamily: "Georgia, serif", fontSize: 66, margin: "14px 0 16px", letterSpacing: "-.015em", lineHeight: 1 },
   sub: { position: "relative", color: "#C6B7CC", fontSize: 19, maxWidth: 560, lineHeight: 1.55, margin: 0 },
-  spotlight: { position: "relative", display: "inline-flex", alignItems: "center", gap: 9, marginTop: 20, background: "rgba(35,26,43,.55)", border: "1px solid #4a3a50", borderRadius: 999, padding: "6px 16px 6px 6px", textDecoration: "none", color: "#EadFe6", fontSize: 13.5, backdropFilter: "blur(6px)" },
-  spotlightName: { color: "#F4EAF0" },
-  spotlightArrow: { color: "#E9A06B", fontWeight: 700 },
   stat: { position: "relative", color: "#8A7A90", fontSize: 13.5, margin: "16px 0 0", letterSpacing: ".02em", fontVariantNumeric: "tabular-nums" },
   cta: { position: "relative", display: "flex", gap: 12, marginTop: 26, flexWrap: "wrap" },
+  spot: { position: "relative", zIndex: 1, marginTop: 40, borderRadius: 24, overflow: "hidden", border: "1px solid #3A2E44", display: "flex", flexWrap: "wrap", gap: 28, padding: 28 },
+  spotBgLayer: { position: "absolute", inset: 0, zIndex: 0, overflow: "hidden", pointerEvents: "none" },
+  spotBgImage: { position: "absolute", inset: -30, backgroundSize: "cover", backgroundPosition: "center 20%", filter: "blur(16px) brightness(.4) saturate(1.15)", transform: "scale(1.12)" },
+  spotScrim: { position: "absolute", inset: 0, background: "linear-gradient(100deg, rgba(21,15,26,.72), rgba(21,15,26,.5))" },
+  spotPortrait: { position: "relative", zIndex: 1, width: 260, maxWidth: "100%", flexShrink: 0 },
+  spotBody: { position: "relative", zIndex: 1, flex: "1 1 320px", minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: 8 },
+  spotEyebrow: { letterSpacing: ".18em", textTransform: "uppercase", fontSize: 11.5, color: "#E9A06B", fontWeight: 700, margin: 0 },
+  spotName: { fontFamily: "Georgia, serif", fontSize: 38, margin: "2px 0 0", color: "#F4EAF0" },
+  spotHook: { color: "#C6B7CC", fontSize: 15, margin: 0, maxWidth: 480 },
+  spotTags: { display: "flex", flexWrap: "wrap", gap: 6, margin: "2px 0" },
+  spotTag: { fontSize: 11.5, color: "#F4EAF0", background: "rgba(233,160,107,.16)", border: "1px solid rgba(233,160,107,.4)", borderRadius: 999, padding: "3px 10px", textTransform: "capitalize" },
+  spotQuote: { color: "#EadFe6", fontSize: 15.5, fontStyle: "italic", margin: "6px 0 4px", lineHeight: 1.5, borderLeft: "2px solid #E9A06B", paddingLeft: 12, maxWidth: 480 },
+  spotCta: { display: "flex", gap: 12, flexWrap: "wrap", marginTop: 10 },
   continueRow: { display: "flex", gap: 18, overflowX: "auto", paddingBottom: 4, position: "relative", zIndex: 1 },
   continueItem: { display: "flex", flexDirection: "column", alignItems: "center", gap: 6, textDecoration: "none", flexShrink: 0, width: 76 },
   continueRing: { padding: 3, borderRadius: "50%", background: "linear-gradient(135deg,#E9A06B,#D46A8B)" },
