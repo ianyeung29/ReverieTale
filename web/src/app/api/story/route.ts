@@ -85,6 +85,7 @@ export async function POST(req: Request) {
         userId, // nullable - story is a public front-door
         title,
         content,
+        chapterDates: [new Date().toISOString()],
         elements: {
           setting: body.setting ?? null,
           tone: body.tone ?? null,

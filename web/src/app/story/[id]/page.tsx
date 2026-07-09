@@ -14,7 +14,13 @@ type Story = {
   reads: number; rating: number; ratingCount: number; myRating: number | null; canRate: boolean;
   isSaved: boolean; canSave: boolean;
   isCharacterHidden: boolean;
+  createdAt: string; chapterDates: string[];
 };
+
+function formatChapterDate(story: Story, chapterIdx: number): string {
+  const iso = story.chapterDates[chapterIdx] ?? story.createdAt;
+  return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+}
 
 const MOODS = ["sweet", "playful", "flirty", "tender", "tense", "mysterious", "dramatic"];
 const TWISTS = ["a confession", "an interruption", "a secret revealed", "they almost kiss", "a misunderstanding", "a bold move", "someone arrives"];
@@ -249,7 +255,7 @@ export default function StoryReadPage() {
         <CharacterAvatar characterId={story.characterId} name={story.characterName} size={46} variant={expr} />
         <div>
           <h1 style={S.title}>{story.title}</h1>
-          <p style={S.by}>with <a href={`/c/${story.characterId}`} style={S.byLink}>{story.characterName}</a> · chapter {idx + 1} of {chapters.length} · ~{readMin} min · {story.reads} view{story.reads === 1 ? "" : "s"}</p>
+          <p style={S.by}>with <a href={`/c/${story.characterId}`} style={S.byLink}>{story.characterName}</a> · chapter {idx + 1} of {chapters.length} · {formatChapterDate(story, idx)} · ~{readMin} min · {story.reads} view{story.reads === 1 ? "" : "s"}</p>
         </div>
       </div>
 

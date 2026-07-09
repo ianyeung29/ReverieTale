@@ -40,7 +40,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   const [row] = await db
-    .select({ ownerId: stories.userId, content: stories.content, elements: stories.elements, definition: characters.definition })
+    .select({ ownerId: stories.userId, content: stories.content, elements: stories.elements, chapterDates: stories.chapterDates, definition: characters.definition })
     .from(stories)
     .innerJoin(characters, eq(stories.characterId, characters.id))
     .where(eq(stories.id, id))
@@ -78,7 +78,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     // follow the OLD version, so they're dropped (the client confirms first).
     // Save the pre-rewrite version as a one-level backup the creator can restore.
     const kept = [...chapters.slice(0, body.chapterIndex), newChapter.trim()];
-    await db.update(stories).set({ content: kept.join(SEP), backup: row.content, backupAt: new Date() }).where(eq(stories.id, id));
+    const chapterDates = [...(row.chapterDates ?? []).slice(0, body.chapterIndex), new Date().toISOString()];
+    await db.update(stories).set({ content: kept.join(SEP), chapterDates, backup: row.content, backupAt: new Date() }).where(eq(stories.id, id));
 
     // Charge only after a successful, safety-cleared rewrite + save.
     const charge = await spend(userId, CHAPTER_PRICE, { kind: "rewrite", storyId: id, chapter: body.chapterIndex });

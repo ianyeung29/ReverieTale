@@ -110,6 +110,10 @@ export const stories = pgTable(
     title: text("title").notNull(),
     content: text("content").notNull(),
     elements: jsonb("elements"), // { setting, tone, ... }
+    // One ISO timestamp per chapter, in order (chapterDates[0] = chapter 1's
+    // creation date, etc). Null/missing/short for older stories written before
+    // this was tracked - the reader falls back to createdAt for those.
+    chapterDates: jsonb("chapter_dates").$type<string[]>(),
     // Optional ambient background, generated from the story's setting and stored
     // base64 + mime, served via /api/stories/:id/background. Sets mood while reading.
     image: text("image"),

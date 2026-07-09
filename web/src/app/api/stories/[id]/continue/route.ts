@@ -43,7 +43,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   const [row] = await db
-    .select({ ownerId: stories.userId, content: stories.content, elements: stories.elements, definition: characters.definition })
+    .select({ ownerId: stories.userId, content: stories.content, elements: stories.elements, chapterDates: stories.chapterDates, definition: characters.definition })
     .from(stories)
     .innerJoin(characters, eq(stories.characterId, characters.id))
     .where(eq(stories.id, id))
@@ -70,7 +70,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     if (screen(chapter).blocked) return NextResponse.json({ error: "blocked", reason: "safety_minor" }, { status: 422 });
 
     const updated = `${row.content}\n\n· · ·\n\n${chapter}`;
-    await db.update(stories).set({ content: updated }).where(eq(stories.id, id));
+    const chapterDates = [...(row.chapterDates ?? []), new Date().toISOString()];
+    await db.update(stories).set({ content: updated, chapterDates }).where(eq(stories.id, id));
 
     // Charge only after a successful, safety-cleared generation + save.
     const charge = await spend(userId, CHAPTER_PRICE, { kind: "chapter", storyId: id });
