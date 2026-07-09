@@ -110,6 +110,15 @@ async function urlToImage(url: string): Promise<{ base64: string; mime: string }
   return { base64: buf.toString("base64"), mime };
 }
 
+// ModelsLab's `output` entries are normally URLs, but img2img with base64:"yes"
+// can hand back a data URI or a bare base64 string instead - handle both.
+async function outputToImage(value: string): Promise<{ base64: string; mime: string }> {
+  const dataUri = value.match(/^data:(image\/\w+);base64,(.+)$/s);
+  if (dataUri) return { base64: dataUri[2], mime: dataUri[1] };
+  if (/^https?:\/\//i.test(value)) return urlToImage(value);
+  return { base64: value, mime: "image/png" };
+}
+
 // ---- ModelsLab (FLUX) --------------------------------------------------------
 type MlResp = {
   status?: string;
@@ -211,7 +220,7 @@ export async function generateExpressionVariant(baseImageBase64: string, express
   const payload = {
     key,
     model_id: model,
-    init_image: `data:image/png;base64,${baseImageBase64}`,
+    init_image: baseImageBase64,
     prompt: EXPRESSION_PROMPTS[expression],
     negative_prompt: "different person, different face, different identity, deformed",
     strength: 0.4,
@@ -221,7 +230,11 @@ export async function generateExpressionVariant(baseImageBase64: string, express
     num_inference_steps: "25",
     safety_checker: process.env.IMAGE_SAFETY_CHECKER || "yes",
     enhance_prompt: "no",
-    base64: "no",
+    // Unlike text2img, img2img reads this as "is init_image base64 data (yes)
+    // or a URL (no)?" - "no" here made ModelsLab reject our base64 init_image
+    // with "init image must be a valid url when base64 is a representation of
+    // false". We always pass base64 image data, so this must be "yes".
+    base64: "yes",
   };
 
   let lastMsg = "";
@@ -230,11 +243,11 @@ export async function generateExpressionVariant(baseImageBase64: string, express
     if (!res.ok) throw new Error(`modelslab img2img ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
 
     let data = (await res.json()) as MlResp;
-    if (data.output?.[0]) return urlToImage(data.output[0]);
+    if (data.output?.[0]) return outputToImage(data.output[0]);
 
     if (data.status === "processing" && data.fetch_result) {
       data = await pollModelsLab(data.fetch_result, key);
-      if (data.output?.[0]) return urlToImage(data.output[0]);
+      if (data.output?.[0]) return outputToImage(data.output[0]);
     }
 
     lastMsg = String(data.message || data.messege || data.status || "").trim();
