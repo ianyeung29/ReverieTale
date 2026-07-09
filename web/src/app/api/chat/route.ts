@@ -44,7 +44,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "out_of_credits", balance: result.balance }, { status: 402 });
     return NextResponse.json({ threadId: result.threadId, reply: result.reply, balance: result.balance });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "chat failed";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    console.error("[chat] failed:", e instanceof Error ? e.message : e);
+    return NextResponse.json({ error: "chat failed" }, { status: 500 });
   }
 }

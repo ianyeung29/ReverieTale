@@ -42,7 +42,8 @@ export async function POST(req: Request) {
   try {
     prep = await prepareChat({ userId, characterId: body.characterId, threadId: body.threadId, message: body.message, storyId: body.storyId, chapter: body.chapter });
   } catch (e) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : "chat failed" }, { status: 500 });
+    console.error("[chat/stream] failed:", e instanceof Error ? e.message : e);
+    return NextResponse.json({ error: "chat failed" }, { status: 500 });
   }
   if (prep.status === "blocked") return NextResponse.json({ error: "blocked", reason: prep.reason }, { status: 422 });
   if (prep.status === "paywall") return NextResponse.json({ error: "out_of_credits", balance: prep.balance }, { status: 402 });
