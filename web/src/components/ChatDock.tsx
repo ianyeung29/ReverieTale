@@ -53,6 +53,31 @@ export function ChatDock({
       .finally(() => setAuthChecked(true));
   }, [open, authChecked]);
 
+  // The dock is remounted fresh every time you navigate to a new page, so its
+  // local `messages`/`threadId` state starts empty even mid-conversation.
+  // Once we know you're signed in, resume the existing thread with this
+  // character (if any) instead of looking like the history was lost.
+  useEffect(() => {
+    if (!open || !authChecked || needAuth || threadId) return;
+    (async () => {
+      try {
+        const convos: { id: string; characterId: string }[] = await fetch("/api/threads").then((r) => r.json());
+        const latest = Array.isArray(convos) ? convos.find((c) => c.characterId === characterId) : null;
+        if (!latest) return;
+        const rows: Msg[] = await fetch(`/api/messages?threadId=${latest.id}`).then((r) => r.json());
+        if (!Array.isArray(rows) || !rows.length) return;
+        // Guard against a race where the user already started a fresh
+        // conversation (sending a message sets threadId) while this was in
+        // flight - don't clobber it with older history.
+        setThreadId((cur) => cur ?? latest.id);
+        setMessages((cur) => (cur.length ? cur : rows));
+      } catch {
+        /* resuming history is best-effort; a fresh conversation still works */
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, authChecked, needAuth]);
+
   async function send() {
     const text = input.trim();
     if (!text || busy) return;
