@@ -35,10 +35,23 @@ export function ChatDock({
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [needAuth, setNeedAuth] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const [broke, setBroke] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, busy, open]);
+
+  // Check sign-in status as soon as the panel opens, so an anonymous visitor
+  // sees the "sign in to talk" prompt right away instead of only after typing
+  // a message and having the request come back 401.
+  useEffect(() => {
+    if (!open || authChecked) return;
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((d) => setNeedAuth(!d.user))
+      .catch(() => {})
+      .finally(() => setAuthChecked(true));
+  }, [open, authChecked]);
 
   async function send() {
     const text = input.trim();
@@ -90,8 +103,8 @@ export function ChatDock({
         <button style={D.close} onClick={() => setOpen(false)} aria-label="Close">×</button>
       </div>
       <div style={D.feed}>
-        {messages.length === 0 && !needAuth ? <div style={D.hint}>Say hi to {characterName}.</div> : null}
-        {messages.map((m, i) =>
+        {authChecked && messages.length === 0 && !needAuth ? <div style={D.hint}>Say hi to {characterName}.</div> : null}
+        {authChecked ? messages.map((m, i) =>
           m.role === "system" ? (
             <div key={i} style={D.sys}>{m.content}</div>
           ) : (
@@ -99,13 +112,13 @@ export function ChatDock({
               <div style={{ ...D.bubble, ...(m.role === "user" ? D.user : D.bot) }}>{m.content}</div>
             </div>
           ),
-        )}
+        ) : null}
         {busy ? <div style={{ ...D.row, justifyContent: "flex-start" }}><div style={{ ...D.bubble, ...D.bot, color: "#8A7A90" }}>…</div></div> : null}
-        {needAuth ? <a href={`/chat?characterId=${characterId}${storyId ? `&fromStory=${storyId}` : ""}`} style={D.signin}>Sign in to talk to {characterName} →</a> : null}
+        {authChecked && needAuth ? <a href={`/chat?characterId=${characterId}${storyId ? `&fromStory=${storyId}` : ""}`} style={D.signin}>Sign in to talk to {characterName} →</a> : null}
         {broke ? <a href="/credits" style={D.signin}>Get more credits →</a> : null}
         <div ref={endRef} />
       </div>
-      {!needAuth ? (
+      {authChecked && !needAuth ? (
         <div style={D.bar}>
           <input style={D.input} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); send(); } }} placeholder={`Message ${characterName}`} disabled={busy} />
           <button style={{ ...D.send, opacity: busy || !input.trim() ? 0.5 : 1 }} onClick={send} disabled={busy || !input.trim()}>↑</button>
