@@ -23,6 +23,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       ownerId: stories.userId,
       backup: stories.backup,
       reads: stories.reads,
+      elements: stories.elements,
       definition: characters.definition,
     })
     .from(stories)
@@ -87,6 +88,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     characterId: row.characterId,
     characterName: def.name ?? "Unknown",
     characterTagline: def.backstory ?? "",
+    tone: (row.elements as Record<string, string> | null)?.tone ?? "",
     isOwner,
     hasBackup: isOwner && Boolean(row.backup),
     hasBackground,

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { CharacterAvatar } from "./CharacterAvatar";
+import { pickExpression } from "@/lib/expression";
 
 type Msg = { role: "user" | "character" | "system"; content: string };
 
@@ -70,10 +71,13 @@ export function ChatDock({
     }
   }
 
+  const lastReply = [...messages].reverse().find((m) => m.role === "character");
+  const expr = pickExpression(lastReply?.content);
+
   if (!open) {
     return (
       <button className="rv-chatdock-fab" onClick={() => setOpen(true)} aria-label={`Chat with ${characterName}`}>
-        <CharacterAvatar characterId={characterId} name={characterName} size={34} />
+        <CharacterAvatar characterId={characterId} name={characterName} size={34} variant={expr} />
         <span style={D.fabLabel}>Chat with {characterName}</span>
       </button>
     );
@@ -82,7 +86,7 @@ export function ChatDock({
   return (
     <div style={D.panel}>
       <div style={D.head}>
-        <div style={D.headL}><CharacterAvatar characterId={characterId} name={characterName} size={28} /><span style={D.name}>{characterName}</span></div>
+        <div style={D.headL}><CharacterAvatar characterId={characterId} name={characterName} size={28} variant={expr} /><span style={D.name}>{characterName}</span></div>
         <button style={D.close} onClick={() => setOpen(false)} aria-label="Close">×</button>
       </div>
       <div style={D.feed}>

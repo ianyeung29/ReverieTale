@@ -186,6 +186,67 @@ async function pollModelsLab(fetchUrl: string, key: string): Promise<MlResp> {
   return last; // still processing; caller throws with context
 }
 
+// ---- Expression variants (ModelsLab img2img only) ----------------------------
+// Same face/identity as an existing portrait, nudged toward a different
+// expression via img2img (init_image + a low-ish strength so it stays close to
+// the source instead of drifting into a different-looking person). Pilot
+// feature - only wired up for a handful of characters so far, and only
+// available on ModelsLab; grok/fal here are text-to-image only.
+export type Expression = "warm" | "flirty";
+
+const EXPRESSION_PROMPTS: Record<Expression, string> = {
+  warm: "same person, warm genuine smile, soft happy expression, gentle eyes, relaxed and affectionate, upper-body portrait, soft cinematic lighting, tasteful, safe for work",
+  flirty: "same person, flirty smirk, playful sultry expression, raised eyebrow, alluring inviting gaze, upper-body portrait, soft cinematic lighting, tasteful, safe for work",
+};
+
+export function expressionVariantsConfigured(): boolean {
+  return (process.env.IMAGE_PROVIDER || "grok") === "modelslab" && Boolean(process.env.MODELSLAB_API_KEY);
+}
+
+export async function generateExpressionVariant(baseImageBase64: string, expression: Expression): Promise<{ base64: string; mime: string }> {
+  const key = process.env.MODELSLAB_API_KEY;
+  if (!key) throw new Error("MODELSLAB_API_KEY is not set");
+  const model = process.env.IMAGE_MODEL || "flux";
+  const url = process.env.MODELSLAB_IMG2IMG_URL || "https://modelslab.com/api/v6/images/img2img";
+  const payload = {
+    key,
+    model_id: model,
+    init_image: `data:image/png;base64,${baseImageBase64}`,
+    prompt: EXPRESSION_PROMPTS[expression],
+    negative_prompt: "different person, different face, different identity, deformed",
+    strength: 0.4,
+    width: "768",
+    height: "1024",
+    samples: "1",
+    num_inference_steps: "25",
+    safety_checker: process.env.IMAGE_SAFETY_CHECKER || "yes",
+    enhance_prompt: "no",
+    base64: "no",
+  };
+
+  let lastMsg = "";
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    if (!res.ok) throw new Error(`modelslab img2img ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
+
+    let data = (await res.json()) as MlResp;
+    if (data.output?.[0]) return urlToImage(data.output[0]);
+
+    if (data.status === "processing" && data.fetch_result) {
+      data = await pollModelsLab(data.fetch_result, key);
+      if (data.output?.[0]) return urlToImage(data.output[0]);
+    }
+
+    lastMsg = String(data.message || data.messege || data.status || "").trim();
+    if (/try again|loading|warming/i.test(lastMsg)) {
+      await new Promise((r) => setTimeout(r, 5000));
+      continue;
+    }
+    throw new Error(`modelslab img2img: ${lastMsg || "no image in response"}`);
+  }
+  throw new Error(`modelslab img2img: the model kept warming up (${lastMsg || "Try Again"}) — wait a moment and retry`);
+}
+
 // ---- fal.ai (FLUX.1 [dev]) ---------------------------------------------------
 async function generateFal(prompt: string): Promise<{ base64: string; mime: string }> {
   const key = process.env.FAL_KEY;

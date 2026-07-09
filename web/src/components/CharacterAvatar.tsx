@@ -22,6 +22,7 @@ export function CharacterAvatar({
   version,
   enlargeable = false,
   shape = "circle",
+  variant,
 }: {
   characterId?: string;
   name: string;
@@ -33,6 +34,10 @@ export function CharacterAvatar({
   // circle - same load/fail handling, just a different frame for a bigger, more
   // "this is a real character" presentation on cards and profile heroes.
   shape?: "circle" | "rect";
+  // Optional expression variant (pilot feature - see lib/image.ts). Falls back
+  // to the canonical portrait server-side if that character has no such
+  // variant generated, so it's always safe to pass.
+  variant?: "neutral" | "warm" | "flirty";
 }) {
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -48,11 +53,15 @@ export function CharacterAvatar({
       if (img.naturalWidth > 0) setLoaded(true);
       else setFailed(true);
     }
-  }, [characterId, version]);
+  }, [characterId, version, variant]);
 
   const showImg = Boolean(characterId) && !failed;
   const clickable = enlargeable && showImg && loaded;
-  const src = `/api/characters/${characterId}/image${version != null ? `?v=${version}` : ""}`;
+  const params = new URLSearchParams();
+  if (version != null) params.set("v", String(version));
+  if (variant && variant !== "neutral") params.set("variant", variant);
+  const qs = params.toString();
+  const src = `/api/characters/${characterId}/image${qs ? `?${qs}` : ""}`;
   const rect = shape === "rect";
 
   // Same hash-based gradient as Avatar, reshaped into a rect fallback panel

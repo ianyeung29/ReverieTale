@@ -6,9 +6,10 @@ import { CharacterAvatar } from "@/components/CharacterAvatar";
 import { ChatDock } from "@/components/ChatDock";
 import { RatingBar } from "@/components/RatingBar";
 import { ReportLink } from "@/components/TrustControls";
+import { pickExpression } from "@/lib/expression";
 
 type Story = {
-  id: string; title: string; content: string; characterId: string; characterName: string; characterTagline: string;
+  id: string; title: string; content: string; characterId: string; characterName: string; characterTagline: string; tone: string;
   isOwner: boolean; hasBackup: boolean; hasBackground: boolean;
   reads: number; rating: number; ratingCount: number; myRating: number | null; canRate: boolean;
   isSaved: boolean; canSave: boolean;
@@ -178,6 +179,9 @@ export default function StoryReadPage() {
   const progress = chapters.length ? ((idx + 1) / chapters.length) * 100 : 0;
   const words = (chapters[idx] ?? "").trim().split(/\s+/).filter(Boolean).length;
   const readMin = Math.max(1, Math.round(words / 200));
+  // Story-wide mood cue for the companion's portrait (falls back to the
+  // canonical portrait for characters without variants, or a neutral tone).
+  const expr = pickExpression(story.tone);
 
   return (
     <main style={S.wrap}>
@@ -193,7 +197,7 @@ export default function StoryReadPage() {
       {!chatOpen ? (
         <div className="rv-reader-rail" style={S.rail}>
           <div style={S.railPortrait}>
-            <CharacterAvatar characterId={story.characterId} name={story.characterName} shape="rect" />
+            <CharacterAvatar characterId={story.characterId} name={story.characterName} shape="rect" variant={expr} />
           </div>
           <p style={S.railName}>{story.characterName}</p>
           {story.characterTagline ? <p style={S.railLine}>{story.characterTagline}</p> : null}
@@ -242,7 +246,7 @@ export default function StoryReadPage() {
         </div>
       </div>
       <div style={S.head}>
-        <CharacterAvatar characterId={story.characterId} name={story.characterName} size={46} />
+        <CharacterAvatar characterId={story.characterId} name={story.characterName} size={46} variant={expr} />
         <div>
           <h1 style={S.title}>{story.title}</h1>
           <p style={S.by}>with <a href={`/c/${story.characterId}`} style={S.byLink}>{story.characterName}</a> · chapter {idx + 1} of {chapters.length} · ~{readMin} min · {story.reads} view{story.reads === 1 ? "" : "s"}</p>
@@ -355,7 +359,7 @@ export default function StoryReadPage() {
         style={S.chatBridge}
         href={`/chat?characterId=${story.characterId}&fromStory=${story.id}&chapter=${idx + 1}`}
       >
-        <CharacterAvatar characterId={story.characterId} name={story.characterName} size={42} />
+        <CharacterAvatar characterId={story.characterId} name={story.characterName} size={42} variant={expr} />
         <div style={S.chatBridgeText}>
           <p style={S.chatBridgeTitle}>{last ? "Still thinking about that?" : "Want to talk about it?"}</p>
           <p style={S.chatBridgeBody}>Keep the conversation going with {story.characterName} — they remember everything you&apos;ve shared so far.</p>

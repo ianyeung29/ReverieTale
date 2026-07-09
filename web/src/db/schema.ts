@@ -82,6 +82,13 @@ export const characters = pgTable("characters", {
   // /api/characters/:id/image. (Object storage is the scale-path later.)
   image: text("image"),
   imageMime: text("image_mime"),
+  // Optional expression variants (img2img off the canonical portrait above, same
+  // face/identity, different expression) - pilot feature, most characters won't
+  // have these set. Served via /api/characters/:id/image?variant=warm|flirty.
+  imageWarm: text("image_warm"),
+  imageWarmMime: text("image_warm_mime"),
+  imageFlirty: text("image_flirty"),
+  imageFlirtyMime: text("image_flirty_mime"),
   // Portrait generations for this character: first is free, regens cost credits.
   portraitGens: integer("portrait_gens").notNull().default(0),
   // { name, persona, look, backstory, voice, greeting, tags }

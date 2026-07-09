@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CharacterAvatar } from "@/components/CharacterAvatar";
 import { EntryGate } from "@/components/EntryGate";
+import { pickExpression } from "@/lib/expression";
 
 type Msg = { role: "user" | "character" | "system"; content: string };
 type Char = { id: string; name: string; tagline: string; greeting?: string };
@@ -180,6 +181,11 @@ export default function ChatPage() {
   if (authEmail === null) return <EntryGate onDone={(email) => setAuthEmail(email)} />;
 
   const active = chars.find((c) => c.id === charId);
+  // The portrait reacts to the conversation: pick the expression variant that
+  // best matches the companion's most recent reply (see lib/expression.ts).
+  // Falls back to the canonical portrait for characters without variants.
+  const lastReply = [...messages].reverse().find((m) => m.role === "character");
+  const expr = pickExpression(lastReply?.content);
 
   return (
     <div style={S.wrap}>
@@ -189,7 +195,7 @@ export default function ChatPage() {
           <button style={S.iconBtn} onClick={() => { setShowHistory((v) => !v); loadConvos(); }} title="Past conversations">History ▾</button>
         </div>
         <div style={S.nameWrap}>
-          {active ? <CharacterAvatar characterId={active.id} name={active.name} size={30} /> : null}
+          {active ? <CharacterAvatar characterId={active.id} name={active.name} size={30} variant={expr} /> : null}
           <span style={S.name}>{active?.name ?? "Loading…"}</span>
         </div>
         <div style={S.headRight}>
@@ -218,7 +224,7 @@ export default function ChatPage() {
       <div style={S.feed}>
         {messages.length === 0 && !busy ? (
           <div style={S.empty}>
-            {active ? <CharacterAvatar characterId={active.id} name={active.name} size={60} /> : null}
+            {active ? <CharacterAvatar characterId={active.id} name={active.name} size={60} variant={expr} /> : null}
             <p style={S.emptyName}>{active?.name ?? "your companion"}</p>
             {active?.greeting ? (
               <div style={{ ...S.row, justifyContent: "flex-start" }}>

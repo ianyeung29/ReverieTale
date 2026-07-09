@@ -1963,15 +1963,21 @@ The next solstice, you don't need an invitation at all — you're already inside
   },
 ];
 
+// Pilot rollout for expression variants (img2img off the canonical portrait) -
+// just the 5 newest companions for now, not a backfill for everyone.
+const VARIANT_PILOT = new Set(["Roxie", "Vivienne", "Talia", "Naomi", "Selene"]);
+
 async function main() {
   const { eq, sql, and } = await import("drizzle-orm");
   const { db } = await import("../db/index");
   const { characters, stories, users } = await import("../db/schema");
-  const { buildPortraitPrompt, buildScenePrompt, generateImage, imageConfigured } = await import("../lib/image");
+  const { buildPortraitPrompt, buildScenePrompt, generateImage, generateExpressionVariant, expressionVariantsConfigured, imageConfigured } = await import("../lib/image");
   const { screenImagePrompt } = await import("../lib/moderation");
 
   const canDrawImages = imageConfigured();
+  const canDrawVariants = expressionVariantsConfigured();
   if (!canDrawImages) console.log("(image generation not configured - characters/stories will seed without portraits/backgrounds)\n");
+  else if (!canDrawVariants) console.log("(IMAGE_PROVIDER isn't modelslab - expression variants will be skipped for the pilot characters)\n");
 
   const email = "dev@local.test";
   let [u] = await db.select().from(users).where(eq(users.email, email)).limit(1);
@@ -1981,16 +1987,20 @@ async function main() {
 
   for (const def of CHARACTERS) {
     const [existing] = await db
-      .select({ id: characters.id, image: characters.image })
+      .select({ id: characters.id, image: characters.image, warm: characters.imageWarm, flirty: characters.imageFlirty })
       .from(characters)
       .where(sql`${characters.definition}->>'name' = ${def.name}`)
       .limit(1);
 
     let charId: string;
     let hasImage = false;
+    let hasVariants = false;
+    let canonicalBase64: string | null = null;
     if (existing) {
       charId = existing.id;
       hasImage = Boolean(existing.image);
+      hasVariants = Boolean(existing.warm) && Boolean(existing.flirty);
+      canonicalBase64 = existing.image;
       console.log(`= ${def.name.padEnd(8)} already exists (${charId})`);
     } else {
       const [c] = await db
@@ -2026,8 +2036,22 @@ async function main() {
           const gen = await generateImage(prompt);
           await db.update(characters).set({ image: gen.base64, imageMime: gen.mime, portraitGens: 1 }).where(eq(characters.id, charId));
           console.log(`  portrait drawn for ${def.name}`);
+          canonicalBase64 = gen.base64;
         } catch (e) {
           console.log(`  ! portrait failed for ${def.name}: ${e instanceof Error ? e.message : e}`);
+        }
+      }
+    }
+
+    if (VARIANT_PILOT.has(def.name) && !hasVariants && canDrawVariants && canonicalBase64) {
+      for (const expression of ["warm", "flirty"] as const) {
+        try {
+          const gen = await generateExpressionVariant(canonicalBase64, expression);
+          const col = expression === "warm" ? { imageWarm: gen.base64, imageWarmMime: gen.mime } : { imageFlirty: gen.base64, imageFlirtyMime: gen.mime };
+          await db.update(characters).set(col).where(eq(characters.id, charId));
+          console.log(`  ${expression} variant drawn for ${def.name}`);
+        } catch (e) {
+          console.log(`  ! ${expression} variant failed for ${def.name}: ${e instanceof Error ? e.message : e}`);
         }
       }
     }
