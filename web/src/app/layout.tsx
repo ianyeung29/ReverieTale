@@ -93,6 +93,32 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .rv-section[open] > summary::after { transform: rotate(180deg); }
 .rv-section > summary:hover { background: #2a2033; }
 .rv-section-body { padding: 2px 18px 18px; }
+
+/* Story reader companion rail: a sticky portrait beside the article, only
+   where there's actually room for it beside a comfortable reading column. */
+.rv-reader-rail { display: none; }
+@media (min-width: 1180px) {
+  .rv-reader-rail { display: flex; }
+}
+
+/* Chat dock trigger: a small pill bottom-right on wide screens (position/size
+   set here, not inline, so the mobile override below can actually win - see
+   the nav note above for why). On narrow screens it becomes a full-width
+   sticky bar instead, so the companion is always a thumb-reach away. */
+.rv-chatdock-fab {
+  position: fixed; right: 20px; bottom: 20px; z-index: 40;
+  display: flex; align-items: center; gap: 10px;
+  background: #231A2B; color: #F4EAF0; border: 1px solid #4a3a50; border-radius: 999px;
+  padding: 8px 16px 8px 8px; cursor: pointer; box-shadow: 0 10px 30px rgba(0,0,0,.4);
+  font-size: 14px; font-weight: 600;
+}
+@media (max-width: 640px) {
+  .rv-chatdock-fab {
+    left: 0; right: 0; bottom: 0; width: 100%; box-sizing: border-box;
+    border-radius: 0; border-width: 1px 0 0; justify-content: flex-start;
+    padding: 12px 18px; box-shadow: 0 -8px 24px rgba(0,0,0,.35);
+  }
+}
 `;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

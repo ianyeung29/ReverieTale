@@ -5,9 +5,30 @@ import { CharacterAvatar } from "./CharacterAvatar";
 
 type Msg = { role: "user" | "character" | "system"; content: string };
 
-/** Floating chat bubble (bottom-right) to talk to a character in place. */
-export function ChatDock({ characterId, characterName, storyId, chapter }: { characterId: string; characterName: string; storyId?: string; chapter?: number }) {
-  const [open, setOpen] = useState(false);
+/**
+ * Floating chat bubble (bottom-right on desktop, a full-width sticky bar on
+ * mobile) to talk to a character in place. Open state can be controlled
+ * externally (e.g. a "Talk to X" button elsewhere on the page) by passing
+ * `open`/`onOpenChange`; otherwise it manages its own.
+ */
+export function ChatDock({
+  characterId,
+  characterName,
+  storyId,
+  chapter,
+  open: openProp,
+  onOpenChange,
+}: {
+  characterId: string;
+  characterName: string;
+  storyId?: string;
+  chapter?: number;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = openProp ?? internalOpen;
+  const setOpen = onOpenChange ?? setInternalOpen;
   const [messages, setMessages] = useState<Msg[]>([]);
   const [threadId, setThreadId] = useState<string | undefined>();
   const [input, setInput] = useState("");
@@ -51,7 +72,7 @@ export function ChatDock({ characterId, characterName, storyId, chapter }: { cha
 
   if (!open) {
     return (
-      <button style={D.fab} onClick={() => setOpen(true)} aria-label={`Chat with ${characterName}`}>
+      <button className="rv-chatdock-fab" onClick={() => setOpen(true)} aria-label={`Chat with ${characterName}`}>
         <CharacterAvatar characterId={characterId} name={characterName} size={34} />
         <span style={D.fabLabel}>Chat with {characterName}</span>
       </button>
@@ -91,7 +112,6 @@ export function ChatDock({ characterId, characterName, storyId, chapter }: { cha
 }
 
 const D: Record<string, React.CSSProperties> = {
-  fab: { position: "fixed", right: 20, bottom: 20, zIndex: 40, display: "flex", alignItems: "center", gap: 10, background: "#231A2B", color: "#F4EAF0", border: "1px solid #4a3a50", borderRadius: 999, padding: "8px 16px 8px 8px", cursor: "pointer", boxShadow: "0 10px 30px rgba(0,0,0,.4)", fontSize: 14, fontWeight: 600 },
   fabLabel: { whiteSpace: "nowrap" },
   panel: { position: "fixed", right: 20, bottom: 20, zIndex: 40, width: "min(370px, calc(100vw - 32px))", height: "min(540px, 72vh)", display: "flex", flexDirection: "column", background: "#150F1A", border: "1px solid #3A2E44", borderRadius: 16, overflow: "hidden", boxShadow: "0 20px 60px rgba(0,0,0,.5)" },
   head: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", borderBottom: "1px solid #3A2E44" },

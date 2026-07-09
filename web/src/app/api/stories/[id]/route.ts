@@ -86,6 +86,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     content: row.content,
     characterId: row.characterId,
     characterName: def.name ?? "Unknown",
+    characterTagline: def.backstory ?? "",
     isOwner,
     hasBackup: isOwner && Boolean(row.backup),
     hasBackground,

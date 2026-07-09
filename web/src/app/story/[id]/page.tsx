@@ -8,7 +8,7 @@ import { RatingBar } from "@/components/RatingBar";
 import { ReportLink } from "@/components/TrustControls";
 
 type Story = {
-  id: string; title: string; content: string; characterId: string; characterName: string;
+  id: string; title: string; content: string; characterId: string; characterName: string; characterTagline: string;
   isOwner: boolean; hasBackup: boolean; hasBackground: boolean;
   reads: number; rating: number; ratingCount: number; myRating: number | null; canRate: boolean;
   isSaved: boolean; canSave: boolean;
@@ -58,6 +58,7 @@ export default function StoryReadPage() {
   const [showReaderMenu, setShowReaderMenu] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saveBusy, setSaveBusy] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
 
   useEffect(() => {
     setBgOn(localStorage.getItem("rv_story_bg") !== "off");
@@ -188,6 +189,17 @@ export default function StoryReadPage() {
         </div>
       ) : null}
       <div style={S.progressTrack}><div style={{ ...S.progressFill, width: `${progress}%` }} /></div>
+
+      {!chatOpen ? (
+        <div className="rv-reader-rail" style={S.rail}>
+          <div style={S.railPortrait}>
+            <CharacterAvatar characterId={story.characterId} name={story.characterName} shape="rect" />
+          </div>
+          <p style={S.railName}>{story.characterName}</p>
+          {story.characterTagline ? <p style={S.railLine}>{story.characterTagline}</p> : null}
+          <button style={S.railBtn} onClick={() => setChatOpen(true)}>Talk to {story.characterName}</button>
+        </div>
+      ) : null}
 
       <div style={S.topRow}>
         <a href="/" style={S.back}>← Reverie</a>
@@ -369,7 +381,7 @@ export default function StoryReadPage() {
         </div>
       ) : null}
 
-      <ChatDock characterId={story.characterId} characterName={story.characterName} storyId={story.id} chapter={idx + 1} />
+      <ChatDock characterId={story.characterId} characterName={story.characterName} storyId={story.id} chapter={idx + 1} open={chatOpen} onOpenChange={setChatOpen} />
     </main>
   );
 }
@@ -393,6 +405,11 @@ const S: Record<string, React.CSSProperties> = {
   link: { color: "#E9A06B" },
   progressTrack: { position: "fixed", top: 52, left: 0, right: 0, height: 3, background: "#241a2b", zIndex: 20 },
   progressFill: { height: "100%", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", transition: "width .3s ease" },
+  rail: { position: "fixed", top: 96, left: "calc(50% + 360px)", width: 170, flexDirection: "column", gap: 8, alignItems: "flex-start", zIndex: 5 },
+  railPortrait: { width: "100%", borderRadius: 14, overflow: "hidden", boxShadow: "0 10px 30px rgba(0,0,0,.4)" },
+  railName: { fontFamily: "Georgia, serif", fontSize: 16, margin: "8px 0 0", color: "#F4EAF0" },
+  railLine: { color: "#8A7A90", fontSize: 12.5, margin: 0, lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" },
+  railBtn: { marginTop: 4, width: "100%", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", color: "#1A1220", border: 0, borderRadius: 10, padding: "9px 0", fontWeight: 650, fontSize: 13, cursor: "pointer" },
   head: { display: "flex", alignItems: "center", gap: 14, margin: "24px 0 28px" },
   title: { fontFamily: "Georgia, serif", fontSize: 32, margin: 0, lineHeight: 1.15 },
   by: { color: "#AC9CB0", margin: "4px 0 0", fontSize: 14 },
