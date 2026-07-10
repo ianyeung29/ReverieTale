@@ -84,7 +84,7 @@ export type Prep =
 export type ChatResult =
   | { status: "blocked"; reason?: string }
   | { status: "paywall"; balance: Balance }
-  | { status: "ok"; threadId: string; reply: string; balance: Balance };
+  | { status: "ok"; threadId: string; reply: string; messageId: string; balance: Balance };
 
 /** Everything up to (and including) charging + prompt assembly, before generation. */
 export async function prepareChat(params: Params): Promise<Prep> {
@@ -171,10 +171,13 @@ export async function finalizeChat(args: {
   usage: { inputTokens: number; outputTokens: number };
   charge: OkSpend;
   recalled?: number;
-}): Promise<Balance> {
+}): Promise<Balance & { messageId: string }> {
   const { userId, char, threadId, userMessage, reply, usage, charge } = args;
 
-  await db.insert(messages).values({ threadId, role: "character", content: reply, tokenCount: usage.outputTokens });
+  const [inserted] = await db
+    .insert(messages)
+    .values({ threadId, role: "character", content: reply, tokenCount: usage.outputTokens })
+    .returning({ id: messages.id });
 
   console.log("[generation_turn]", {
     threadId,
@@ -198,7 +201,8 @@ export async function finalizeChat(args: {
   await maybeUpdateSummary(threadId);
   await db.update(threads).set({ lastActiveAt: new Date() }).where(eq(threads.id, threadId));
 
-  return userBalance(userId);
+  const balance = await userBalance(userId);
+  return { ...balance, messageId: inserted.id };
 }
 
 /** Non-streaming path (kept as the fallback). */
@@ -211,7 +215,7 @@ export async function handleChat(params: Params): Promise<ChatResult> {
   let reply = res.text || "...";
   if (screen(reply).blocked) reply = "I can't go there - let's talk about something else.";
 
-  const balance = await finalizeChat({
+  const { messageId, ...balance } = await finalizeChat({
     userId: params.userId,
     char: prep.char,
     threadId: prep.threadId,
@@ -221,5 +225,5 @@ export async function handleChat(params: Params): Promise<ChatResult> {
     charge: prep.charge,
   });
 
-  return { status: "ok", threadId: prep.threadId, reply, balance };
+  return { status: "ok", threadId: prep.threadId, reply, messageId, balance };
 }

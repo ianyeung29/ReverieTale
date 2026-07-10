@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { CharacterAvatar } from "./CharacterAvatar";
 import { pickExpression } from "@/lib/expression";
+import { pickStatusLine } from "@/lib/status";
 
-type Msg = { role: "user" | "character" | "system"; content: string };
+type Msg = { role: "user" | "character" | "system"; content: string; id?: string; hasImage?: boolean };
 
 /**
  * Floating chat bubble (bottom-right on desktop, a full-width sticky bar on
@@ -15,6 +16,7 @@ type Msg = { role: "user" | "character" | "system"; content: string };
 export function ChatDock({
   characterId,
   characterName,
+  characterTags,
   storyId,
   chapter,
   open: openProp,
@@ -22,6 +24,7 @@ export function ChatDock({
 }: {
   characterId: string;
   characterName: string;
+  characterTags?: string[];
   storyId?: string;
   chapter?: number;
   open?: boolean;
@@ -37,6 +40,10 @@ export function ChatDock({
   const [needAuth, setNeedAuth] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [broke, setBroke] = useState(false);
+  const [resumedHistory, setResumedHistory] = useState(false);
+  const [visualizing, setVisualizing] = useState<Set<string>>(new Set());
+  const [saved, setSaved] = useState<Set<string>>(new Set());
+  const [lightbox, setLightbox] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, busy, open]);
@@ -71,6 +78,7 @@ export function ChatDock({
         // flight - don't clobber it with older history.
         setThreadId((cur) => cur ?? latest.id);
         setMessages((cur) => (cur.length ? cur : rows));
+        setResumedHistory(true);
       } catch {
         /* resuming history is best-effort; a fresh conversation still works */
       }
@@ -93,7 +101,7 @@ export function ChatDock({
       const data = await res.json();
       if (res.ok && data.reply) {
         setThreadId(data.threadId);
-        setMessages((m) => [...m, { role: "character", content: data.reply }]);
+        setMessages((m) => [...m, { role: "character", content: data.reply, id: data.messageId }]);
       } else if (res.status === 401) {
         setNeedAuth(true);
       } else if (res.status === 402) {
@@ -109,8 +117,37 @@ export function ChatDock({
     }
   }
 
+  async function visualize(id: string) {
+    if (visualizing.has(id)) return;
+    setVisualizing((s) => new Set(s).add(id));
+    try {
+      const res = await fetch(`/api/messages/${id}/visualize`, { method: "POST" });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        setMessages((m) => m.map((mm) => (mm.id === id ? { ...mm, hasImage: true } : mm)));
+      } else if (res.status === 402) {
+        setBroke(true);
+      }
+    } catch {
+      /* best-effort - the reply still reads fine without an illustration */
+    } finally {
+      setVisualizing((s) => { const n = new Set(s); n.delete(id); return n; });
+    }
+  }
+
+  async function saveMoment(id: string) {
+    if (saved.has(id)) return;
+    try {
+      const res = await fetch("/api/moments", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messageId: id }) });
+      if (res.ok) setSaved((s) => new Set(s).add(id));
+    } catch {
+      /* saving is best-effort */
+    }
+  }
+
   const lastReply = [...messages].reverse().find((m) => m.role === "character");
   const expr = pickExpression(lastReply?.content);
+  const status = pickStatusLine({ tags: characterTags, expr, isReturning: resumedHistory && messages.length > 0 });
 
   if (!open) {
     return (
@@ -124,7 +161,13 @@ export function ChatDock({
   return (
     <div style={D.panel}>
       <div style={D.head}>
-        <div style={D.headL}><CharacterAvatar characterId={characterId} name={characterName} size={28} variant={expr} /><span style={D.name}>{characterName}</span></div>
+        <div style={D.headL}>
+          <CharacterAvatar characterId={characterId} name={characterName} size={28} variant={expr} />
+          <div>
+            <div style={D.name}>{characterName}</div>
+            <div style={D.status}>{status}</div>
+          </div>
+        </div>
         <button style={D.close} onClick={() => setOpen(false)} aria-label="Close">×</button>
       </div>
       <div style={D.feed}>
@@ -133,8 +176,25 @@ export function ChatDock({
           m.role === "system" ? (
             <div key={i} style={D.sys}>{m.content}</div>
           ) : (
-            <div key={i} style={{ ...D.row, justifyContent: m.role === "user" ? "flex-end" : "flex-start" }}>
+            <div key={i} style={{ ...D.row, flexDirection: "column", alignItems: m.role === "user" ? "flex-end" : "flex-start" }}>
               <div style={{ ...D.bubble, ...(m.role === "user" ? D.user : D.bot) }}>{m.content}</div>
+              {m.role === "character" && m.id ? (
+                <div style={D.actions}>
+                  {m.hasImage ? (
+                    <button style={D.actionBtn} onClick={() => setLightbox(`/api/messages/${m.id}/image`)}>🖼 View</button>
+                  ) : (
+                    <button style={D.actionBtn} onClick={() => visualize(m.id!)} disabled={visualizing.has(m.id)}>
+                      {visualizing.has(m.id) ? "Visualizing…" : "✨ Visualize"}
+                    </button>
+                  )}
+                  <button style={D.actionBtn} onClick={() => saveMoment(m.id!)} disabled={saved.has(m.id)}>
+                    {saved.has(m.id) ? "★ Saved" : "☆ Save"}
+                  </button>
+                </div>
+              ) : null}
+              {m.hasImage && m.id ? (
+                <img src={`/api/messages/${m.id}/image`} alt="" style={D.thumb} onClick={() => setLightbox(`/api/messages/${m.id}/image`)} />
+              ) : null}
             </div>
           ),
         ) : null}
@@ -149,6 +209,11 @@ export function ChatDock({
           <button style={{ ...D.send, opacity: busy || !input.trim() ? 0.5 : 1 }} onClick={send} disabled={busy || !input.trim()}>↑</button>
         </div>
       ) : null}
+      {lightbox ? (
+        <div style={D.lightboxWrap} onClick={() => setLightbox(null)}>
+          <img src={lightbox} alt="" style={D.lightboxImg} />
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -158,7 +223,8 @@ const D: Record<string, React.CSSProperties> = {
   panel: { position: "fixed", right: 20, bottom: 20, zIndex: 40, width: "min(370px, calc(100vw - 32px))", height: "min(540px, 72vh)", display: "flex", flexDirection: "column", background: "#150F1A", border: "1px solid #3A2E44", borderRadius: 16, overflow: "hidden", boxShadow: "0 20px 60px rgba(0,0,0,.5)" },
   head: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", borderBottom: "1px solid #3A2E44" },
   headL: { display: "flex", alignItems: "center", gap: 9 },
-  name: { fontFamily: "Georgia, serif", fontSize: 17, color: "#F4EAF0" },
+  name: { fontFamily: "Georgia, serif", fontSize: 17, color: "#F4EAF0", lineHeight: 1.2 },
+  status: { fontSize: 11.5, color: "#8A7A90", marginTop: 1 },
   close: { background: "transparent", border: 0, color: "#AC9CB0", fontSize: 22, cursor: "pointer", lineHeight: 1 },
   feed: { flex: 1, overflowY: "auto", padding: 14, display: "flex", flexDirection: "column", gap: 9 },
   hint: { color: "#8A7A90", fontSize: 13, textAlign: "center", marginTop: 20 },
@@ -171,4 +237,9 @@ const D: Record<string, React.CSSProperties> = {
   bar: { display: "flex", gap: 8, padding: 12, borderTop: "1px solid #3A2E44" },
   input: { flex: 1, background: "#1A121F", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 10, padding: "10px 12px", fontSize: 14 },
   send: { border: 0, cursor: "pointer", color: "#1A1220", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", borderRadius: 10, padding: "0 14px", fontWeight: 700, fontSize: 16 },
+  actions: { display: "flex", gap: 6, marginTop: 4 },
+  actionBtn: { background: "transparent", border: "1px solid #3A2E44", color: "#AC9CB0", borderRadius: 8, padding: "3px 8px", fontSize: 11.5, cursor: "pointer" },
+  thumb: { maxWidth: "70%", borderRadius: 10, marginTop: 6, cursor: "zoom-in", border: "1px solid #3A2E44" },
+  lightboxWrap: { position: "absolute", inset: 0, background: "rgba(0,0,0,.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, cursor: "zoom-out" },
+  lightboxImg: { maxWidth: "92%", maxHeight: "92%", borderRadius: 10 },
 };

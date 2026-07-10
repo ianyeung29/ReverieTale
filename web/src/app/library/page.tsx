@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { CharacterAvatar } from "@/components/CharacterAvatar";
 
 type Item = { id: string; title: string; name: string; chapters: number; characterId: string };
+type Moment = { id: string; characterId: string; name: string; dialogue: string; setting: string | null; hasImage: boolean; createdAt: string };
 
 function StoryGrid({ items }: { items: Item[] }) {
   return (
@@ -18,16 +19,42 @@ function StoryGrid({ items }: { items: Item[] }) {
   );
 }
 
+function MomentGrid({ items, onDelete }: { items: Moment[]; onDelete: (id: string) => void }) {
+  return (
+    <div style={S.grid}>
+      {items.map((m) => (
+        <div key={m.id} className="rv-card" style={S.momentCard}>
+          {m.hasImage ? <img src={`/api/moments/${m.id}/image`} alt="" style={S.momentImg} /> : null}
+          <div style={S.head}><CharacterAvatar characterId={m.characterId} name={m.name} size={28} /><span style={S.momentName}>{m.name}</span></div>
+          <p style={S.momentQuote}>&ldquo;{m.dialogue}&rdquo;</p>
+          {m.setting ? <p style={S.meta}>{m.setting}</p> : null}
+          <div style={S.momentFoot}>
+            <span style={S.meta}>{new Date(m.createdAt).toLocaleDateString()}</span>
+            <button style={S.momentDelete} onClick={() => onDelete(m.id)}>Remove</button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function LibraryPage() {
   const [items, setItems] = useState<Item[] | null>(null);
   const [saved, setSaved] = useState<Item[] | null>(null);
+  const [moments, setMoments] = useState<Moment[] | null>(null);
   const [earned, setEarned] = useState(0);
 
   useEffect(() => {
     fetch("/api/stories/mine").then((r) => r.json()).then((d: Item[]) => setItems(Array.isArray(d) ? d : [])).catch(() => setItems([]));
     fetch("/api/stories/saved").then((r) => (r.ok ? r.json() : [])).then((d: Item[]) => setSaved(Array.isArray(d) ? d : [])).catch(() => setSaved([]));
+    fetch("/api/moments").then((r) => (r.ok ? r.json() : [])).then((d: Moment[]) => setMoments(Array.isArray(d) ? d : [])).catch(() => setMoments([]));
     fetch("/api/credits").then((r) => (r.ok ? r.json() : null)).then((d) => d && setEarned(d.earnedFromReaders ?? 0)).catch(() => {});
   }, []);
+
+  async function removeMoment(id: string) {
+    setMoments((cur) => (cur ? cur.filter((m) => m.id !== id) : cur));
+    await fetch(`/api/moments/${id}`, { method: "DELETE" }).catch(() => {});
+  }
 
   return (
     <main style={S.wrap}>
@@ -64,6 +91,14 @@ export default function LibraryPage() {
           <StoryGrid items={saved} />
         </>
       ) : null}
+
+      {moments && moments.length > 0 ? (
+        <>
+          <p style={S.section}>Shared moments · {moments.length}</p>
+          <p style={S.hint}>Replies you've visualized or saved from your conversations.</p>
+          <MomentGrid items={moments} onDelete={removeMoment} />
+        </>
+      ) : null}
     </main>
   );
 }
@@ -92,4 +127,10 @@ const S: Record<string, React.CSSProperties> = {
   head: { display: "flex", alignItems: "center", gap: 10 },
   title: { fontFamily: "Georgia, serif", fontSize: 17, lineHeight: 1.2 },
   meta: { color: "#8A7A90", fontSize: 12.5 },
+  momentCard: { display: "flex", flexDirection: "column", gap: 8, background: "#241B2D", border: "1px solid #3A2E44", borderRadius: 14, padding: 16, color: "#F4EAF0" },
+  momentImg: { width: "100%", aspectRatio: "4/3", objectFit: "cover", borderRadius: 10 },
+  momentName: { fontFamily: "Georgia, serif", fontSize: 15 },
+  momentQuote: { color: "#CBBBD0", fontSize: 13.5, fontStyle: "italic", lineHeight: 1.5, margin: 0 },
+  momentFoot: { display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 2 },
+  momentDelete: { background: "transparent", border: "1px solid #3A2E44", color: "#8A7A90", borderRadius: 8, padding: "3px 9px", fontSize: 12, cursor: "pointer" },
 };

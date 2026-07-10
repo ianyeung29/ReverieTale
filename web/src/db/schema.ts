@@ -244,9 +244,34 @@ export const messages = pgTable(
     // NOTE: exec-3 sec 9 requires encryption at rest for this column in production.
     content: text("content").notNull(),
     tokenCount: integer("token_count").notNull().default(0),
+    // "Visualize this moment" - an on-demand illustration of a character reply,
+    // generated once and cached here (never automatic, costs credits). Only
+    // ever set on role="character" rows.
+    imageBase64: text("image_base64"),
+    imageMime: text("image_mime"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => ({ byThread: index("messages_thread_idx").on(t.threadId, t.createdAt) }),
+);
+
+// A reader's saved "shared moment" - a character reply (plus its visualized
+// image, if generated) captured into a private gallery. Independent of the
+// live thread so it survives even if the underlying conversation is deleted.
+export const moments = pgTable(
+  "moments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    characterId: uuid("character_id").notNull().references(() => characters.id),
+    threadId: uuid("thread_id"),
+    messageId: uuid("message_id"),
+    dialogue: text("dialogue").notNull(),
+    setting: text("setting"),
+    image: text("image"),
+    imageMime: text("image_mime"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({ byUser: index("moments_user_idx").on(t.userId, t.createdAt) }),
 );
 
 export const memorySummaries = pgTable("memory_summaries", {

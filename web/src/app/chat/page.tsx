@@ -4,9 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { CharacterAvatar } from "@/components/CharacterAvatar";
 import { EntryGate } from "@/components/EntryGate";
 import { pickExpression } from "@/lib/expression";
+import { pickStatusLine } from "@/lib/status";
 
-type Msg = { role: "user" | "character" | "system"; content: string };
-type Char = { id: string; name: string; tagline: string; greeting?: string };
+type Msg = { role: "user" | "character" | "system"; content: string; id?: string; hasImage?: boolean };
+type Char = { id: string; name: string; tagline: string; greeting?: string; tags?: string[] };
 type Convo = { id: string; characterId: string; name: string; lastActiveAt: string };
 
 const OPENERS = [
@@ -32,6 +33,10 @@ export default function ChatPage() {
   const [storyChapter, setStoryChapter] = useState<number | undefined>();
   const [convos, setConvos] = useState<Convo[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [resumedHistory, setResumedHistory] = useState(false);
+  const [visualizing, setVisualizing] = useState<Set<string>>(new Set());
+  const [saved, setSaved] = useState<Set<string>>(new Set());
+  const [lightbox, setLightbox] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
   function loadConvos() {
@@ -74,7 +79,7 @@ export default function ChatPage() {
         const latest = list.find((c) => c.characterId === preferred);
         if (latest) {
           const rows: Msg[] = await fetch(`/api/messages?threadId=${latest.id}`).then((r) => r.json()).catch(() => []);
-          if (Array.isArray(rows)) { setMessages(rows); setThreadId(latest.id); }
+          if (Array.isArray(rows)) { setMessages(rows); setThreadId(latest.id); setResumedHistory(rows.length > 0); }
         }
       }
     })();
@@ -88,16 +93,16 @@ export default function ChatPage() {
     setMessages([]); setThreadId(undefined); setConvos([]); setCredits(null);
   }
 
-  function newChat() { setThreadId(undefined); setMessages([]); setBroke(false); setStoryId(null); setStoryChapter(undefined); setShowHistory(false); }
+  function newChat() { setThreadId(undefined); setMessages([]); setBroke(false); setStoryId(null); setStoryChapter(undefined); setShowHistory(false); setResumedHistory(false); }
 
   async function switchCharacter(id: string) {
     setCharId(id); setStoryId(null); setBroke(false); setShowHistory(false);
     const latest = convos.find((c) => c.characterId === id);
     if (latest) {
       const rows: Msg[] = await fetch(`/api/messages?threadId=${latest.id}`).then((r) => r.json()).catch(() => []);
-      setMessages(Array.isArray(rows) ? rows : []); setThreadId(latest.id);
+      setMessages(Array.isArray(rows) ? rows : []); setThreadId(latest.id); setResumedHistory(Array.isArray(rows) && rows.length > 0);
     } else {
-      setMessages([]); setThreadId(undefined);
+      setMessages([]); setThreadId(undefined); setResumedHistory(false);
     }
   }
 
@@ -105,12 +110,43 @@ export default function ChatPage() {
     setShowHistory(false); setCharId(c.characterId); setStoryId(null); setBroke(false);
     try {
       const rows: Msg[] = await fetch(`/api/messages?threadId=${c.id}`).then((r) => r.json());
-      setMessages(Array.isArray(rows) ? rows : []); setThreadId(c.id);
+      setMessages(Array.isArray(rows) ? rows : []); setThreadId(c.id); setResumedHistory(Array.isArray(rows) && rows.length > 0);
     } catch { setMessages([]); }
   }
 
   function setLast(content: string, role: Msg["role"] = "character") {
-    setMessages((m) => { const c = m.slice(); c[c.length - 1] = { role, content }; return c; });
+    setMessages((m) => { const c = m.slice(); c[c.length - 1] = { ...c[c.length - 1], role, content }; return c; });
+  }
+  function setLastId(id: string) {
+    setMessages((m) => { const c = m.slice(); const last = c[c.length - 1]; if (last) c[c.length - 1] = { ...last, id }; return c; });
+  }
+
+  async function visualize(id: string) {
+    if (visualizing.has(id)) return;
+    setVisualizing((s) => new Set(s).add(id));
+    try {
+      const res = await fetch(`/api/messages/${id}/visualize`, { method: "POST" });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        setMessages((m) => m.map((mm) => (mm.id === id ? { ...mm, hasImage: true } : mm)));
+      } else if (res.status === 402) {
+        setBroke(true);
+      }
+    } catch {
+      /* best-effort - the reply still reads fine without an illustration */
+    } finally {
+      setVisualizing((s) => { const n = new Set(s); n.delete(id); return n; });
+    }
+  }
+
+  async function saveMoment(id: string) {
+    if (saved.has(id)) return;
+    try {
+      const res = await fetch("/api/moments", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messageId: id }) });
+      if (res.ok) setSaved((s) => new Set(s).add(id));
+    } catch {
+      /* saving is best-effort */
+    }
   }
 
   async function send() {
@@ -155,15 +191,15 @@ export default function ChatPage() {
         for (const part of parts) {
           const line = part.replace(/^data:\s?/, "").trim();
           if (!line) continue;
-          let ev: { delta?: string; done?: boolean; threadId?: string; balance?: { total: number }; replace?: string; error?: string };
+          let ev: { delta?: string; done?: boolean; threadId?: string; messageId?: string; balance?: { total: number }; replace?: string; error?: string };
           try { ev = JSON.parse(line); } catch { continue; }
           if (ev.delta) {
             acc += ev.delta;
             if (!started) { started = true; setMessages((m) => [...m, { role: "character", content: acc }]); }
             else setLast(acc);
           } else if (ev.done) {
-            if (!started) setMessages((m) => [...m, { role: "character", content: ev.replace || "…" }]);
-            else if (ev.replace) setLast(ev.replace);
+            if (!started) setMessages((m) => [...m, { role: "character", content: ev.replace || "…", id: ev.messageId }]);
+            else { if (ev.replace) setLast(ev.replace); if (ev.messageId) setLastId(ev.messageId); }
             if (ev.threadId) setThreadId(ev.threadId);
             if (ev.balance) setCredits(ev.balance.total);
             if (wasNew) loadConvos();
@@ -186,6 +222,7 @@ export default function ChatPage() {
   // Falls back to the canonical portrait for characters without variants.
   const lastReply = [...messages].reverse().find((m) => m.role === "character");
   const expr = pickExpression(lastReply?.content);
+  const status = pickStatusLine({ tags: active?.tags, expr, isReturning: resumedHistory && messages.length > 0 });
 
   return (
     <div style={S.wrap}>
@@ -196,7 +233,10 @@ export default function ChatPage() {
         </div>
         <div style={S.nameWrap}>
           {active ? <CharacterAvatar characterId={active.id} name={active.name} size={30} variant={expr} /> : null}
-          <span style={S.name}>{active?.name ?? "Loading…"}</span>
+          <div>
+            <div style={S.name}>{active?.name ?? "Loading…"}</div>
+            {active ? <div style={S.status}>{status}</div> : null}
+          </div>
         </div>
         <div style={S.headRight}>
           <span style={S.credits} title={`Credit balance · ${chatPrice} credit${chatPrice === 1 ? "" : "s"} per message`}>◈ {credits ?? "…"} <span style={S.perMsg}>· {chatPrice}/msg</span></span>
@@ -244,8 +284,25 @@ export default function ChatPage() {
           m.role === "system" ? (
             <div key={i} style={S.sys}>{m.content}</div>
           ) : (
-            <div key={i} style={{ ...S.row, justifyContent: m.role === "user" ? "flex-end" : "flex-start" }}>
+            <div key={i} style={{ ...S.row, flexDirection: "column", alignItems: m.role === "user" ? "flex-end" : "flex-start" }}>
               <div style={{ ...S.bubble, ...(m.role === "user" ? S.user : S.bot) }}>{m.content}</div>
+              {m.role === "character" && m.id ? (
+                <div style={S.actions}>
+                  {m.hasImage ? (
+                    <button style={S.actionBtn} onClick={() => setLightbox(`/api/messages/${m.id}/image`)}>🖼 View</button>
+                  ) : (
+                    <button style={S.actionBtn} onClick={() => visualize(m.id!)} disabled={visualizing.has(m.id)}>
+                      {visualizing.has(m.id) ? "Visualizing…" : "✨ Visualize"}
+                    </button>
+                  )}
+                  <button style={S.actionBtn} onClick={() => saveMoment(m.id!)} disabled={saved.has(m.id)}>
+                    {saved.has(m.id) ? "★ Saved" : "☆ Save"}
+                  </button>
+                </div>
+              ) : null}
+              {m.hasImage && m.id ? (
+                <img src={`/api/messages/${m.id}/image`} alt="" style={S.thumb} onClick={() => setLightbox(`/api/messages/${m.id}/image`)} />
+              ) : null}
             </div>
           ),
         )}
@@ -254,6 +311,11 @@ export default function ChatPage() {
         ) : null}
         <div ref={endRef} />
       </div>
+      {lightbox ? (
+        <div style={S.lightboxWrap} onClick={() => setLightbox(null)}>
+          <img src={lightbox} alt="" style={S.lightboxImg} />
+        </div>
+      ) : null}
 
       <div style={S.barWrap}>
         {broke ? <a href="/credits" style={S.topup}>Out of credits — get more →</a> : null}
@@ -283,6 +345,7 @@ const S: Record<string, React.CSSProperties> = {
   iconBtn: { background: "#231A2B", color: "#AC9CB0", border: "1px solid #3A2E44", borderRadius: 8, padding: "7px 11px", fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" },
   nameWrap: { display: "flex", alignItems: "center", gap: 9, justifyContent: "center", overflow: "hidden" },
   name: { fontFamily: "Georgia, serif", fontSize: 20, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
+  status: { fontSize: 11.5, color: "#8A7A90", marginTop: -2 },
   credits: { color: "#E9A06B", fontWeight: 650, fontSize: 14, fontVariantNumeric: "tabular-nums" },
   perMsg: { color: "#8A7A90", fontWeight: 500, fontSize: 12 },
   earned: { color: "#D46A8B", fontWeight: 650, fontSize: 13, fontVariantNumeric: "tabular-nums" },
@@ -303,6 +366,11 @@ const S: Record<string, React.CSSProperties> = {
   bubble: { maxWidth: "78%", padding: "11px 15px", borderRadius: 16, lineHeight: 1.5, whiteSpace: "pre-wrap", wordBreak: "break-word" },
   user: { background: "linear-gradient(100deg,#E9A06B,#D46A8B)", color: "#1A1220", borderBottomRightRadius: 4 },
   bot: { background: "#231A2B", border: "1px solid #3A2E44", color: "#F4EAF0", borderBottomLeftRadius: 4 },
+  actions: { display: "flex", gap: 6, marginTop: 5 },
+  actionBtn: { background: "transparent", border: "1px solid #3A2E44", color: "#AC9CB0", borderRadius: 8, padding: "3px 9px", fontSize: 12, cursor: "pointer" },
+  thumb: { maxWidth: 260, borderRadius: 12, marginTop: 8, cursor: "zoom-in", border: "1px solid #3A2E44" },
+  lightboxWrap: { position: "fixed", inset: 0, background: "rgba(0,0,0,.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, cursor: "zoom-out" },
+  lightboxImg: { maxWidth: "92vw", maxHeight: "92vh", borderRadius: 12 },
   barWrap: { padding: "14px 20px 22px", borderTop: "1px solid #3A2E44", display: "flex", flexDirection: "column", gap: 10 },
   topup: { alignSelf: "center", border: "1px solid #E9A06B", color: "#E9A06B", background: "transparent", borderRadius: 10, padding: "8px 16px", cursor: "pointer", fontSize: 14, textDecoration: "none" },
   bar: { display: "flex", gap: 10 },

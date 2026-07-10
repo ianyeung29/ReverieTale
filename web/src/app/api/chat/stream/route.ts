@@ -67,7 +67,7 @@ export async function POST(req: Request) {
           replaced = true;
         }
 
-        const balance = await finalizeChat({
+        const { messageId, ...balance } = await finalizeChat({
           userId,
           char: prep.char,
           threadId: prep.threadId,
@@ -77,7 +77,7 @@ export async function POST(req: Request) {
           charge: prep.charge,
         });
 
-        controller.enqueue(encoder.encode(sse({ done: true, threadId: prep.threadId, balance, replace: replaced ? reply : undefined })));
+        controller.enqueue(encoder.encode(sse({ done: true, threadId: prep.threadId, messageId, balance, replace: replaced ? reply : undefined })));
       } catch {
         controller.enqueue(encoder.encode(sse({ error: "chat failed" })));
       } finally {

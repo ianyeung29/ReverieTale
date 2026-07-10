@@ -9,7 +9,7 @@ import { ReportLink } from "@/components/TrustControls";
 import { pickExpression } from "@/lib/expression";
 
 type Story = {
-  id: string; title: string; content: string; characterId: string; characterName: string; characterTagline: string; tone: string;
+  id: string; title: string; content: string; characterId: string; characterName: string; characterTagline: string; characterTags: string[]; tone: string;
   isOwner: boolean; hasBackup: boolean; hasBackground: boolean;
   reads: number; rating: number; ratingCount: number; myRating: number | null; canRate: boolean;
   isSaved: boolean; canSave: boolean;
@@ -391,7 +391,7 @@ export default function StoryReadPage() {
         </div>
       ) : null}
 
-      <ChatDock characterId={story.characterId} characterName={story.characterName} storyId={story.id} chapter={idx + 1} open={chatOpen} onOpenChange={setChatOpen} />
+      <ChatDock characterId={story.characterId} characterName={story.characterName} characterTags={story.characterTags} storyId={story.id} chapter={idx + 1} open={chatOpen} onOpenChange={setChatOpen} />
     </main>
   );
 }

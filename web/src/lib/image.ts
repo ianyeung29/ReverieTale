@@ -212,7 +212,10 @@ export function expressionVariantsConfigured(): boolean {
   return (process.env.IMAGE_PROVIDER || "grok") === "modelslab" && Boolean(process.env.MODELSLAB_API_KEY);
 }
 
-export async function generateExpressionVariant(baseImageBase64: string, expression: Expression): Promise<{ base64: string; mime: string }> {
+// Shared img2img caller (ModelsLab only) - same face/identity as an init image,
+// nudged by a prompt at a given strength. Used for both expression variants and
+// "visualize this moment" scene images.
+async function modelsLabImg2Img(initImageBase64: string, prompt: string, opts: { negativePrompt?: string; strength?: number } = {}): Promise<{ base64: string; mime: string }> {
   const key = process.env.MODELSLAB_API_KEY;
   if (!key) throw new Error("MODELSLAB_API_KEY is not set");
   const model = process.env.IMAGE_MODEL || "flux";
@@ -220,10 +223,10 @@ export async function generateExpressionVariant(baseImageBase64: string, express
   const payload = {
     key,
     model_id: model,
-    init_image: baseImageBase64,
-    prompt: EXPRESSION_PROMPTS[expression],
-    negative_prompt: "different person, different face, different identity, deformed",
-    strength: 0.4,
+    init_image: initImageBase64,
+    prompt,
+    negative_prompt: opts.negativePrompt ?? "different person, different face, different identity, deformed",
+    strength: opts.strength ?? 0.4,
     width: "768",
     height: "1024",
     samples: "1",
@@ -258,6 +261,37 @@ export async function generateExpressionVariant(baseImageBase64: string, express
     throw new Error(`modelslab img2img: ${lastMsg || "no image in response"}`);
   }
   throw new Error(`modelslab img2img: the model kept warming up (${lastMsg || "Try Again"}) — wait a moment and retry`);
+}
+
+export async function generateExpressionVariant(baseImageBase64: string, expression: Expression): Promise<{ base64: string; mime: string }> {
+  return modelsLabImg2Img(baseImageBase64, EXPRESSION_PROMPTS[expression]);
+}
+
+// ---- "Visualize this moment" (a chat reply, illustrated) --------------------
+// Reuses the character's canonical portrait via img2img (when available) so the
+// scene stays recognizably them, instead of a generic text2img illustration.
+// Deliberately on-demand only - never generated automatically per reply.
+export function buildMomentPrompt(def: { name?: string; gender?: string; look?: string }, sceneText: string): string {
+  const g = genderWord(def.gender);
+  const who = def.name ? (g ? `${g} named ${def.name}` : def.name) : g || "person";
+  const look = def.look ? `, ${def.look}` : "";
+  const scene = sceneText.trim().replace(/\s+/g, " ").slice(0, 300);
+  return (
+    `Cinematic scene illustration featuring ${who}${look}. The moment: ${scene} ` +
+    `Painterly, soft cinematic lighting, evocative mood, tasteful, safe for work.`
+  );
+}
+
+export async function generateMomentImage(
+  def: { name?: string; gender?: string; look?: string },
+  sceneText: string,
+  canonicalBase64?: string | null,
+): Promise<{ base64: string; mime: string }> {
+  const prompt = buildMomentPrompt(def, sceneText);
+  if (canonicalBase64 && expressionVariantsConfigured()) {
+    return modelsLabImg2Img(canonicalBase64, prompt, { strength: 0.55 });
+  }
+  return generateImage(prompt);
 }
 
 // ---- fal.ai (FLUX.1 [dev]) ---------------------------------------------------

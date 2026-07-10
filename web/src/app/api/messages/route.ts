@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { messages, threads } from "@/db/schema";
 import { getCurrentUserId } from "@/lib/session";
@@ -19,7 +19,7 @@ export async function GET(req: Request) {
   if (!t || t.userId !== userId) return NextResponse.json({ error: "not found" }, { status: 404 });
 
   const rows = await db
-    .select({ role: messages.role, content: messages.content })
+    .select({ id: messages.id, role: messages.role, content: messages.content, hasImage: sql<boolean>`(${messages.imageBase64} is not null)` })
     .from(messages)
     .where(and(eq(messages.threadId, threadId)))
     .orderBy(asc(messages.createdAt));
