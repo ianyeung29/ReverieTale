@@ -268,9 +268,16 @@ export async function generateExpressionVariant(baseImageBase64: string, express
 }
 
 // ---- "Visualize this moment" (a chat reply, illustrated) --------------------
-// Reuses the character's canonical portrait via img2img (when available) so the
-// scene stays recognizably them, instead of a generic text2img illustration.
-// Deliberately on-demand only - never generated automatically per reply.
+// A fresh text-to-image SCENE built from the reply, with the character's
+// appearance woven into the prompt so it still reads as them. Deliberately
+// on-demand only - never generated automatically per reply.
+//
+// (We do NOT use img2img off the canonical head-and-shoulders portrait here:
+// at the strengths that keep identity, it reproduces the portrait rather than
+// the scene, and morphing an attractive close-up is far more likely to trip
+// the provider's safety filter - which returns a fully blacked-out image that
+// shows up as a blank screen. A described scene is both truer to "visualize
+// this moment" and much more reliable.)
 export function buildMomentPrompt(def: { name?: string; gender?: string; look?: string }, sceneText: string): string {
   const g = genderWord(def.gender);
   const who = def.name ? (g ? `${g} named ${def.name}` : def.name) : g || "person";
@@ -278,20 +285,15 @@ export function buildMomentPrompt(def: { name?: string; gender?: string; look?: 
   const scene = sceneText.trim().replace(/\s+/g, " ").slice(0, 300);
   return (
     `Cinematic scene illustration featuring ${who}${look}. The moment: ${scene} ` +
-    `Painterly, soft cinematic lighting, evocative mood, tasteful, safe for work.`
+    `Full scene with environment, painterly, soft cinematic lighting, evocative mood, tasteful, safe for work.`
   );
 }
 
 export async function generateMomentImage(
   def: { name?: string; gender?: string; look?: string },
   sceneText: string,
-  canonicalBase64?: string | null,
 ): Promise<{ base64: string; mime: string }> {
-  const prompt = buildMomentPrompt(def, sceneText);
-  if (canonicalBase64 && expressionVariantsConfigured()) {
-    return modelsLabImg2Img(canonicalBase64, prompt, { strength: 0.55 });
-  }
-  return generateImage(prompt);
+  return generateImage(buildMomentPrompt(def, sceneText));
 }
 
 // ---- fal.ai (FLUX.1 [dev]) ---------------------------------------------------

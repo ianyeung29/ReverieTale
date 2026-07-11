@@ -49,12 +49,19 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   }
 
   try {
-    const [char] = await db.select({ image: characters.image, definition: characters.definition }).from(characters).where(eq(characters.id, row.characterId)).limit(1);
+    const [char] = await db.select({ definition: characters.definition }).from(characters).where(eq(characters.id, row.characterId)).limit(1);
     const def = (char?.definition ?? {}) as Record<string, string>;
 
     if (screenImagePrompt(row.content).blocked) return NextResponse.json({ error: "blocked", reason: "safety_minor" }, { status: 422 });
 
-    const gen = await generateMomentImage(def, row.content, char?.image ?? null);
+    const gen = await generateMomentImage(def, row.content);
+    // A too-small payload means the provider handed back nothing usable (or a
+    // blank). Don't cache it and flip the button to "View" over an empty image.
+    if (!gen.base64 || gen.base64.length < 500) {
+      console.error("[visualize] provider returned an empty/too-small image", { messageId: id, bytes: gen.base64?.length ?? 0 });
+      return NextResponse.json({ error: "visualize failed" }, { status: 502 });
+    }
+    console.log("[visualize] generated", { messageId: id, bytes: gen.base64.length, mime: gen.mime });
     await db.update(messages).set({ imageBase64: gen.base64, imageMime: gen.mime }).where(eq(messages.id, id));
 
     const charge = await spend(userId, MOMENT_IMAGE_PRICE, { kind: "moment_image", messageId: id });
