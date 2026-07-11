@@ -159,7 +159,7 @@ export function ChatDock({
   }
 
   return (
-    <div style={D.panel}>
+    <div className="rv-chatdock-panel" style={D.panel}>
       <div style={D.head}>
         <div style={D.headL}>
           <CharacterAvatar characterId={characterId} name={characterName} size={28} variant={expr} />
@@ -220,7 +220,7 @@ export function ChatDock({
 
 const D: Record<string, React.CSSProperties> = {
   fabLabel: { whiteSpace: "nowrap" },
-  panel: { position: "fixed", right: 20, bottom: 20, zIndex: 40, width: "min(370px, calc(100vw - 32px))", height: "min(540px, 72vh)", display: "flex", flexDirection: "column", background: "#150F1A", border: "1px solid #3A2E44", borderRadius: 16, overflow: "hidden", boxShadow: "0 20px 60px rgba(0,0,0,.5)" },
+  panel: { position: "fixed", right: 20, zIndex: 40, width: "min(370px, calc(100vw - 32px))", height: "min(540px, 72vh)", display: "flex", flexDirection: "column", background: "#150F1A", border: "1px solid #3A2E44", borderRadius: 16, overflow: "hidden", boxShadow: "0 20px 60px rgba(0,0,0,.5)" },
   head: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", borderBottom: "1px solid #3A2E44" },
   headL: { display: "flex", alignItems: "center", gap: 9 },
   name: { fontFamily: "Georgia, serif", fontSize: 17, color: "#F4EAF0", lineHeight: 1.2 },

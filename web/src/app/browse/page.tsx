@@ -21,6 +21,9 @@ export default function BrowsePage() {
 
   useEffect(() => {
     fetch("/api/characters").then((r) => r.json()).then((c: Char[]) => setChars(Array.isArray(c) ? c : [])).catch(() => {});
+    // Seed the search box from ?q= (e.g. arriving from the home Discover bar).
+    const initial = new URLSearchParams(window.location.search).get("q");
+    if (initial) setQ(initial);
   }, []);
 
   // All tags present, most common first, for the filter row.

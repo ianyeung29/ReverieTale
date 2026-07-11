@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Nav } from "@/components/Nav";
+import { MobileNav } from "@/components/MobileNav";
 
 export const metadata: Metadata = {
   title: "Reverie - Phase 0",
@@ -119,6 +120,47 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
     padding: 12px 18px; box-shadow: 0 -8px 24px rgba(0,0,0,.35);
   }
 }
+
+/* Open chat panel position lives here (not inline) so the mobile override can
+   lift it clear of the bottom nav - an inline style would always win. */
+.rv-chatdock-panel { bottom: 20px; }
+
+/* Story-moment tile grid: two columns on phones (the Emochi-style editorial
+   look), more as the viewport grows. */
+.rv-tile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (min-width: 620px) { .rv-tile-grid { grid-template-columns: repeat(3, 1fr); gap: 14px; } }
+@media (min-width: 900px) { .rv-tile-grid { grid-template-columns: repeat(4, 1fr); gap: 16px; } }
+
+/* Mobile bottom navigation: the primary nav on small screens (desktop keeps
+   the top bar). Hidden by default, shown only under the mobile breakpoint.
+   Create is a raised central action. */
+.rv-mobilenav { display: none; }
+.rv-mobilenav-item, .rv-mobilenav-center {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  text-decoration: none; color: #8A7A90; font-size: 10.5px; font-weight: 600;
+  flex: 1; padding: 4px 0; min-width: 0;
+}
+.rv-mobilenav-icon { font-size: 18px; line-height: 1; }
+.rv-mobilenav-on { color: #E9A06B; }
+.rv-mobilenav-center { color: #E9A06B; }
+.rv-mobilenav-center-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 46px; height: 46px; margin-top: -22px; border-radius: 50%;
+  background: linear-gradient(135deg,#E9A06B,#D46A8B); color: #1A1220;
+  font-size: 22px; box-shadow: 0 8px 20px rgba(212,106,139,.45);
+}
+@media (max-width: 760px) {
+  .rv-mobilenav {
+    display: flex; align-items: flex-end; justify-content: space-around;
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 45;
+    height: 58px; box-sizing: border-box; padding: 6px 6px 8px;
+    background: rgba(21,15,26,.97); backdrop-filter: blur(10px);
+    border-top: 1px solid #2a2033;
+  }
+  body { padding-bottom: 58px; }
+  .rv-chatdock-fab { bottom: 58px; }
+  .rv-chatdock-panel { bottom: 66px; }
+}
 `;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -137,6 +179,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       >
         <Nav />
         {children}
+        <MobileNav />
       </body>
     </html>
   );

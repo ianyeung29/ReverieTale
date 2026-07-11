@@ -3,6 +3,8 @@ import { db } from "@/db";
 import { characters, stories, threads } from "@/db/schema";
 import { CharacterAvatar } from "@/components/CharacterAvatar";
 import { CharacterCard } from "@/components/CharacterCard";
+import { StoryTile } from "@/components/StoryTile";
+import { DiscoverSearch } from "@/components/DiscoverSearch";
 import { StarRating } from "@/components/StarRating";
 import { listCharacters, trendingScore } from "@/lib/discovery";
 import { MIN_AGE } from "@/lib/legal";
@@ -142,6 +144,12 @@ export default async function Home() {
   const spotlight = dailyPick(spotlightPool, viewerId ?? "anon");
   const spotlightStoryId = spotlight ? await topStoryFor(spotlight.id) : null;
 
+  // "Choose a world": image-forward story-moment tiles. Portraits carry these,
+  // so prefer companions that have one; fall back to the rest if few do, and
+  // keep the current spotlight out of the row so it isn't shown twice.
+  const worldPool = (withImage.length >= 4 ? withImage : allChars).filter((c) => c.id !== spotlight?.id);
+  const worlds = worldPool.slice(0, 8);
+
   // "Pick tonight's mood": the most common tags across the live catalog, so every
   // chip is guaranteed to lead somewhere populated.
   const moodCounts = new Map<string, number>();
@@ -165,6 +173,7 @@ export default async function Home() {
           <a href="/browse" className="rv-btn" style={btn(false)}>Browse companions</a>
           <a href="/create" className="rv-btn" style={btn(false)}>Create your own</a>
         </div>
+        <DiscoverSearch />
       </section>
 
       {spotlight ? (
@@ -214,12 +223,23 @@ export default async function Home() {
       ) : null}
 
       {moods.length ? (
-        <div style={S.moodRow} className="rv-reveal rv-d1">
-          <span style={S.moodLabel}>Tonight&apos;s mood:</span>
+        <div style={S.tabStrip} className="rv-reveal rv-d1">
+          <a href="/browse" className="rv-chip" style={{ ...S.tab, ...S.tabLead }}>All companions</a>
           {moods.map((t) => (
-            <a key={t} href={`/tag/${encodeURIComponent(t)}`} className="rv-chip" style={S.moodChip}>{t}</a>
+            <a key={t} href={`/tag/${encodeURIComponent(t)}`} className="rv-chip" style={S.tab}>{t}</a>
           ))}
         </div>
+      ) : null}
+
+      {worlds.length > 0 ? (
+        <section className="rv-reveal rv-d2">
+          <div style={S.sectionRow}><p style={{ ...S.section, margin: 0 }}>✦ Choose a world</p><a href="/browse" style={S.seeAll}>See all →</a></div>
+          <div className="rv-tile-grid">
+            {worlds.map((c) => (
+              <StoryTile key={c.id} t={{ id: c.id, name: c.name, hook: c.tagline, tags: c.tags, hasImage: c.hasImage }} />
+            ))}
+          </div>
+        </section>
       ) : null}
 
       <div style={S.steps} className="rv-reveal rv-d1">
@@ -321,9 +341,9 @@ const S: Record<string, React.CSSProperties> = {
   continueRing: { padding: 3, borderRadius: "50%", background: "linear-gradient(135deg,#E9A06B,#D46A8B)" },
   continueName: { color: "#F4EAF0", fontSize: 12.5, fontWeight: 600, textAlign: "center", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 76 },
   continueWhen: { color: "#6f6276", fontSize: 11 },
-  moodRow: { display: "flex", flexWrap: "wrap", gap: 9, alignItems: "center", margin: "22px 2px 0", position: "relative", zIndex: 1 },
-  moodLabel: { color: "#6f6276", fontSize: 12.5, letterSpacing: ".04em", marginRight: 2 },
-  moodChip: { fontSize: 12.5, color: "#CBBBD0", background: "#241B2D", border: "1px solid #3A2E44", borderRadius: 999, padding: "6px 13px", textDecoration: "none", textTransform: "capitalize" },
+  tabStrip: { display: "flex", gap: 9, alignItems: "center", margin: "26px 0 0", position: "relative", zIndex: 1, overflowX: "auto", paddingBottom: 4 },
+  tab: { fontSize: 13, color: "#CBBBD0", background: "#241B2D", border: "1px solid #3A2E44", borderRadius: 999, padding: "8px 15px", textDecoration: "none", textTransform: "capitalize", whiteSpace: "nowrap", flexShrink: 0 },
+  tabLead: { color: "#1A1220", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", border: "1px solid transparent", fontWeight: 650 },
   steps: { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 14, margin: "52px 0 8px", position: "relative", zIndex: 1 },
   step: { background: "linear-gradient(180deg,#1C1524,#171120)", border: "1px solid #2f2438", borderRadius: 16, padding: "18px 18px 20px" },
   stepTop: { display: "flex", alignItems: "center", justifyContent: "space-between" },
