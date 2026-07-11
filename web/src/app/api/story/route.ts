@@ -2,11 +2,11 @@ import { NextResponse, after } from "next/server";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { characters, stories, users } from "@/db/schema";
+import { characters, chapterScenes, stories, users } from "@/db/schema";
 import { generateStory } from "@/lib/story";
 import { resolveTier } from "@/lib/model";
 import { screen, screenImagePrompt } from "@/lib/moderation";
-import { buildScenePrompt, generateImage, imageConfigured } from "@/lib/image";
+import { buildScenePrompt, buildChapterScenePrompt, generateChapterScene, generateImage, imageConfigured } from "@/lib/image";
 import { getCurrentUserId } from "@/lib/session";
 import { ensureDailyDrip, spend, userBalance } from "@/lib/ledger";
 
@@ -117,6 +117,21 @@ export async function POST(req: Request) {
             await db.update(stories).set({ image: gen.base64, imageMime: gen.mime }).where(eq(stories.id, story.id));
           } catch (err) {
             console.error("[story] background generation failed:", err instanceof Error ? err.message : err);
+          }
+        });
+      }
+    }
+
+    // A scene image for the opening chapter (chapter 0), in the background.
+    if (imageConfigured()) {
+      const chapterPrompt = buildChapterScenePrompt({ name: def.name, gender: def.gender, look: def.look }, content);
+      if (!screenImagePrompt(chapterPrompt).blocked) {
+        after(async () => {
+          try {
+            const gen = await generateChapterScene({ name: def.name, gender: def.gender, look: def.look }, content);
+            await db.insert(chapterScenes).values({ storyId: story.id, chapterIndex: 0, image: gen.base64, imageMime: gen.mime }).onConflictDoNothing();
+          } catch (err) {
+            console.error("[story] chapter scene generation failed:", err instanceof Error ? err.message : err);
           }
         });
       }

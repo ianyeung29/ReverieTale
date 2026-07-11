@@ -7,6 +7,7 @@ import { ChatDock } from "@/components/ChatDock";
 import { RatingBar } from "@/components/RatingBar";
 import { ReportLink } from "@/components/TrustControls";
 import { pickExpression } from "@/lib/expression";
+import { pickStatusLine } from "@/lib/status";
 
 type Story = {
   id: string; title: string; content: string; characterId: string; characterName: string; characterTagline: string; characterTags: string[]; tone: string;
@@ -14,7 +15,7 @@ type Story = {
   reads: number; rating: number; ratingCount: number; myRating: number | null; canRate: boolean;
   isSaved: boolean; canSave: boolean;
   isCharacterHidden: boolean;
-  createdAt: string; chapterDates: string[];
+  createdAt: string; chapterDates: string[]; chapterImages: number[];
 };
 
 function formatChapterDate(story: Story, chapterIdx: number): string {
@@ -99,12 +100,25 @@ export default function StoryReadPage() {
 
   useEffect(() => {
     fetch(`/api/stories/${id}`).then((r) => (r.ok ? r.json() : Promise.reject())).then((s: Story) => {
-      setStory(s); setChapters(splitChapters(s.content)); setSaved(s.isSaved);
+      const ch = splitChapters(s.content);
+      setStory(s); setChapters(ch); setSaved(s.isSaved);
+      // Resume where the reader left off (powers the profile's Continue state).
+      const raw = localStorage.getItem(`rv_progress_${id}`);
+      const resume = raw != null ? Number(raw) : 0;
+      if (resume > 0 && resume < ch.length) setIdx(resume);
     }).catch(() => setNotFound(true));
     fetch("/api/config").then((r) => r.json()).then((d) => { if (d.pricing?.chapter) setChapterPrice(d.pricing.chapter); }).catch(() => {});
   }, [id]);
 
   useEffect(() => { window.scrollTo({ top: 0, behavior: "smooth" }); }, [idx]);
+
+  // Persist the furthest chapter reached so the library/profile can offer
+  // "Continue chapter N" and the reader resumes here next visit.
+  useEffect(() => {
+    if (!story) return;
+    const prev = Number(localStorage.getItem(`rv_progress_${id}`) ?? "0");
+    if (idx > prev) localStorage.setItem(`rv_progress_${id}`, String(idx));
+  }, [idx, story, id]);
 
   // Keyboard paging (ignored while typing in the next-chapter form).
   useEffect(() => {
@@ -188,6 +202,7 @@ export default function StoryReadPage() {
   // Story-wide mood cue for the companion's portrait (falls back to the
   // canonical portrait for characters without variants, or a neutral tone).
   const expr = pickExpression(story.tone);
+  const sceneState = pickStatusLine({ tags: story.characterTags, expr, isReturning: idx > 0 });
 
   return (
     <main style={S.wrap}>
@@ -206,6 +221,7 @@ export default function StoryReadPage() {
             <CharacterAvatar characterId={story.characterId} name={story.characterName} shape="rect" variant={expr} />
           </div>
           <p style={S.railName}>{story.characterName}</p>
+          <p style={S.railState}>{sceneState}</p>
           {story.characterTagline ? <p style={S.railLine}>{story.characterTagline}</p> : null}
           <button style={S.railBtn} onClick={() => setChatOpen(true)}>Talk to {story.characterName}</button>
         </div>
@@ -264,6 +280,14 @@ export default function StoryReadPage() {
           <span>A previous version is saved.</span>
           <button style={S.bkBtn} onClick={readBackup}>Read it</button>
           <button style={S.bkBtn} onClick={restore}>Restore</button>
+        </div>
+      ) : null}
+
+      {story.chapterImages.includes(idx) ? (
+        <div style={S.chapterScene} key={`scene-${idx}`}>
+          <img src={`/api/stories/${id}/chapter-image?chapter=${idx}`} alt="" style={S.chapterSceneImg} />
+          {idx === 0 ? <div style={S.chapterSceneScrim} /> : null}
+          {idx === 0 ? <div style={S.chapterSceneCaption}>Chapter 1 of {chapters.length}</div> : null}
         </div>
       ) : null}
 
@@ -415,11 +439,16 @@ const S: Record<string, React.CSSProperties> = {
   link: { color: "#E9A06B" },
   progressTrack: { position: "fixed", top: 52, left: 0, right: 0, height: 3, background: "#241a2b", zIndex: 20 },
   progressFill: { height: "100%", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", transition: "width .3s ease" },
-  rail: { position: "fixed", top: 96, left: "calc(50% + 360px)", width: 170, flexDirection: "column", gap: 8, alignItems: "flex-start", zIndex: 5 },
+  rail: { position: "fixed", top: 90, left: "calc(50% + 348px)", width: 200, flexDirection: "column", gap: 6, alignItems: "flex-start", zIndex: 5 },
   railPortrait: { width: "100%", borderRadius: 14, overflow: "hidden", boxShadow: "0 10px 30px rgba(0,0,0,.4)" },
-  railName: { fontFamily: "Georgia, serif", fontSize: 16, margin: "8px 0 0", color: "#F4EAF0" },
-  railLine: { color: "#8A7A90", fontSize: 12.5, margin: 0, lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" },
-  railBtn: { marginTop: 4, width: "100%", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", color: "#1A1220", border: 0, borderRadius: 10, padding: "9px 0", fontWeight: 650, fontSize: 13, cursor: "pointer" },
+  railName: { fontFamily: "Georgia, serif", fontSize: 17, margin: "10px 0 0", color: "#F4EAF0" },
+  railState: { color: "#E9A06B", fontSize: 12, margin: "1px 0 0", fontWeight: 600 },
+  railLine: { color: "#8A7A90", fontSize: 12.5, margin: "3px 0 0", lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" },
+  railBtn: { marginTop: 8, width: "100%", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", color: "#1A1220", border: 0, borderRadius: 10, padding: "9px 0", fontWeight: 650, fontSize: 13, cursor: "pointer" },
+  chapterScene: { position: "relative", margin: "0 0 22px", borderRadius: 16, overflow: "hidden", border: "1px solid #3A2E44", boxShadow: "0 16px 40px rgba(0,0,0,.4)" },
+  chapterSceneImg: { display: "block", width: "100%", aspectRatio: "16 / 9", objectFit: "cover" },
+  chapterSceneScrim: { position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(15,10,19,0) 55%, rgba(15,10,19,.8) 100%)", pointerEvents: "none" },
+  chapterSceneCaption: { position: "absolute", left: 16, bottom: 12, color: "#F4EAF0", fontSize: 12.5, letterSpacing: ".08em", textTransform: "uppercase", fontWeight: 700, textShadow: "0 1px 4px rgba(0,0,0,.6)" },
   head: { display: "flex", alignItems: "center", gap: 14, margin: "24px 0 28px" },
   title: { fontFamily: "Georgia, serif", fontSize: 32, margin: 0, lineHeight: 1.15 },
   by: { color: "#AC9CB0", margin: "4px 0 0", fontSize: 14 },

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { characters, stories } from "@/db/schema";
+import { characters, chapterScenes, stories } from "@/db/schema";
 import { ratingFor, userRating } from "@/lib/ratings";
 import { isBookmarked } from "@/lib/bookmarks";
 import { isCharacterBlocked } from "@/lib/blocks";
@@ -61,6 +61,16 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     /* image column not migrated yet */
   }
 
+  // Which chapters have a generated scene image (migration 0018) - the reader
+  // renders one only where it exists. Optional; never break reading over it.
+  let chapterImages: number[] = [];
+  try {
+    const rows = await db.select({ i: chapterScenes.chapterIndex }).from(chapterScenes).where(eq(chapterScenes.storyId, id));
+    chapterImages = rows.map((r) => r.i).sort((a, b) => a - b);
+  } catch {
+    /* chapter_scenes not migrated yet */
+  }
+
   // Bookmark state is optional (migration 0011); never break reading over it.
   let saved = false;
   if (userId) {
@@ -94,6 +104,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     tone: (row.elements as Record<string, string> | null)?.tone ?? "",
     createdAt: row.createdAt,
     chapterDates: row.chapterDates ?? [],
+    chapterImages,
     isOwner,
     hasBackup: isOwner && Boolean(row.backup),
     hasBackground,

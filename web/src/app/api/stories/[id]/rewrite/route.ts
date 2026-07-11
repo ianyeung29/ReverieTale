@@ -1,11 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { and, eq, gte } from "drizzle-orm";
 import { db } from "@/db";
-import { characters, stories, users } from "@/db/schema";
+import { characters, chapterScenes, stories, users } from "@/db/schema";
 import { generateNextChapter, generateStory, type StoryElements } from "@/lib/story";
 import { resolveTier, type Tier } from "@/lib/model";
-import { screen } from "@/lib/moderation";
+import { screen, screenImagePrompt } from "@/lib/moderation";
+import { buildChapterScenePrompt, generateChapterScene, imageConfigured } from "@/lib/image";
 import { getCurrentUserId } from "@/lib/session";
 import { ensureDailyDrip, spend, userBalance } from "@/lib/ledger";
 
@@ -81,9 +82,29 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const chapterDates = [...(row.chapterDates ?? []).slice(0, body.chapterIndex), new Date().toISOString()];
     await db.update(stories).set({ content: kept.join(SEP), chapterDates, backup: row.content, backupAt: new Date() }).where(eq(stories.id, id));
 
+    // The rewritten chapter and everything after it changed, so their scene
+    // images are stale - drop them (the rewritten one regenerates below; later
+    // chapters were dropped from the content entirely).
+    await db.delete(chapterScenes).where(and(eq(chapterScenes.storyId, id), gte(chapterScenes.chapterIndex, body.chapterIndex)));
+
     // Charge only after a successful, safety-cleared rewrite + save.
     const charge = await spend(userId, CHAPTER_PRICE, { kind: "rewrite", storyId: id, chapter: body.chapterIndex });
     if (!charge.ok) return NextResponse.json({ error: "insufficient_credits", price: CHAPTER_PRICE, balance: charge.balance }, { status: 402 });
+
+    // Regenerate a scene for the rewritten chapter, in the background.
+    if (imageConfigured()) {
+      const prompt = buildChapterScenePrompt({ name: def.name, gender: def.gender, look: def.look }, newChapter);
+      if (!screenImagePrompt(prompt).blocked) {
+        after(async () => {
+          try {
+            const gen = await generateChapterScene({ name: def.name, gender: def.gender, look: def.look }, newChapter);
+            await db.insert(chapterScenes).values({ storyId: id, chapterIndex: body.chapterIndex, image: gen.base64, imageMime: gen.mime }).onConflictDoNothing();
+          } catch (err) {
+            console.error("[rewrite] chapter scene generation failed:", err instanceof Error ? err.message : err);
+          }
+        });
+      }
+    }
 
     return NextResponse.json({ chapter: newChapter.trim(), total: kept.length, balance: charge.balance });
   } catch (e) {

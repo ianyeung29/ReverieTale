@@ -1,11 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { characters, stories, users } from "@/db/schema";
+import { characters, chapterScenes, stories, users } from "@/db/schema";
 import { generateNextChapter } from "@/lib/story";
 import { resolveTier, type Tier } from "@/lib/model";
-import { screen } from "@/lib/moderation";
+import { screen, screenImagePrompt } from "@/lib/moderation";
+import { buildChapterScenePrompt, generateChapterScene, imageConfigured } from "@/lib/image";
 import { getCurrentUserId } from "@/lib/session";
 import { ensureDailyDrip, spend, userBalance } from "@/lib/ledger";
 
@@ -69,6 +70,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const chapter = await generateNextChapter(def, row.content, dir, tier);
     if (screen(chapter).blocked) return NextResponse.json({ error: "blocked", reason: "safety_minor" }, { status: 422 });
 
+    const newIndex = row.content.split(/\n{2,}·\s·\s·\n{2,}/).map((c) => c.trim()).filter(Boolean).length;
     const updated = `${row.content}\n\n· · ·\n\n${chapter}`;
     const chapterDates = [...(row.chapterDates ?? []), new Date().toISOString()];
     await db.update(stories).set({ content: updated, chapterDates }).where(eq(stories.id, id));
@@ -76,6 +78,21 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     // Charge only after a successful, safety-cleared generation + save.
     const charge = await spend(userId, CHAPTER_PRICE, { kind: "chapter", storyId: id });
     if (!charge.ok) return NextResponse.json({ error: "insufficient_credits", price: CHAPTER_PRICE, balance: charge.balance }, { status: 402 });
+
+    // A scene image for the new chapter, in the background.
+    if (imageConfigured()) {
+      const prompt = buildChapterScenePrompt({ name: def.name, gender: def.gender, look: def.look }, chapter);
+      if (!screenImagePrompt(prompt).blocked) {
+        after(async () => {
+          try {
+            const gen = await generateChapterScene({ name: def.name, gender: def.gender, look: def.look }, chapter);
+            await db.insert(chapterScenes).values({ storyId: id, chapterIndex: newIndex, image: gen.base64, imageMime: gen.mime }).onConflictDoNothing();
+          } catch (err) {
+            console.error("[continue] chapter scene generation failed:", err instanceof Error ? err.message : err);
+          }
+        });
+      }
+    }
 
     return NextResponse.json({ chapter, balance: charge.balance });
   } catch (e) {

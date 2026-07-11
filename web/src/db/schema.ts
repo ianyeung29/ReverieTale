@@ -89,6 +89,12 @@ export const characters = pgTable("characters", {
   imageWarmMime: text("image_warm_mime"),
   imageFlirty: text("image_flirty"),
   imageFlirtyMime: text("image_flirty_mime"),
+  // Character-specific SCENE art: the companion in their world (e.g. Sable at
+  // the piano in a closed club), a wide establishing image used behind the
+  // profile hero. Distinct from the head-and-shoulders portrait above. Served
+  // via /api/characters/:id/scene.
+  sceneImage: text("scene_image"),
+  sceneImageMime: text("scene_image_mime"),
   // Portrait generations for this character: first is free, regens cost credits.
   portraitGens: integer("portrait_gens").notNull().default(0),
   // { name, persona, look, backstory, voice, greeting, tags }
@@ -127,6 +133,23 @@ export const stories = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => ({ byChar: index("stories_char_idx").on(t.characterId) }),
+);
+
+// One generated scene image per chapter, placed at a turning point in the
+// reader. Kept in its own table (not on the stories row) so the large base64
+// payloads don't bloat the story record, and each is addressable by chapter.
+// Served via /api/stories/:id/chapter-image?chapter=N.
+export const chapterScenes = pgTable(
+  "chapter_scenes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    storyId: uuid("story_id").notNull().references(() => stories.id),
+    chapterIndex: integer("chapter_index").notNull(), // 0-based
+    image: text("image").notNull(),
+    imageMime: text("image_mime"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({ storyChapterUniq: uniqueIndex("chapter_scenes_story_chapter_uniq").on(t.storyId, t.chapterIndex) }),
 );
 
 // ---------------------------------------------------------------------------

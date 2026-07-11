@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { characters, stories, users } from "@/db/schema";
 import { CharacterAvatar } from "@/components/CharacterAvatar";
+import { EpisodeShelf } from "@/components/EpisodeShelf";
 import { RatingBar } from "@/components/RatingBar";
 import { StarRating } from "@/components/StarRating";
 import { HideToggle, ReportLink } from "@/components/TrustControls";
@@ -51,7 +52,8 @@ type Profile = {
   creatorId: string | null; // links to the creator catalog; null = first-party
   rating: number; ratingCount: number; myRating: number | null; canRate: boolean;
   canModerate: boolean; isBlocked: boolean;
-  stories: { id: string; title: string; snippet: string; chapters: number; reads: number; rating: number; ratingCount: number }[];
+  hasScene: boolean;
+  stories: { id: string; title: string; hook: string; chapters: number; readMin: number; reads: number; rating: number; ratingCount: number; hasCover: boolean }[];
 };
 
 async function loadProfile(id: string): Promise<Profile | null> {
@@ -80,11 +82,21 @@ async function loadProfile(id: string): Promise<Profile | null> {
     }
 
     const rows = await db
-      .select({ id: stories.id, title: stories.title, content: stories.content, reads: stories.reads })
+      .select({ id: stories.id, title: stories.title, content: stories.content, reads: stories.reads, hasCover: sql<boolean>`(${stories.image} is not null)` })
       .from(stories)
       .where(and(eq(stories.characterId, id), eq(stories.isPublic, true)))
       .orderBy(desc(stories.createdAt))
       .limit(24);
+
+    // Character scene art is optional (migration 0018); probe it separately so a
+    // missing column never breaks the profile.
+    let hasScene = false;
+    try {
+      const [sc] = await db.select({ h: sql<boolean>`(${characters.sceneImage} is not null)` }).from(characters).where(eq(characters.id, id)).limit(1);
+      hasScene = Boolean(sc?.h);
+    } catch {
+      /* scene_image column not migrated yet */
+    }
 
     // Ratings: this character's aggregate + the viewer's own, plus per-story aggregates.
     const charRating = (await ratingAggregates("character", [char.id])).get(char.id) ?? { average: 0, count: 0 };
@@ -120,16 +132,20 @@ async function loadProfile(id: string): Promise<Profile | null> {
       canRate: Boolean(userId) && !isOwner,
       canModerate: Boolean(userId) && !isOwner,
       isBlocked: blocked,
+      hasScene,
       stories: rows.map((r) => {
         const sr = storyRatings.get(r.id) ?? { average: 0, count: 0 };
+        const words = r.content.trim().split(/\s+/).length;
         return {
           id: r.id,
           title: r.title,
-          snippet: r.content.replace(/\s+/g, " ").slice(0, 140),
+          hook: r.content.replace(/\s+/g, " ").slice(0, 110),
           chapters: chapterCount(r.content),
+          readMin: Math.max(1, Math.round(words / 200)),
           reads: r.reads,
           rating: sr.average,
           ratingCount: sr.count,
+          hasCover: Boolean(r.hasCover),
         };
       }),
     };
@@ -155,24 +171,34 @@ export default async function CharacterProfile({ params }: { params: Promise<{ i
     <main style={S.wrap}>
       <a href="/browse" style={S.back}>← Companions</a>
 
-      <div style={S.head} className="rv-reveal rv-profile-head">
-        <div style={S.portraitWrap} className="rv-profile-portrait">
-          <CharacterAvatar characterId={p.id} name={p.name} shape="rect" enlargeable />
+      <section style={S.hero} className="rv-reveal">
+        <div aria-hidden style={S.heroBgLayer}>
+          <div style={{ ...S.heroBgImage, backgroundImage: `url(/api/characters/${p.id}/${p.hasScene ? "scene" : "image"})` }} />
+          <div style={S.heroScrim} />
         </div>
-        <div style={S.headText}>
-          <h1 style={S.name}>{p.name}</h1>
-          <p style={S.by}>by {p.creatorId ? <a href={`/creator/${p.creatorId}`} style={S.byLink}>{p.creator}</a> : p.creator}</p>
-          {p.age || p.gender || p.look ? <p style={S.look}>{[p.age ? `Age ${p.age}` : null, p.gender ? cap(p.gender) : null, p.look || null].filter(Boolean).join(" · ")}</p> : null}
-          <div style={S.headRating}><StarRating value={p.rating} count={p.ratingCount} size={15} /></div>
-          {p.tags.length ? <div style={S.tags}>{p.tags.map((t) => <a key={t} href={`/tag/${encodeURIComponent(t)}`} style={S.tag}>{t}</a>)}</div> : null}
-          {p.greeting ? <p style={S.greeting}>&ldquo;{p.greeting}&rdquo;</p> : null}
+        <div style={S.heroInner} className="rv-profile-head">
+          <div style={S.heroPortrait} className="rv-profile-portrait">
+            <CharacterAvatar characterId={p.id} name={p.name} shape="rect" enlargeable />
+          </div>
+          <div style={S.heroText}>
+            <h1 style={S.name}>{p.name}</h1>
+            <p style={S.by}>by {p.creatorId ? <a href={`/creator/${p.creatorId}`} style={S.byLink}>{p.creator}</a> : p.creator}</p>
+            {p.backstory ? <p style={S.premise}>{p.backstory}</p> : null}
+            {p.greeting ? <p style={S.greeting}>&ldquo;{p.greeting}&rdquo;</p> : null}
+            <div style={S.heroCta}>
+              <a href={`/story?characterId=${p.id}`} className="rv-btn rv-btn-primary" style={S.primary}>Enter the story →</a>
+              <a href={`/chat?characterId=${p.id}`} className="rv-btn" style={S.secondary}>Talk to {p.name}</a>
+              {p.isOwner ? <a href={`/create?id=${p.id}`} className="rv-btn" style={S.secondary}>Edit</a> : null}
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
 
-      <div style={S.cta} className="rv-reveal rv-d1">
-        <a href={`/story?characterId=${p.id}`} className="rv-btn rv-btn-primary" style={S.primary}>Begin a story with {p.name} →</a>
-        <a href={`/chat?characterId=${p.id}`} className="rv-btn" style={S.secondary}>Chat</a>
-        {p.isOwner ? <a href={`/create?id=${p.id}`} className="rv-btn" style={S.secondary}>Edit</a> : null}
+      <div style={S.signals} className="rv-reveal rv-d1">
+        {[p.age ? `Age ${p.age}` : null, p.gender ? cap(p.gender) : null, ...p.tags].filter(Boolean).map((sig, i) => (
+          <span key={i} style={S.signal}>{sig}</span>
+        ))}
+        <span style={S.signalRating}><StarRating value={p.rating} count={p.ratingCount} size={13} /></span>
       </div>
 
       {p.canModerate ? (
@@ -192,22 +218,11 @@ export default async function CharacterProfile({ params }: { params: Promise<{ i
       {p.persona ? (<><p style={S.section}>About</p><p style={S.body}>{p.persona}</p></>) : null}
       {p.backstory ? (<><p style={S.section}>Backstory</p><p style={S.body}>{p.backstory}</p></>) : null}
 
-      <p style={S.section}>Stories with {p.name}{p.stories.length ? ` · ${p.stories.length}` : ""}</p>
+      <p style={S.section}>Episodes with {p.name}{p.stories.length ? ` · ${p.stories.length}` : ""}</p>
       {p.stories.length === 0 ? (
         <p style={S.muted}>No stories yet. <a href={`/story?characterId=${p.id}`} style={S.link}>Write the first →</a></p>
       ) : (
-        <div style={S.grid}>
-          {p.stories.map((s) => (
-            <a key={s.id} href={`/story/${s.id}`} className="rv-card" style={S.card}>
-              <div style={S.cardTitle}>{s.title}</div>
-              <p style={S.cardSnip}>{s.snippet}…</p>
-              <span style={S.cardMeta}>
-                {s.chapters} chapter{s.chapters === 1 ? "" : "s"} · {s.reads} view{s.reads === 1 ? "" : "s"}
-                {s.ratingCount ? <> · <StarRating value={s.rating} count={s.ratingCount} size={12} showNumber={false} /> {s.rating.toFixed(1)}</> : null}
-              </span>
-            </a>
-          ))}
-        </div>
+        <EpisodeShelf items={p.stories} />
       )}
     </main>
   );
@@ -217,15 +232,22 @@ const S: Record<string, React.CSSProperties> = {
   wrap: { maxWidth: 760, margin: "0 auto", padding: "36px 24px 90px", lineHeight: 1.6 },
   back: { color: "#8A7A90", textDecoration: "none", fontSize: 14, letterSpacing: ".04em" },
   link: { color: "#E9A06B" },
-  head: { display: "flex", alignItems: "flex-start", gap: 22, margin: "24px 0 20px" },
-  portraitWrap: { flexShrink: 0 },
-  headText: { display: "flex", flexDirection: "column", gap: 8, paddingTop: 4 },
-  name: { fontFamily: "Georgia, serif", fontSize: 36, margin: 0, lineHeight: 1.1 },
-  by: { color: "#8A7A90", margin: 0, fontSize: 13.5 },
+  hero: { position: "relative", margin: "20px 0 0", borderRadius: 22, overflow: "hidden", border: "1px solid #3A2E44", minHeight: 300 },
+  heroBgLayer: { position: "absolute", inset: 0, zIndex: 0, overflow: "hidden", pointerEvents: "none" },
+  heroBgImage: { position: "absolute", inset: -30, backgroundSize: "cover", backgroundPosition: "center 25%", filter: "blur(14px) brightness(.42) saturate(1.15)", transform: "scale(1.12)" },
+  heroScrim: { position: "absolute", inset: 0, background: "linear-gradient(120deg, rgba(21,15,26,.78), rgba(21,15,26,.5))" },
+  heroInner: { position: "relative", zIndex: 1, display: "flex", alignItems: "flex-start", gap: 22, padding: 24 },
+  heroPortrait: { flexShrink: 0, width: 172 },
+  heroText: { display: "flex", flexDirection: "column", gap: 8, minWidth: 0, flex: 1 },
+  name: { fontFamily: "Georgia, serif", fontSize: 38, margin: 0, lineHeight: 1.05, color: "#F4EAF0" },
+  by: { color: "#AC9CB0", margin: 0, fontSize: 13.5 },
   byLink: { color: "#E9A06B", textDecoration: "none" },
-  look: { color: "#AC9CB0", margin: 0, fontSize: 14.5 },
-  headRating: { marginTop: 2 },
-  greeting: { color: "#EadFe6", fontSize: 15.5, fontStyle: "italic", margin: "6px 0 0", lineHeight: 1.5, borderLeft: "2px solid #E9A06B", paddingLeft: 12, maxWidth: 460 },
+  premise: { color: "#D9CBDE", margin: "2px 0 0", fontSize: 15, lineHeight: 1.5, maxWidth: 480 },
+  greeting: { color: "#EadFe6", fontSize: 15.5, fontStyle: "italic", margin: "4px 0 2px", lineHeight: 1.5, borderLeft: "2px solid #E9A06B", paddingLeft: 12, maxWidth: 480 },
+  heroCta: { display: "flex", flexWrap: "wrap", gap: 10, marginTop: 8 },
+  signals: { display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", margin: "16px 0 28px" },
+  signal: { fontSize: 12, color: "#CBBBD0", background: "#241B2D", border: "1px solid #3A2E44", borderRadius: 999, padding: "5px 12px", textTransform: "capitalize" },
+  signalRating: { marginLeft: 2 },
   rateBox: { background: "#241B2D", border: "1px solid #3A2E44", borderRadius: 14, padding: "14px 16px", margin: "0 0 30px" },
   tags: { display: "flex", flexWrap: "wrap", gap: 6 },
   tag: { fontSize: 11.5, color: "#E9A06B", border: "1px solid #4a3a50", borderRadius: 999, padding: "2px 9px", textDecoration: "none" },

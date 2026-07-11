@@ -296,6 +296,46 @@ export async function generateMomentImage(
   return generateImage(buildMomentPrompt(def, sceneText));
 }
 
+// ---- Character scene art (the companion in their world) ---------------------
+// A wide establishing image - the character within their backstory setting
+// (e.g. Sable at the piano in a closed club) - used behind the profile hero.
+// Wide/landscape, unlike the portrait, so it reads as a place, not a headshot.
+export function buildCharacterScenePrompt(def: { name?: string; gender?: string; look?: string; backstory?: string; tags?: string[] }): string {
+  const g = genderWord(def.gender);
+  const who = def.name ? (g ? `${g} named ${def.name}` : def.name) : g || "person";
+  const look = def.look ? `, ${def.look}` : "";
+  const place = def.backstory ? def.backstory.trim().replace(/\s+/g, " ").slice(0, 200) : "an intimate, atmospheric setting";
+  const genre = def.tags?.length ? ` ${def.tags.join(", ")} mood.` : "";
+  return (
+    `Wide cinematic establishing shot of ${who}${look}, within their world: ${place} ` +
+    `The character is present in the scene, environmental and atmospheric.${genre} ` +
+    `Painterly, moody cinematic lighting, depth of field, evocative, tasteful, safe for work.`
+  );
+}
+
+export async function generateCharacterScene(def: { name?: string; gender?: string; look?: string; backstory?: string; tags?: string[] }): Promise<{ base64: string; mime: string }> {
+  return generateImage(buildCharacterScenePrompt(def));
+}
+
+// ---- Per-chapter scene art --------------------------------------------------
+// One illustration per chapter, from that chapter's own prose, placed at a
+// turning point in the reader.
+export function buildChapterScenePrompt(def: { name?: string; gender?: string; look?: string }, chapterText: string): string {
+  const g = genderWord(def.gender);
+  const who = def.name ? (g ? `${g} named ${def.name}` : def.name) : g || "person";
+  const look = def.look ? `, ${def.look}` : "";
+  // Lead with the opening of the chapter - it usually sets the scene.
+  const scene = chapterText.trim().replace(/\s+/g, " ").slice(0, 320);
+  return (
+    `Cinematic scene illustration featuring ${who}${look}. Scene: ${scene} ` +
+    `Full environment, painterly, soft cinematic lighting, evocative mood, tasteful, safe for work.`
+  );
+}
+
+export async function generateChapterScene(def: { name?: string; gender?: string; look?: string }, chapterText: string): Promise<{ base64: string; mime: string }> {
+  return generateImage(buildChapterScenePrompt(def, chapterText));
+}
+
 // ---- fal.ai (FLUX.1 [dev]) ---------------------------------------------------
 async function generateFal(prompt: string): Promise<{ base64: string; mime: string }> {
   const key = process.env.FAL_KEY;

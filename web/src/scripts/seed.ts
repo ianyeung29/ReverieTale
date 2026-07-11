@@ -4310,8 +4310,8 @@ const VARIANT_PILOT = new Set(["Roxie", "Vivienne", "Talia", "Naomi", "Selene"])
 async function main() {
   const { eq, sql, and } = await import("drizzle-orm");
   const { db } = await import("../db/index");
-  const { characters, stories, users } = await import("../db/schema");
-  const { buildPortraitPrompt, buildScenePrompt, generateImage, generateExpressionVariant, expressionVariantsConfigured, imageConfigured } = await import("../lib/image");
+  const { characters, stories, users, chapterScenes } = await import("../db/schema");
+  const { buildPortraitPrompt, buildScenePrompt, generateImage, generateExpressionVariant, expressionVariantsConfigured, imageConfigured, generateCharacterScene, generateChapterScene, buildCharacterScenePrompt, buildChapterScenePrompt } = await import("../lib/image");
   const { screenImagePrompt } = await import("../lib/moderation");
 
   const canDrawImages = imageConfigured();
@@ -4327,7 +4327,7 @@ async function main() {
 
   for (const def of CHARACTERS) {
     const [existing] = await db
-      .select({ id: characters.id, image: characters.image, warm: characters.imageWarm, flirty: characters.imageFlirty })
+      .select({ id: characters.id, image: characters.image, warm: characters.imageWarm, flirty: characters.imageFlirty, scene: characters.sceneImage })
       .from(characters)
       .where(sql`${characters.definition}->>'name' = ${def.name}`)
       .limit(1);
@@ -4335,11 +4335,13 @@ async function main() {
     let charId: string;
     let hasImage = false;
     let hasVariants = false;
+    let hasScene = false;
     let canonicalBase64: string | null = null;
     if (existing) {
       charId = existing.id;
       hasImage = Boolean(existing.image);
       hasVariants = Boolean(existing.warm) && Boolean(existing.flirty);
+      hasScene = Boolean(existing.scene);
       canonicalBase64 = existing.image;
       console.log(`= ${def.name.padEnd(8)} already exists (${charId})`);
     } else {
@@ -4395,6 +4397,22 @@ async function main() {
         }
       }
     }
+
+    // Character scene art: the companion within their world, behind the profile hero.
+    if (!hasScene && canDrawImages) {
+      const scenePrompt = buildCharacterScenePrompt({ name: def.name, gender: def.gender, look: def.look, backstory: def.backstory, tags: def.tags });
+      if (screenImagePrompt(scenePrompt).blocked) {
+        console.log(`  ! scene prompt blocked for ${def.name}, skipping`);
+      } else {
+        try {
+          const gen = await generateCharacterScene({ name: def.name, gender: def.gender, look: def.look, backstory: def.backstory, tags: def.tags });
+          await db.update(characters).set({ sceneImage: gen.base64, sceneImageMime: gen.mime }).where(eq(characters.id, charId));
+          console.log(`  scene drawn for ${def.name}`);
+        } catch (e) {
+          console.log(`  ! scene failed for ${def.name}: ${e instanceof Error ? e.message : e}`);
+        }
+      }
+    }
   }
 
   for (const s of STORIES) {
@@ -4447,6 +4465,29 @@ async function main() {
           console.log(`  background drawn for "${s.title}"`);
         } catch (e) {
           console.log(`  ! background failed for "${s.title}": ${e instanceof Error ? e.message : e}`);
+        }
+      }
+    }
+
+    // One scene image per chapter, placed at a turning point in the reader.
+    if (canDrawImages) {
+      const charDef = CHARACTERS.find((c) => c.name === s.character);
+      const chapters = s.content.split(/\n{2,}·\s·\s·\n{2,}/).map((c) => c.trim()).filter(Boolean);
+      for (let i = 0; i < chapters.length; i++) {
+        const [have] = await db
+          .select({ id: chapterScenes.id })
+          .from(chapterScenes)
+          .where(and(eq(chapterScenes.storyId, storyId), eq(chapterScenes.chapterIndex, i)))
+          .limit(1);
+        if (have) continue;
+        const prompt = buildChapterScenePrompt({ name: charDef?.name, gender: charDef?.gender, look: charDef?.look }, chapters[i]);
+        if (screenImagePrompt(prompt).blocked) continue;
+        try {
+          const gen = await generateChapterScene({ name: charDef?.name, gender: charDef?.gender, look: charDef?.look }, chapters[i]);
+          await db.insert(chapterScenes).values({ storyId, chapterIndex: i, image: gen.base64, imageMime: gen.mime });
+          console.log(`  chapter ${i + 1} scene drawn for "${s.title}"`);
+        } catch (e) {
+          console.log(`  ! chapter ${i + 1} scene failed for "${s.title}": ${e instanceof Error ? e.message : e}`);
         }
       }
     }
