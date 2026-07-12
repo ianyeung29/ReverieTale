@@ -295,7 +295,14 @@ export default function StoryReadPage() {
         key={idx + ":" + (chapters[idx] ?? "").length}
         style={{
           ...S.article,
-          ...(theme !== "dark" ? { background: READER_THEMES[theme].bg, borderRadius: 16, padding: "28px 26px", boxShadow: "0 20px 50px rgba(0,0,0,.35)" } : {}),
+          ...(theme !== "dark"
+            ? { background: READER_THEMES[theme].bg, borderRadius: 16, padding: "28px 26px", boxShadow: "0 20px 50px rgba(0,0,0,.35)" }
+            // Dark theme: a translucent panel keeps the prose readable while the
+            // (now brighter) ambient scene shows through and around it. Only when
+            // there's actually a background to see; otherwise stay flush.
+            : story.hasBackground && bgOn
+              ? { background: "rgba(18,12,22,.62)", borderRadius: 16, padding: "26px 24px", boxShadow: "0 20px 50px rgba(0,0,0,.4)", backdropFilter: "blur(3px)" }
+              : {}),
         }}
       >
         {(chapters[idx] ?? "").split(/\n{2,}/).map((p, i) => (
@@ -431,8 +438,8 @@ function Chips({ options, value, onPick }: { options: string[]; value: string; o
 const S: Record<string, React.CSSProperties> = {
   wrap: { maxWidth: 660, margin: "0 auto", padding: "36px 24px 120px", lineHeight: 1.7, position: "relative" },
   bgLayer: { position: "fixed", inset: 0, zIndex: -1, overflow: "hidden", pointerEvents: "none", animation: "rvBgIn 1.2s ease" },
-  bgImage: { position: "absolute", inset: -24, backgroundSize: "cover", backgroundPosition: "center", filter: "blur(9px) brightness(.42) saturate(1.12)", transform: "scale(1.06)" },
-  bgScrim: { position: "absolute", inset: 0, background: "radial-gradient(120% 90% at 50% 0%, rgba(21,15,26,.55), rgba(21,15,26,.82) 70%, rgba(21,15,26,.95)), linear-gradient(180deg, rgba(21,15,26,.35), rgba(21,15,26,.9))" },
+  bgImage: { position: "absolute", inset: -24, backgroundSize: "cover", backgroundPosition: "center", filter: "blur(6px) brightness(.72) saturate(1.2)", transform: "scale(1.06)" },
+  bgScrim: { position: "absolute", inset: 0, background: "radial-gradient(120% 90% at 50% 0%, rgba(21,15,26,.2), rgba(21,15,26,.5) 70%, rgba(21,15,26,.72)), linear-gradient(180deg, rgba(21,15,26,.1), rgba(21,15,26,.6))" },
   topRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 },
   back: { color: "#8A7A90", textDecoration: "none", fontSize: 14, letterSpacing: ".04em" },
   bgToggle: { background: "rgba(35,26,43,.6)", color: "#AC9CB0", border: "1px solid #3A2E44", borderRadius: 999, padding: "5px 12px", cursor: "pointer", fontSize: 12.5, fontWeight: 600, backdropFilter: "blur(6px)" },
