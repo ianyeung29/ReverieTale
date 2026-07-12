@@ -19,11 +19,16 @@ export async function generateStory(def: Record<string, string>, elements: Story
   const words = elements.length === "medium" ? "1000-1600 words" : "550-1000 words";
   const maxTokens = elements.length === "medium" ? 2200 : 1400;
 
-  // Standard (non-explicit) system prompt - the only one authored here.
+  // Standard (non-explicit) system prompt - the only one authored here. This is
+  // the always-on lane (not age-gated), so it leans flirtatious and charged but
+  // stays suggestive rather than graphic. Truly explicit content lives behind
+  // the operator-supplied explicit prompt + age verification (see below).
   const standardSystem =
-    `You are a skilled fiction writer. Write an immersive 'first chapter' - a short story (${words}) that ` +
-    "introduces the reader to the character and pulls them into a scene together. Write in second person, present " +
-    "tense ('you'), so the reader feels present with the character. Keep it tasteful and non-explicit.";
+    `You are a skilled fiction writer specializing in flirtatious, romantically-charged fiction. Write an immersive 'first chapter' - a short story (${words}) that ` +
+    "pulls the reader into a scene with the character that crackles with chemistry: charged glances, teasing banter, playful push-and-pull, " +
+    "and a slow, deliberate build of attraction and physical awareness. Write in second person, present tense ('you'), so the reader feels the " +
+    "tension firsthand. Lean into flirtation, longing, and a sensual atmosphere - keep it heated and suggestive, but tasteful: imply and " +
+    "smoulder rather than depict, and fade to black before anything sexually explicit.";
 
   // Explicit tier uses an OPERATOR-SUPPLIED prompt from env (never authored here).
   // Falls back to the standard, non-explicit prompt if not provided.
@@ -38,7 +43,7 @@ export async function generateStory(def: Record<string, string>, elements: Story
     elements.genre ? `Genre: ${elements.genre}.` : "",
     elements.relationship ? `Your relationship: ${elements.relationship}.` : "",
     elements.scenario ? `How you meet: ${elements.scenario}.` : "",
-    elements.tone ? `Mood: ${elements.tone}.` : "",
+    elements.tone ? `Mood: ${elements.tone}.` : "Mood: flirtatious and charged with romantic tension.",
     elements.setting ? `Setting: ${elements.setting}.` : "",
     elements.details ? `Also weave in this idea: ${elements.details}.` : "",
   ]
@@ -70,9 +75,10 @@ export async function generateNextChapter(
   tier: Tier = "standard",
 ) {
   const standardSystem =
-    "You are a skilled fiction writer continuing an ongoing story. Write the NEXT chapter (550-1000 words) that " +
-    "moves the scene forward with new events - do not repeat what already happened. Second person, present tense. " +
-    "Tasteful and non-explicit.";
+    "You are a skilled fiction writer continuing a flirtatious, romantically-charged story. Write the NEXT chapter (550-1000 words) that " +
+    "moves the scene forward with new events and deepens the attraction between the reader and the character - more tension, teasing, and heat " +
+    "than before. Do not repeat what already happened. Second person, present tense. Lean into flirtation, longing, and a sensual atmosphere - " +
+    "keep it heated and suggestive but tasteful: imply and smoulder rather than depict, and fade to black before anything sexually explicit.";
 
   const explicitSystem = process.env.EXPLICIT_SYSTEM_PROMPT_STORY || "";
   const useExplicit = tier === "explicit" && explicitSystem.length > 0;
@@ -81,7 +87,7 @@ export async function generateNextChapter(
   const dir = [
     direction.whatHappens ? `What happens next: ${direction.whatHappens}.` : "",
     direction.twist ? `Include this beat: ${direction.twist}.` : "",
-    direction.mood ? `Mood: ${direction.mood}.` : "",
+    direction.mood ? `Mood: ${direction.mood}.` : "Mood: flirtatious and charged with romantic tension.",
     direction.setting ? `Move the scene to: ${direction.setting}.` : "",
   ]
     .filter(Boolean)
