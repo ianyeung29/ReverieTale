@@ -6,7 +6,7 @@ import { characters, chapterScenes, stories, users } from "@/db/schema";
 import { generateNextChapter, generateStory, type StoryElements } from "@/lib/story";
 import { resolveTier, type Tier } from "@/lib/model";
 import { screen, screenImagePrompt } from "@/lib/moderation";
-import { buildChapterScenePrompt, generateChapterScene, imageConfigured } from "@/lib/image";
+import { buildChapterScenePrompt, generateChapterScene, shouldGenerateChapterScene } from "@/lib/image";
 import { getCurrentUserId } from "@/lib/session";
 import { ensureDailyDrip, spend, userBalance } from "@/lib/ledger";
 
@@ -91,8 +91,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const charge = await spend(userId, CHAPTER_PRICE, { kind: "rewrite", storyId: id, chapter: body.chapterIndex });
     if (!charge.ok) return NextResponse.json({ error: "insufficient_credits", price: CHAPTER_PRICE, balance: charge.balance }, { status: 402 });
 
-    // Regenerate a scene for the rewritten chapter, in the background.
-    if (imageConfigured()) {
+    // Regenerate a scene for the rewritten chapter, in the background - only
+    // when scene images are enabled for this chapter index.
+    if (shouldGenerateChapterScene(body.chapterIndex)) {
       const prompt = buildChapterScenePrompt({ name: def.name, gender: def.gender, look: def.look }, newChapter);
       if (!screenImagePrompt(prompt).blocked) {
         after(async () => {

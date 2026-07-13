@@ -6,7 +6,7 @@ import { characters, chapterScenes, stories, users } from "@/db/schema";
 import { generateStory } from "@/lib/story";
 import { resolveTier } from "@/lib/model";
 import { screen, screenImagePrompt } from "@/lib/moderation";
-import { buildScenePrompt, buildChapterScenePrompt, generateChapterScene, generateImage, imageConfigured } from "@/lib/image";
+import { buildScenePrompt, buildChapterScenePrompt, generateChapterScene, generateImage, imageConfigured, shouldGenerateChapterScene } from "@/lib/image";
 import { getCurrentUserId } from "@/lib/session";
 import { ensureDailyDrip, spend, userBalance } from "@/lib/ledger";
 
@@ -122,8 +122,9 @@ export async function POST(req: Request) {
       }
     }
 
-    // A scene image for the opening chapter (chapter 0), in the background.
-    if (imageConfigured()) {
+    // A scene image for the opening chapter (chapter 0), in the background -
+    // only when scene images are enabled (SCENE_IMAGES=opening|all).
+    if (shouldGenerateChapterScene(0)) {
       const chapterPrompt = buildChapterScenePrompt({ name: def.name, gender: def.gender, look: def.look }, content);
       if (!screenImagePrompt(chapterPrompt).blocked) {
         after(async () => {

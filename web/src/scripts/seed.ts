@@ -4311,13 +4311,15 @@ async function main() {
   const { eq, sql, and } = await import("drizzle-orm");
   const { db } = await import("../db/index");
   const { characters, stories, users, chapterScenes } = await import("../db/schema");
-  const { buildPortraitPrompt, buildScenePrompt, generateImage, generateExpressionVariant, expressionVariantsConfigured, imageConfigured, generateCharacterScene, generateChapterScene, buildCharacterScenePrompt, buildChapterScenePrompt } = await import("../lib/image");
+  const { buildPortraitPrompt, buildScenePrompt, generateImage, generateExpressionVariant, expressionVariantsConfigured, imageConfigured, generateCharacterScene, generateChapterScene, buildCharacterScenePrompt, buildChapterScenePrompt, sceneImageMode, shouldGenerateCharacterScene, shouldGenerateChapterScene } = await import("../lib/image");
   const { screenImagePrompt } = await import("../lib/moderation");
 
   const canDrawImages = imageConfigured();
   const canDrawVariants = expressionVariantsConfigured();
+  const sceneMode = sceneImageMode();
   if (!canDrawImages) console.log("(image generation not configured - characters/stories will seed without portraits/backgrounds)\n");
   else if (!canDrawVariants) console.log("(IMAGE_PROVIDER isn't modelslab - expression variants will be skipped for the pilot characters)\n");
+  if (canDrawImages) console.log(`(scene images: SCENE_IMAGES=${sceneMode} - ${sceneMode === "off" ? "no scene art will be generated" : sceneMode === "opening" ? "character scenes + chapter-1 opening only" : "a scene for EVERY chapter (highest cost)"})\n`);
 
   const email = "dev@local.test";
   let [u] = await db.select().from(users).where(eq(users.email, email)).limit(1);
@@ -4399,7 +4401,7 @@ async function main() {
     }
 
     // Character scene art: the companion within their world, behind the profile hero.
-    if (!hasScene && canDrawImages) {
+    if (!hasScene && shouldGenerateCharacterScene()) {
       const scenePrompt = buildCharacterScenePrompt({ name: def.name, gender: def.gender, look: def.look, backstory: def.backstory, tags: def.tags });
       if (screenImagePrompt(scenePrompt).blocked) {
         console.log(`  ! scene prompt blocked for ${def.name}, skipping`);
@@ -4470,10 +4472,13 @@ async function main() {
     }
 
     // One scene image per chapter, placed at a turning point in the reader.
-    if (canDrawImages) {
+    // Gated by SCENE_IMAGES so a reseed doesn't silently generate one paid
+    // image behind every chapter of every story.
+    if (sceneMode !== "off" && canDrawImages) {
       const charDef = CHARACTERS.find((c) => c.name === s.character);
       const chapters = s.content.split(/\n{2,}·\s·\s·\n{2,}/).map((c) => c.trim()).filter(Boolean);
       for (let i = 0; i < chapters.length; i++) {
+        if (!shouldGenerateChapterScene(i)) continue;
         const [have] = await db
           .select({ id: chapterScenes.id })
           .from(chapterScenes)

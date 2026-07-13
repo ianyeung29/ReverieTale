@@ -72,6 +72,35 @@ export function imageConfigured(): boolean {
   return false;
 }
 
+// Scene-image generation (character scene art + per-chapter scenes) is a real
+// per-image cost with the provider, and generating one behind EVERY chapter
+// adds up fast. Gate it so the operator opts in at the volume they want:
+//   unset / "off"     -> no scene images at all (default; zero extra spend)
+//   "opening" / "on"  -> character scenes + only chapter 1's opening scene
+//   "all"             -> a scene for every chapter (the expensive mode)
+// Portraits and the story ambient background are separate and unaffected.
+export type SceneMode = "off" | "opening" | "all";
+export function sceneImageMode(): SceneMode {
+  const v = (process.env.SCENE_IMAGES || "off").trim().toLowerCase();
+  if (v === "all") return "all";
+  if (v === "opening" || v === "on" || v === "true" || v === "1") return "opening";
+  return "off";
+}
+
+/** Should a scene be generated for chapter `index` (0-based) under the current mode? */
+export function shouldGenerateChapterScene(index: number): boolean {
+  const mode = sceneImageMode();
+  if (!imageConfigured()) return false;
+  if (mode === "all") return true;
+  if (mode === "opening") return index === 0;
+  return false;
+}
+
+/** Should character scene art be generated under the current mode? */
+export function shouldGenerateCharacterScene(): boolean {
+  return sceneImageMode() !== "off" && imageConfigured();
+}
+
 export async function generateImage(prompt: string): Promise<{ base64: string; mime: string }> {
   const provider = process.env.IMAGE_PROVIDER || "grok";
   if (provider === "grok") return generateGrok(prompt);
