@@ -8,6 +8,7 @@ import { RatingBar } from "@/components/RatingBar";
 import { ReportLink } from "@/components/TrustControls";
 import { pickExpression } from "@/lib/expression";
 import { pickStatusLine } from "@/lib/status";
+import { intensityColor, intensityScore } from "@/lib/intensity";
 
 type Story = {
   id: string; title: string; content: string; characterId: string; characterName: string; characterTagline: string; characterTags: string[]; tone: string;
@@ -306,7 +307,9 @@ export default function StoryReadPage() {
         }}
       >
         {(chapters[idx] ?? "").split(/\n{2,}/).map((p, i) => (
-          <p key={i} style={{ ...S.para, fontSize: FONT_SIZES[fontSize], color: READER_THEMES[theme].text }}>{p}</p>
+          // Dark theme: warm the font toward orange/red as the passage heats up.
+          // Light themes keep their fixed ink for contrast.
+          <p key={i} style={{ ...S.para, fontSize: FONT_SIZES[fontSize], color: theme === "dark" ? intensityColor(intensityScore(p)) : READER_THEMES[theme].text, transition: "color .4s ease" }}>{p}</p>
         ))}
       </article>
 
