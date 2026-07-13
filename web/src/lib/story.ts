@@ -36,16 +36,24 @@ export async function generateStory(def: Record<string, string>, elements: Story
   const useExplicit = tier === "explicit" && explicitSystem.length > 0;
   const baseSystem = useExplicit ? explicitSystem : standardSystem;
 
-  const system = `${baseSystem}\nBegin with a title on the first line as 'Title: <the title>', then a blank line, then the story.`;
+  // The reader's own instructions (how they meet, the setting, and any specific
+  // idea they typed) are REQUIREMENTS, not suggestions - the story must be built
+  // around them exactly. Flirtatious tone is the flavour brought to the reader's
+  // scenario, never a reason to override or ignore what they asked for.
+  const system =
+    `${baseSystem}\n\nStrictly follow the reader's instructions below: honor how they meet, the setting, and any specific idea they give ` +
+    "exactly and completely, as the backbone of the story. Do not substitute your own premise for theirs.\n" +
+    "Begin with a title on the first line as 'Title: <the title>', then a blank line, then the story.";
 
   const user = [
     `Character: ${def.name}${def.gender ? ` (${def.gender})` : ""}. ${def.persona}. Backstory: ${def.backstory}. Voice: ${def.voice}.`,
     elements.genre ? `Genre: ${elements.genre}.` : "",
     elements.relationship ? `Your relationship: ${elements.relationship}.` : "",
-    elements.scenario ? `How you meet: ${elements.scenario}.` : "",
+    elements.scenario ? `How you meet (this must happen as written): ${elements.scenario}.` : "",
+    elements.setting ? `Setting (place the story here): ${elements.setting}.` : "",
     elements.tone ? `Mood: ${elements.tone}.` : "Mood: flirtatious and charged with romantic tension.",
-    elements.setting ? `Setting: ${elements.setting}.` : "",
-    elements.details ? `Also weave in this idea: ${elements.details}.` : "",
+    // The freeform "idea" field is the reader's strongest steer - make it central.
+    elements.details ? `The reader specifically wants this in the story (make it central, not a passing mention): ${elements.details}.` : "",
   ]
     .filter(Boolean)
     .join("\n");
