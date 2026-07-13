@@ -125,8 +125,8 @@ export default function ProfilePage() {
 
         <div className="rv-card" style={S.card}>
           <p style={S.cardTitle}>Your library</p>
-          <p style={S.bigNumber}>{savedStories === null ? "—" : savedStories}</p>
-          <p style={S.cardSub}>saved{myStories ? ` · ${myStories} written by you` : ""}</p>
+          <p style={S.bigNumber}>{myStories === null || savedStories === null ? "—" : myStories + savedStories}</p>
+          <p style={S.cardSub}>{myStories ?? 0} written by you{savedStories ? ` · ${savedStories} saved` : ""}</p>
           <a href="/library" style={S.cardLink}>Go to your library →</a>
         </div>
       </div>
