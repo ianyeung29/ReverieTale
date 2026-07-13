@@ -284,8 +284,8 @@ export function buildMomentPrompt(def: { name?: string; gender?: string; look?: 
   const look = def.look ? `, ${def.look}` : "";
   const scene = sceneText.trim().replace(/\s+/g, " ").slice(0, 300);
   return (
-    `Cinematic scene illustration featuring ${who}${look}. The moment: ${scene} ` +
-    `Full scene with environment, painterly, soft cinematic lighting, evocative mood, tasteful, safe for work.`
+    `Photorealistic cinematic film still featuring ${who}${look}. The moment: ${scene} ` +
+    `Full scene with environment, realistic photography, sharp focus, natural cinematic lighting, evocative mood, tasteful, safe for work.`
   );
 }
 
@@ -307,9 +307,9 @@ export function buildCharacterScenePrompt(def: { name?: string; gender?: string;
   const place = def.backstory ? def.backstory.trim().replace(/\s+/g, " ").slice(0, 200) : "an intimate, atmospheric setting";
   const genre = def.tags?.length ? ` ${def.tags.join(", ")} mood.` : "";
   return (
-    `Wide cinematic establishing shot of ${who}${look}, within their world: ${place} ` +
+    `Wide photorealistic cinematic film still of ${who}${look}, within their world: ${place} ` +
     `The character is present in the scene, environmental and atmospheric.${genre} ` +
-    `Painterly, moody cinematic lighting, depth of field, evocative, tasteful, safe for work.`
+    `Realistic photography, sharp focus, moody natural cinematic lighting, depth of field, evocative, tasteful, safe for work.`
   );
 }
 
@@ -327,8 +327,8 @@ export function buildChapterScenePrompt(def: { name?: string; gender?: string; l
   // Lead with the opening of the chapter - it usually sets the scene.
   const scene = chapterText.trim().replace(/\s+/g, " ").slice(0, 320);
   return (
-    `Cinematic scene illustration featuring ${who}${look}. Scene: ${scene} ` +
-    `Full environment, painterly, soft cinematic lighting, evocative mood, tasteful, safe for work.`
+    `Photorealistic cinematic film still featuring ${who}${look}. Scene: ${scene} ` +
+    `Full environment, realistic photography, sharp focus, natural cinematic lighting, evocative mood, tasteful, safe for work.`
   );
 }
 
