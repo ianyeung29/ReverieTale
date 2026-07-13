@@ -18,13 +18,19 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   try {
     const [row] = await db.select({ definition: characters.definition, status: characters.status }).from(characters).where(eq(characters.id, id)).limit(1);
-    if (!row || row.status !== "published") return { title: "Companion · Reverie" };
+    if (!row || row.status !== "published") return { title: "Companion" };
     const def = (row.definition ?? {}) as Record<string, unknown>;
     const name = (def.name as string) || "Companion";
     const desc = String((def.persona as string) || (def.backstory as string) || "An AI companion who remembers you.").slice(0, 155);
-    return { title: `${name} · Reverie`, description: desc, openGraph: { title: `${name} · Reverie`, description: desc } };
+    const img = `/api/characters/${id}/image`;
+    return {
+      title: name,
+      description: desc,
+      openGraph: { title: `${name} · Reverie`, description: desc, type: "profile", images: [img] },
+      twitter: { card: "summary_large_image", title: `${name} · Reverie`, description: desc, images: [img] },
+    };
   } catch {
-    return { title: "Companion · Reverie" };
+    return { title: "Companion" };
   }
 }
 

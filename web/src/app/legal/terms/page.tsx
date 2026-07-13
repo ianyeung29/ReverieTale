@@ -1,7 +1,7 @@
 import { LegalLayout, Section, S } from "@/components/LegalLayout";
 import { GOVERNING_LAW, MIN_AGE, OPERATOR_NAME, SUPPORT_EMAIL } from "@/lib/legal";
 
-export const metadata = { title: "Terms of Service · Reverie" };
+export const metadata = { title: "Terms of Service" };
 
 export default function TermsPage() {
   return (

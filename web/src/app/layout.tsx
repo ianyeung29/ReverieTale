@@ -2,9 +2,32 @@ import type { Metadata } from "next";
 import { Nav } from "@/components/Nav";
 import { MobileNav } from "@/components/MobileNav";
 
+const SITE_URL = (process.env.APP_URL || "https://reverie-brown.vercel.app").replace(/\/$/, "");
+const SITE_DESC =
+  "Begin an interactive story, meet a character, then stay and talk to an AI companion who remembers every word. Romance, slice-of-life, and more.";
+
 export const metadata: Metadata = {
-  title: "Reverie - Phase 0",
-  description: "AI companion with persistent memory (Phase 0 foundation).",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "Reverie — AI companions who remember you",
+    template: "%s · Reverie",
+  },
+  description: SITE_DESC,
+  applicationName: "Reverie",
+  keywords: ["AI companion", "AI chat", "interactive fiction", "interactive story", "romance stories", "AI characters", "roleplay chat"],
+  openGraph: {
+    type: "website",
+    siteName: "Reverie",
+    title: "Reverie — AI companions who remember you",
+    description: SITE_DESC,
+    url: SITE_URL,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Reverie — AI companions who remember you",
+    description: SITE_DESC,
+  },
+  robots: { index: true, follow: true },
 };
 
 // Shared motion/hover/focus utilities used across pages (inline styles can't do

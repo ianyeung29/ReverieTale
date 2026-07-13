@@ -1,7 +1,7 @@
 import { LegalLayout, Section, S } from "@/components/LegalLayout";
 import { OPERATOR_NAME, SUPPORT_EMAIL } from "@/lib/legal";
 
-export const metadata = { title: "Blocked Content Policy · Reverie" };
+export const metadata = { title: "Blocked Content Policy" };
 
 export default function BlockedContentPage() {
   return (

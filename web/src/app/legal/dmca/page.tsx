@@ -1,7 +1,7 @@
 import { LegalLayout, Section, S } from "@/components/LegalLayout";
 import { OPERATOR_NAME, SUPPORT_EMAIL } from "@/lib/legal";
 
-export const metadata = { title: "DMCA Policy · Reverie" };
+export const metadata = { title: "DMCA Policy" };
 
 export default function DmcaPage() {
   return (
