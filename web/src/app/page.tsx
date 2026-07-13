@@ -7,7 +7,6 @@ import { StoryTile } from "@/components/StoryTile";
 import { DiscoverSearch } from "@/components/DiscoverSearch";
 import { StarRating } from "@/components/StarRating";
 import { listCharacters, trendingScore } from "@/lib/discovery";
-import { MIN_AGE } from "@/lib/legal";
 import { ratingAggregates } from "@/lib/ratings";
 import { getCurrentUserId } from "@/lib/session";
 
@@ -162,7 +161,7 @@ export default async function Home() {
       <div style={S.auroraB} />
 
       <section style={S.hero} className="rv-reveal">
-        <p style={S.eyebrow}>{MIN_AGE}+ · companions who remember you</p>
+        <p style={S.eyebrow}>companions who remember you</p>
         <h1 style={S.h1}><span className="rv-title">Reverie</span></h1>
         <p style={S.sub}>Begin with a story. Meet a character. Then stay and talk to someone who remembers every word.</p>
         {hasStats ? (
@@ -293,7 +292,7 @@ export default async function Home() {
       ) : null}
 
       <footer style={S.footer}>
-        <span>Reverie · {MIN_AGE}+ fiction</span>
+        <span>Reverie · interactive fiction</span>
         <span style={S.footLinks}>
           <a href="/browse" style={S.footLink}>Companions</a>
           <a href="/stories" style={S.footLink}>Stories</a>
