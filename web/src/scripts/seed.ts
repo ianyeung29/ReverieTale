@@ -4317,9 +4317,14 @@ async function main() {
   const canDrawImages = imageConfigured();
   const canDrawVariants = expressionVariantsConfigured();
   const sceneMode = sceneImageMode();
+  // By default the seed NEVER re-draws a scene it already has (idempotent, and
+  // paid images are expensive). Set SCENE_IMAGES_REGEN=1 to force every scene
+  // in scope to be redrawn - use this after changing the scene prompt (e.g.
+  // cartoon -> photorealistic) so the old cached images get replaced.
+  const regenScenes = /^(1|true|yes|on)$/i.test((process.env.SCENE_IMAGES_REGEN || "").trim());
   if (!canDrawImages) console.log("(image generation not configured - characters/stories will seed without portraits/backgrounds)\n");
   else if (!canDrawVariants) console.log("(IMAGE_PROVIDER isn't modelslab - expression variants will be skipped for the pilot characters)\n");
-  if (canDrawImages) console.log(`(scene images: SCENE_IMAGES=${sceneMode} - ${sceneMode === "off" ? "no scene art will be generated" : sceneMode === "opening" ? "character scenes + chapter-1 opening only" : "a scene for EVERY chapter (highest cost)"})\n`);
+  if (canDrawImages) console.log(`(scene images: SCENE_IMAGES=${sceneMode} - ${sceneMode === "off" ? "no scene art will be generated" : sceneMode === "opening" ? "character scenes + chapter-1 opening only" : "a scene for EVERY chapter (highest cost)"}${regenScenes ? ", REGEN on - existing scenes will be redrawn" : ""})\n`);
 
   const email = "dev@local.test";
   let [u] = await db.select().from(users).where(eq(users.email, email)).limit(1);
@@ -4401,7 +4406,7 @@ async function main() {
     }
 
     // Character scene art: the companion within their world, behind the profile hero.
-    if (!hasScene && shouldGenerateCharacterScene()) {
+    if ((!hasScene || regenScenes) && shouldGenerateCharacterScene()) {
       const scenePrompt = buildCharacterScenePrompt({ name: def.name, gender: def.gender, look: def.look, backstory: def.backstory, tags: def.tags });
       if (screenImagePrompt(scenePrompt).blocked) {
         console.log(`  ! scene prompt blocked for ${def.name}, skipping`);
@@ -4484,11 +4489,13 @@ async function main() {
           .from(chapterScenes)
           .where(and(eq(chapterScenes.storyId, storyId), eq(chapterScenes.chapterIndex, i)))
           .limit(1);
-        if (have) continue;
+        if (have && !regenScenes) continue;
         const prompt = buildChapterScenePrompt({ name: charDef?.name, gender: charDef?.gender, look: charDef?.look }, chapters[i]);
         if (screenImagePrompt(prompt).blocked) continue;
         try {
           const gen = await generateChapterScene({ name: charDef?.name, gender: charDef?.gender, look: charDef?.look }, chapters[i]);
+          // Replace the cached row when regenerating (unique on storyId+chapterIndex).
+          if (have) await db.delete(chapterScenes).where(eq(chapterScenes.id, have.id));
           await db.insert(chapterScenes).values({ storyId, chapterIndex: i, image: gen.base64, imageMime: gen.mime });
           console.log(`  chapter ${i + 1} scene drawn for "${s.title}"`);
         } catch (e) {
