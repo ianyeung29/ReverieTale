@@ -3,16 +3,49 @@
 import { useEffect, useState } from "react";
 import { CharacterAvatar } from "@/components/CharacterAvatar";
 
-type Item = { id: string; title: string; name: string; chapters: number; characterId: string };
+type Item = { id: string; title: string; name: string; chapters: number; characterId: string; isPublic?: boolean };
 type Moment = { id: string; characterId: string; name: string; dialogue: string; setting: string | null; hasImage: boolean; createdAt: string };
 
-function StoryGrid({ items }: { items: Item[] }) {
+function StoryGrid({
+  items,
+  owned,
+  onDelete,
+  onToggleHide,
+}: {
+  items: Item[];
+  owned?: boolean;
+  onDelete?: (id: string) => void;
+  onToggleHide?: (s: Item) => void;
+}) {
   return (
     <div style={S.grid}>
       {items.map((s) => (
         <a key={s.id} href={`/story/${s.id}`} className="rv-card" style={S.card}>
           <div style={S.head}><CharacterAvatar characterId={s.characterId} name={s.name} size={34} /><div style={S.title}>{s.title}</div></div>
-          <span style={S.meta}>with {s.name} · {s.chapters} chapter{s.chapters === 1 ? "" : "s"}</span>
+          <span style={S.meta}>
+            with {s.name} · {s.chapters} chapter{s.chapters === 1 ? "" : "s"}
+            {owned && s.isPublic === false ? <span style={S.hiddenTag}>Hidden</span> : null}
+          </span>
+          {owned ? (
+            <div style={S.ownerRow}>
+              <button
+                style={S.ownerBtn}
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleHide?.(s); }}
+              >
+                {s.isPublic === false ? "Unhide" : "Hide"}
+              </button>
+              <button
+                style={{ ...S.ownerBtn, ...S.ownerDelete }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (confirm(`Delete “${s.title}”? This can't be undone.`)) onDelete?.(s.id);
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          ) : null}
         </a>
       ))}
     </div>
@@ -56,6 +89,21 @@ export default function LibraryPage() {
     await fetch(`/api/moments/${id}`, { method: "DELETE" }).catch(() => {});
   }
 
+  async function deleteStory(id: string) {
+    setItems((cur) => (cur ? cur.filter((s) => s.id !== id) : cur));
+    await fetch(`/api/stories/${id}`, { method: "DELETE" }).catch(() => {});
+  }
+
+  async function toggleHideStory(s: Item) {
+    const nextPublic = s.isPublic === false; // if currently hidden, unhide (make public)
+    setItems((cur) => (cur ? cur.map((x) => (x.id === s.id ? { ...x, isPublic: nextPublic } : x)) : cur));
+    await fetch(`/api/stories/${s.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isPublic: nextPublic }),
+    }).catch(() => {});
+  }
+
   return (
     <main style={S.wrap}>
       <a href="/" style={S.back}>← Reverie</a>
@@ -82,7 +130,7 @@ export default function LibraryPage() {
           </div>
         </div>
       ) : (
-        <StoryGrid items={items} />
+        <StoryGrid items={items} owned onDelete={deleteStory} onToggleHide={toggleHideStory} />
       )}
 
       {saved && saved.length > 0 ? (
@@ -127,6 +175,10 @@ const S: Record<string, React.CSSProperties> = {
   head: { display: "flex", alignItems: "center", gap: 10 },
   title: { fontFamily: "Georgia, serif", fontSize: 17, lineHeight: 1.2 },
   meta: { color: "#8A7A90", fontSize: 12.5 },
+  hiddenTag: { marginLeft: 8, color: "#C9A98A", fontSize: 11, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", background: "rgba(120,110,130,.14)", border: "1px solid #4a3a50", borderRadius: 999, padding: "1px 7px" },
+  ownerRow: { display: "flex", gap: 8, marginTop: 4 },
+  ownerBtn: { background: "transparent", border: "1px solid #3A2E44", color: "#AC9CB0", borderRadius: 8, padding: "4px 11px", fontSize: 12, fontWeight: 600, cursor: "pointer" },
+  ownerDelete: { color: "#E08A8A", borderColor: "#5a3540" },
   momentCard: { display: "flex", flexDirection: "column", gap: 8, background: "#241B2D", border: "1px solid #3A2E44", borderRadius: 14, padding: 16, color: "#F4EAF0" },
   momentImg: { width: "100%", aspectRatio: "4/3", objectFit: "cover", borderRadius: 10 },
   momentName: { fontFamily: "Georgia, serif", fontSize: 15 },

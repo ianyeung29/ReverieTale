@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { characters } from "@/db/schema";
+import { characters, moments, stories, threads } from "@/db/schema";
 import { moderateContent } from "@/lib/moderation";
+import { logUnlessMissingRelation } from "@/lib/db-errors";
 import { getCurrentUserId } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -121,4 +122,34 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   await db.update(characters).set({ definition: def, status, reviewNote: mod.reason, updatedAt: new Date(), ...image }).where(eq(characters.id, id));
   return NextResponse.json({ ok: true, status });
+}
+
+// DELETE /api/characters/:id -> owner-only. A true removal, but guarded: if the
+// character has been USED (has stories, chats, or saved moments - possibly by
+// other readers), a hard delete would orphan or destroy their content, so we
+// hide it instead (status "disabled") and report deleted:false. Only a
+// never-used character is actually removed from the table.
+export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const userId = await getCurrentUserId();
+  if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  const [row] = await db.select({ creatorId: characters.creatorId }).from(characters).where(eq(characters.id, id)).limit(1);
+  if (!row) return NextResponse.json({ error: "not found" }, { status: 404 });
+  if (row.creatorId !== userId) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+
+  // Any dependent activity means we hide instead of delete. Each probe is
+  // wrapped so a not-yet-migrated table (e.g. moments) never blocks removal.
+  const used = async (fn: () => Promise<boolean>) => { try { return await fn(); } catch (e) { logUnlessMissingRelation("characters/:id delete usage probe", e); return false; } };
+  const hasStory = await used(async () => Boolean((await db.select({ id: stories.id }).from(stories).where(eq(stories.characterId, id)).limit(1))[0]));
+  const hasThread = await used(async () => Boolean((await db.select({ id: threads.id }).from(threads).where(eq(threads.characterId, id)).limit(1))[0]));
+  const hasMoment = await used(async () => Boolean((await db.select({ id: moments.id }).from(moments).where(eq(moments.characterId, id)).limit(1))[0]));
+
+  if (hasStory || hasThread || hasMoment) {
+    await db.update(characters).set({ status: "disabled", updatedAt: new Date() }).where(and(eq(characters.id, id), eq(characters.creatorId, userId)));
+    return NextResponse.json({ ok: true, deleted: false, hidden: true });
+  }
+
+  await db.delete(characters).where(and(eq(characters.id, id), eq(characters.creatorId, userId)));
+  return NextResponse.json({ ok: true, deleted: true });
 }

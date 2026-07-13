@@ -38,6 +38,22 @@ export default function MyCharactersPage() {
     } catch {} finally { setBusyId(null); }
   }
 
+  async function deleteChar(c: Char) {
+    if (busyId) return;
+    if (!confirm(`Delete ${c.name}? If anyone has already written a story or chatted with them, ${c.name} will be hidden instead of removed, to keep that content intact.`)) return;
+    setBusyId(c.id);
+    try {
+      const res = await fetch(`/api/characters/${c.id}`, { method: "DELETE" });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok && d.deleted) {
+        setItems((cur) => (cur ? cur.filter((x) => x.id !== c.id) : cur));
+      } else if (res.ok && d.hidden) {
+        // Couldn't hard-delete (character has activity) - it was hidden instead.
+        setItems((cur) => (cur ? cur.map((x) => (x.id === c.id ? { ...x, status: "disabled" } : x)) : cur));
+      }
+    } catch {} finally { setBusyId(null); }
+  }
+
   if (authEmail === undefined) return <main style={S.wrap}><p style={{ color: "#AC9CB0" }}>Loading…</p></main>;
   if (authEmail === null) return <EntryGate onDone={(e) => setAuthEmail(e)} subtitle={`Sign in to manage your companions. ${MIN_AGE}+ only.`} />;
 
@@ -87,6 +103,7 @@ export default function MyCharactersPage() {
                   ) : c.status === "disabled" ? (
                     <button style={{ ...S.action, opacity: busyId === c.id ? 0.5 : 1 }} onClick={() => patchStatus(c, "published")} disabled={busyId === c.id}>Resubmit</button>
                   ) : null}
+                  <button style={{ ...S.action, ...S.delete, opacity: busyId === c.id ? 0.5 : 1 }} onClick={() => deleteChar(c)} disabled={busyId === c.id}>Delete</button>
                 </div>
               </div>
             );
@@ -130,4 +147,5 @@ const S: Record<string, React.CSSProperties> = {
   actions: { display: "flex", flexWrap: "wrap", gap: 8, marginTop: "auto", paddingTop: 6 },
   action: { fontSize: 13, color: "#E9A06B", background: "transparent", border: "1px solid #4a3a50", borderRadius: 8, padding: "7px 12px", cursor: "pointer", textDecoration: "none" },
   toggle: { color: "#CBBBD0" },
+  delete: { color: "#E08A8A", borderColor: "#5a3540", marginLeft: "auto" },
 };
