@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getStripe, packById, PACKS, paymentsEnabled } from "@/lib/payments";
+import { getStripe, packById, PACKS, paymentsEnabled, promoBanner } from "@/lib/payments";
 import { getCurrentUserId } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
-// GET /api/checkout -> whether payments are on + the public pack list (for the UI).
+// GET /api/checkout -> whether payments are on + the public pack list + any
+// active promo banner (for the UI).
 export async function GET() {
-  return NextResponse.json({ enabled: paymentsEnabled(), packs: PACKS });
+  return NextResponse.json({ enabled: paymentsEnabled(), packs: PACKS, promo: promoBanner() });
 }
 
 // POST /api/checkout { packId } -> a Stripe-hosted Checkout URL to redirect to.
@@ -42,6 +43,9 @@ export async function POST(req: Request) {
         },
       ],
       client_reference_id: userId,
+      // Show the "Add promotion code" box on Stripe's hosted checkout so a
+      // launch/discount code (created in the Stripe Dashboard) can be applied.
+      allow_promotion_codes: true,
       // The webhook is the source of truth; it reads these to grant credits.
       metadata: { userId, credits: String(pack.credits), packId: pack.id },
       success_url: `${appUrl}/credits?checkout=success`,

@@ -9,6 +9,7 @@ type Item = { id: string; label: string; icon?: string; amount: number; at: stri
 type Data = { balance: Balance; earnedFromReaders: number; items: Item[] };
 type Pack = { id: string; credits: number; price: number; label: string; blurb?: string };
 type Pricing = { chat: number; chapter: number; portrait: number; portraitFree: number; chatFree: number; dailyDrip: number; creatorRewardRate: number };
+type Promo = { code: string; percent: number | null; text: string };
 
 function when(at: string): string {
   const d = new Date(at);
@@ -36,6 +37,7 @@ export default function CreditsPage() {
   const [busy, setBusy] = useState(false);
   const [packs, setPacks] = useState<Pack[]>([]);
   const [payEnabled, setPayEnabled] = useState(false);
+  const [promo, setPromo] = useState<Promo | null>(null);
   const [buyingId, setBuyingId] = useState<string | null>(null);
   const [checkout, setCheckout] = useState<"success" | "cancel" | null>(null);
 
@@ -52,7 +54,7 @@ export default function CreditsPage() {
 
   useEffect(() => {
     load();
-    fetch("/api/checkout").then((r) => r.json()).then((d) => { setPayEnabled(!!d.enabled); setPacks(Array.isArray(d.packs) ? d.packs : []); }).catch(() => {});
+    fetch("/api/checkout").then((r) => r.json()).then((d) => { setPayEnabled(!!d.enabled); setPacks(Array.isArray(d.packs) ? d.packs : []); setPromo(d.promo ?? null); }).catch(() => {});
     fetch("/api/config").then((r) => r.json()).then((d) => d?.pricing && setPricing(d.pricing)).catch(() => {});
     const status = new URLSearchParams(window.location.search).get("checkout");
     if (status === "success" || status === "cancel") {
@@ -145,6 +147,14 @@ export default function CreditsPage() {
       </div>
 
       <p style={S.section}>Get more credits</p>
+      {promo && payEnabled ? (
+        <div style={S.promo}>
+          <span style={S.promoTag}>🎉 {promo.text || (promo.percent ? `${promo.percent}% off launch offer` : "Launch offer")}</span>
+          <span style={S.promoBody}>
+            {promo.percent ? `${promo.percent}% off any credit pack. ` : ""}Use code <b style={S.promoCode}>{promo.code}</b> at checkout.
+          </span>
+        </div>
+      ) : null}
       {payEnabled && packs.length ? (
         <>
           <div style={S.packs}>
@@ -216,6 +226,10 @@ const S: Record<string, React.CSSProperties> = {
   usageIcon: { fontSize: 18 },
   usageAmt: { color: "#F4EAF0", fontSize: 17, fontWeight: 650, marginTop: 2 },
   usageWhat: { color: "#8A7A90", fontSize: 12.5, lineHeight: 1.4 },
+  promo: { display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "4px 12px", background: "linear-gradient(100deg, rgba(233,160,107,.16), rgba(212,106,139,.16))", border: "1px solid #4a3350", borderRadius: 12, padding: "12px 16px", margin: "0 0 14px" },
+  promoTag: { color: "#E9A06B", fontWeight: 700, fontSize: 14 },
+  promoBody: { color: "#EadFe6", fontSize: 14 },
+  promoCode: { color: "#F4EAF0", background: "#231A2B", border: "1px solid #4a3a50", borderRadius: 6, padding: "1px 8px", letterSpacing: ".06em", fontFamily: "ui-monospace, monospace" },
   packs: { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 12 },
   pack: { position: "relative", display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 4, background: "#241B2D", border: "1px solid #3A2E44", borderRadius: 14, padding: "16px 18px", cursor: "pointer", textAlign: "left" },
   packBest: { border: "1px solid #E9A06B", background: "linear-gradient(160deg,#2b2032,#241B2D)" },

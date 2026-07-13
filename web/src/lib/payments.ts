@@ -18,6 +18,19 @@ export function paymentsEnabled(): boolean {
   return Boolean(process.env.STRIPE_SECRET_KEY);
 }
 
+// A launch/promo banner for the credits page. DISPLAY ONLY - the actual
+// discount is a Stripe Promotion Code with the same code string, applied at
+// checkout (we enable the code box on the Checkout Session). Configure via env:
+//   PROMO_CODE="LAUNCH50"   PROMO_PERCENT="50"   PROMO_TEXT="Launch offer"
+// Leave PROMO_CODE blank to hide the banner entirely.
+export type Promo = { code: string; percent: number | null; text: string };
+export function promoBanner(): Promo | null {
+  const code = (process.env.PROMO_CODE || "").trim();
+  if (!code) return null;
+  const n = Number(process.env.PROMO_PERCENT);
+  return { code, percent: Number.isFinite(n) && n > 0 ? n : null, text: (process.env.PROMO_TEXT || "").trim() };
+}
+
 export function packById(id: string): Pack | undefined {
   return PACKS.find((p) => p.id === id);
 }
