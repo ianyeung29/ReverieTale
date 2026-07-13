@@ -99,9 +99,9 @@ function dailyPick<T>(list: T[], seed: string): T | null {
 }
 
 const STEPS = [
-  { n: "01", icon: "🎭", title: "Meet a companion", body: "Pick a character — or craft your own with a persona, look, and history." },
-  { n: "02", icon: "✍️", title: "Shape a story", body: "Write an opening chapter together and steer every twist that follows." },
-  { n: "03", icon: "💬", title: "Stay and talk", body: "Slip into conversation with someone who remembers your story — and you." },
+  { n: "01", title: "Meet a companion", body: "Find someone whose story draws you in." },
+  { n: "02", title: "Shape the story", body: "Begin with a scene and steer what follows." },
+  { n: "03", title: "Keep talking", body: "Continue with someone who remembers." },
 ];
 
 export default async function Home() {
@@ -148,8 +148,7 @@ export default async function Home() {
         <h1 style={S.h1}><span className="rv-title">Reverie</span></h1>
         <div style={S.cta}>
           <a href="/story" className="rv-btn rv-btn-primary" style={btn(true)}>Begin a story →</a>
-          <a href="/browse" className="rv-btn" style={btn(false)}>Browse companions</a>
-          <a href="/create" className="rv-btn" style={btn(false)}>Create your own</a>
+          <a href="/browse" style={S.heroTextLink}>Browse companions →</a>
         </div>
       </section>
 
@@ -219,16 +218,6 @@ export default async function Home() {
         </section>
       ) : null}
 
-      <div style={S.steps} className="rv-reveal rv-d1">
-        {STEPS.map((s) => (
-          <div key={s.n} style={S.step}>
-            <div style={S.stepTop}><span style={S.stepIcon}>{s.icon}</span><span style={S.stepNum}>{s.n}</span></div>
-            <div style={S.stepTitle}>{s.title}</div>
-            <p style={S.stepBody}>{s.body}</p>
-          </div>
-        ))}
-      </div>
-
       {trending.length > 0 ? (
         <section className="rv-reveal rv-d2">
           <div style={S.sectionRow}><p style={{ ...S.section, margin: 0 }}>✦ Trending companions</p><a href="/browse" style={S.seeAll}>See all →</a></div>
@@ -257,6 +246,21 @@ export default async function Home() {
           </div>
         </section>
       ) : null}
+
+      <section className="rv-reveal">
+        <p style={S.section}>How Reverie unfolds</p>
+        <div style={S.steps}>
+          {STEPS.map((s) => (
+            <div key={s.n} style={S.step}>
+              <span style={S.stepNum}>{s.n}</span>
+              <div>
+                <div style={S.stepTitle}>{s.title}</div>
+                <p style={S.stepBody}>{s.body}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
 
       {empty ? (
         <div style={S.emptyPanel} className="rv-reveal rv-d1">
@@ -297,8 +301,8 @@ const S: Record<string, React.CSSProperties> = {
   hero: { position: "relative", zIndex: 1, padding: 4, borderRadius: 24, overflow: "hidden" },
   eyebrow: { position: "relative", letterSpacing: ".22em", textTransform: "uppercase", fontSize: 12, color: "#E9A06B", fontWeight: 700, margin: 0 },
   h1: { position: "relative", fontFamily: "Georgia, serif", fontSize: 66, margin: "14px 0 16px", letterSpacing: "-.015em", lineHeight: 1 },
-  stat: { position: "relative", color: "#8A7A90", fontSize: 13.5, margin: "16px 0 0", letterSpacing: ".02em", fontVariantNumeric: "tabular-nums" },
-  cta: { position: "relative", display: "flex", gap: 12, marginTop: 26, flexWrap: "wrap" },
+  cta: { position: "relative", display: "flex", gap: "14px 20px", marginTop: 24, flexWrap: "wrap", alignItems: "center" },
+  heroTextLink: { color: "#E9A06B", textDecoration: "none", fontWeight: 600, fontSize: 15 },
   spot: { position: "relative", zIndex: 1, marginTop: 40, borderRadius: 24, overflow: "hidden", border: "1px solid #3A2E44", display: "flex", flexWrap: "wrap", gap: 28, padding: 28 },
   spotBgLayer: { position: "absolute", inset: 0, zIndex: 0, overflow: "hidden", pointerEvents: "none" },
   spotBgImage: { position: "absolute", inset: -30, backgroundSize: "cover", backgroundPosition: "center 20%", filter: "blur(16px) brightness(.4) saturate(1.15)", transform: "scale(1.12)" },
@@ -320,13 +324,11 @@ const S: Record<string, React.CSSProperties> = {
   tabStrip: { display: "flex", gap: 9, alignItems: "center", margin: "26px 0 0", position: "relative", zIndex: 1, overflowX: "auto", paddingBottom: 4 },
   tab: { fontSize: 13, color: "#CBBBD0", background: "#241B2D", border: "1px solid #3A2E44", borderRadius: 999, padding: "8px 15px", textDecoration: "none", textTransform: "capitalize", whiteSpace: "nowrap", flexShrink: 0 },
   tabLead: { color: "#1A1220", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", border: "1px solid transparent", fontWeight: 650 },
-  steps: { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 14, margin: "52px 0 8px", position: "relative", zIndex: 1 },
-  step: { background: "linear-gradient(180deg,#1C1524,#171120)", border: "1px solid #2f2438", borderRadius: 16, padding: "18px 18px 20px" },
-  stepTop: { display: "flex", alignItems: "center", justifyContent: "space-between" },
-  stepIcon: { fontSize: 24, lineHeight: 1 },
-  stepNum: { fontFamily: "Georgia, serif", fontSize: 15, color: "#5a4560", fontWeight: 700 },
-  stepTitle: { fontFamily: "Georgia, serif", fontSize: 18, margin: "12px 0 6px", color: "#F4EAF0" },
-  stepBody: { color: "#AC9CB0", fontSize: 14, margin: 0, lineHeight: 1.5 },
+  steps: { display: "flex", flexDirection: "column", position: "relative", zIndex: 1 },
+  step: { display: "flex", gap: 16, alignItems: "baseline", padding: "16px 2px", borderTop: "1px solid #241a2b" },
+  stepNum: { fontFamily: "Georgia, serif", fontSize: 18, color: "#5a4560", fontWeight: 700, minWidth: 26, flexShrink: 0 },
+  stepTitle: { fontFamily: "Georgia, serif", fontSize: 17, margin: 0, color: "#F4EAF0" },
+  stepBody: { color: "#AC9CB0", fontSize: 14, margin: "3px 0 0", lineHeight: 1.5 },
   sectionRow: { display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, margin: "52px 0 16px" },
   section: { fontSize: 12, letterSpacing: ".14em", textTransform: "uppercase", color: "#9A8AA0", fontWeight: 700, margin: "52px 0 16px" },
   seeAll: { color: "#E9A06B", textDecoration: "none", fontSize: 13, fontWeight: 600, whiteSpace: "nowrap" },
