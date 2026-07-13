@@ -62,7 +62,7 @@ export default function StoryReadPage() {
   const [chapterPrice, setChapterPrice] = useState(10);
   const [showToc, setShowToc] = useState(false);
   const [bgOn, setBgOn] = useState(true);
-  const [fontSize, setFontSize] = useState<FontSize>("md");
+  const [fontSize, setFontSize] = useState<FontSize>("sm"); // small by default; a saved preference overrides below
   const [theme, setTheme] = useState<ReaderTheme>("dark");
   const [showReaderMenu, setShowReaderMenu] = useState(false);
   const [saved, setSaved] = useState(false);
