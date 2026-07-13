@@ -180,7 +180,7 @@ export default function CreditsPage() {
             <div key={it.id} style={S.row}>
               <div style={S.rowLeft}>
                 <span style={S.label}>{it.label}</span>
-                <span style={S.time}>{when(it.at)}</span>
+                <span style={S.time}>· {when(it.at)}</span>
               </div>
               <span style={{ ...S.amount, color: it.amount >= 0 ? "#8FE0B0" : "#C99" }}>{it.amount >= 0 ? "+" : ""}{it.amount}</span>
             </div>
@@ -228,9 +228,9 @@ const S: Record<string, React.CSSProperties> = {
   section: { fontSize: 12, letterSpacing: ".14em", textTransform: "uppercase", color: "#8A7A90", fontWeight: 700, margin: "34px 0 12px" },
   muted: { color: "#AC9CB0" },
   list: { display: "flex", flexDirection: "column", border: "1px solid #2a2033", borderRadius: 12, overflow: "hidden" },
-  row: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "12px 16px", borderBottom: "1px solid #241a2b", background: "#1A121F" },
-  rowLeft: { display: "flex", flexDirection: "column", gap: 2 },
-  label: { color: "#F4EAF0", fontSize: 14.5 },
-  time: { color: "#8A7A90", fontSize: 12.5 },
-  amount: { fontWeight: 700, fontSize: 15, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" },
+  row: { display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, padding: "8px 14px", borderBottom: "1px solid #241a2b", background: "#1A121F" },
+  rowLeft: { display: "flex", flexDirection: "row", alignItems: "baseline", flexWrap: "wrap", gap: 7, minWidth: 0 },
+  label: { color: "#F4EAF0", fontSize: 13 },
+  time: { color: "#8A7A90", fontSize: 11.5 },
+  amount: { fontWeight: 700, fontSize: 13, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" },
 };
