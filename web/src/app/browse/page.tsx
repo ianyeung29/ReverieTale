@@ -1,0 +1,125 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { CharacterCard } from "@/components/CharacterCard";
+
+type Char = { id: string; name: string; tagline: string; persona: string; greeting: string; tags: string[]; reads: number; stories: number; rating: number; ratingCount: number; createdAt: string };
+type Sort = "trend" | "newest" | "read" | "rated";
+
+// Same gravity formula as lib/discovery.trendingScore (kept inline so this client
+// component doesn't import the server-only discovery module).
+function trending(reads: number, createdAt: string): number {
+  const hours = Math.max(0, (Date.now() - new Date(createdAt).getTime()) / 3.6e6);
+  return (reads + 1) / Math.pow(hours + 2, 1.5);
+}
+
+export default function BrowsePage() {
+  const [chars, setChars] = useState<Char[]>([]);
+  const [q, setQ] = useState("");
+  const [activeTags, setActiveTags] = useState<string[]>([]);
+  const [sort, setSort] = useState<Sort>("trend");
+
+  useEffect(() => {
+    fetch("/api/characters").then((r) => r.json()).then((c: Char[]) => setChars(Array.isArray(c) ? c : [])).catch(() => {});
+    // Seed the search box from ?q= (e.g. arriving from the home Discover bar).
+    const initial = new URLSearchParams(window.location.search).get("q");
+    if (initial) setQ(initial);
+  }, []);
+
+  // All tags present, most common first, for the filter row.
+  const allTags = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const c of chars) for (const t of c.tags) counts.set(t, (counts.get(t) ?? 0) + 1);
+    return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([t]) => t);
+  }, [chars]);
+
+  function toggleTag(t: string) {
+    setActiveTags((cur) => (cur.includes(t) ? cur.filter((x) => x !== t) : [...cur, t]));
+  }
+
+  const shown = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    let list = chars.filter((c) => {
+      const matchesText = !needle || c.name.toLowerCase().includes(needle) || c.persona.toLowerCase().includes(needle) || c.tags.some((t) => t.toLowerCase().includes(needle));
+      const matchesTags = activeTags.every((t) => c.tags.includes(t)); // AND across selected tags
+      return matchesText && matchesTags;
+    });
+    list = list.slice().sort((a, b) => {
+      if (sort === "read") return b.reads - a.reads || b.stories - a.stories;
+      if (sort === "rated") return b.rating - a.rating || b.ratingCount - a.ratingCount;
+      if (sort === "trend") return trending(b.reads, b.createdAt) - trending(a.reads, a.createdAt);
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+    return list;
+  }, [chars, q, activeTags, sort]);
+
+  return (
+    <main style={S.wrap}>
+      <p style={S.eyebrow}>Companions</p>
+      <h1 style={S.h1}>Choose who to meet</h1>
+      <p style={S.sub}>Everyone here remembers you. Start with a story, or jump straight into a conversation. <a href="/stories" style={S.crossLink}>Browse stories →</a></p>
+
+      <div style={S.controls}>
+        <input style={S.search} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name, personality, or tag…" />
+        <div style={S.sortWrap}>
+          <button className="rv-chip" style={{ ...S.sortBtn, ...(sort === "trend" ? S.sortOn : {}) }} onClick={() => setSort("trend")}>Trending</button>
+          <button className="rv-chip" style={{ ...S.sortBtn, ...(sort === "newest" ? S.sortOn : {}) }} onClick={() => setSort("newest")}>Newest</button>
+          <button className="rv-chip" style={{ ...S.sortBtn, ...(sort === "read" ? S.sortOn : {}) }} onClick={() => setSort("read")}>Most read</button>
+          <button className="rv-chip" style={{ ...S.sortBtn, ...(sort === "rated" ? S.sortOn : {}) }} onClick={() => setSort("rated")}>Top rated</button>
+        </div>
+      </div>
+
+      {allTags.length ? (
+        <div style={S.tagRow}>
+          {activeTags.length ? <button className="rv-chip" style={S.clearTags} onClick={() => setActiveTags([])}>Clear</button> : null}
+          {allTags.map((t) => (
+            <button key={t} className="rv-chip" style={{ ...S.filterTag, ...(activeTags.includes(t) ? S.filterTagOn : {}) }} onClick={() => toggleTag(t)}>{t}</button>
+          ))}
+        </div>
+      ) : null}
+
+      {chars.length === 0 ? (
+        <p style={S.empty}>No companions have been published yet. <a href="/create" style={S.reset}>Create the first →</a></p>
+      ) : shown.length === 0 ? (
+        <p style={S.empty}>No companions match. <button style={S.reset} onClick={() => { setQ(""); setActiveTags([]); }}>Reset filters</button></p>
+      ) : (
+        <div style={S.grid}>
+          {shown.map((c) => (
+            <CharacterCard
+              key={c.id}
+              c={c}
+              actions={
+                <>
+                  <a className="rv-btn rv-btn-primary" style={S.primary} href={`/story?characterId=${c.id}`}>Begin a story</a>
+                  <a className="rv-btn" style={S.secondary} href={`/chat?characterId=${c.id}`}>Chat</a>
+                </>
+              }
+            />
+          ))}
+        </div>
+      )}
+    </main>
+  );
+}
+
+const S: Record<string, React.CSSProperties> = {
+  wrap: { maxWidth: 960, margin: "0 auto", padding: "52px 24px 80px" },
+  eyebrow: { letterSpacing: ".2em", textTransform: "uppercase", fontSize: 12, color: "#E9A06B", fontWeight: 700, margin: 0 },
+  h1: { fontFamily: "Georgia, serif", fontSize: 44, margin: "10px 0 10px" },
+  sub: { color: "#AC9CB0", margin: "0 0 24px" },
+  crossLink: { color: "#E9A06B", textDecoration: "none", fontWeight: 600, whiteSpace: "nowrap" },
+  controls: { display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center", marginBottom: 14 },
+  search: { flex: "1 1 260px", background: "#1A121F", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 11, padding: "12px 15px", fontSize: 15 },
+  sortWrap: { display: "flex", gap: 6, background: "#1A121F", border: "1px solid #3A2E44", borderRadius: 11, padding: 4 },
+  sortBtn: { background: "transparent", color: "#AC9CB0", border: 0, borderRadius: 8, padding: "8px 14px", cursor: "pointer", fontSize: 13.5, fontWeight: 600 },
+  sortOn: { background: "#2E2136", color: "#F4EAF0" },
+  tagRow: { display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", marginBottom: 26 },
+  clearTags: { background: "transparent", color: "#E9A06B", border: 0, cursor: "pointer", fontSize: 13, fontWeight: 600, padding: "4px 6px" },
+  filterTag: { fontSize: 12.5, color: "#CBBBD0", background: "#231A2B", border: "1px solid #3A2E44", borderRadius: 999, padding: "6px 12px", cursor: "pointer" },
+  filterTagOn: { background: "linear-gradient(100deg,#E9A06B,#D46A8B)", color: "#1A1220", border: "1px solid transparent", fontWeight: 650 },
+  empty: { color: "#AC9CB0" },
+  reset: { background: "transparent", color: "#E9A06B", border: 0, cursor: "pointer", fontSize: 15, textDecoration: "underline" },
+  grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: 18 },
+  primary: { flex: 1, textAlign: "center", color: "#1A1220", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", padding: "11px", borderRadius: 10, fontWeight: 650, textDecoration: "none", fontSize: 14 },
+  secondary: { flex: 1, textAlign: "center", color: "#F4EAF0", background: "#231A2B", border: "1px solid #3A2E44", padding: "11px", borderRadius: 10, fontWeight: 600, textDecoration: "none", fontSize: 14 },
+};

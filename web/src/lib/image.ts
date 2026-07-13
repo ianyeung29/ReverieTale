@@ -1,0 +1,385 @@
+/**
+ * Text-to-image adapter for character portraits. Providers:
+ *   - "grok" (xAI Grok image, OpenAI-compatible) — Bearer key, sync.
+ *   - "modelslab" (ModelsLab, FLUX) — key in the JSON body, sync or async (poll).
+ *   - "fal" (fal.ai, FLUX.1 [dev]) — key in the Authorization header, sync.
+ * Select with IMAGE_PROVIDER; the rest of the app is unchanged.
+ */
+const grokKey = () => process.env.XAI_IMAGE_KEY || process.env.XAI_API_KEY;
+
+// Map a stored gender value to the noun image models respond to best.
+function genderWord(gender?: string): string {
+  if (!gender) return "";
+  const x = gender.trim().toLowerCase();
+  if (x === "female" || x === "woman" || x === "f") return "woman";
+  if (x === "male" || x === "man" || x === "m") return "man";
+  return "person"; // non-binary / other -> neutral
+}
+
+// This is a companion app - portraits are meant to read as conventionally
+// attractive, per gender, while staying inside the "tasteful, safe for work"
+// line the trailing style tags enforce below.
+function attractivenessPhrase(gender?: string): string {
+  const g = genderWord(gender);
+  if (g === "woman") return "stunningly beautiful, gorgeous features, alluring";
+  if (g === "man") return "handsome, striking features, charismatic";
+  return "attractive, striking features";
+}
+
+// Shared portrait-prompt builder so the create route (auto default portrait) and
+// the portrait route (manual regen) produce identical, tasteful SFW prompts.
+export function buildPortraitPrompt(b: {
+  name?: string;
+  gender?: string;
+  age?: number;
+  outfit?: string;
+  look?: string;
+  persona?: string;
+  tags?: string[];
+}): string {
+  const g = genderWord(b.gender);
+  const who = b.name ? (g ? `${g} named ${b.name}` : b.name) : g || "person";
+  const subject = b.age ? `${b.age}-year-old adult ${who}` : who;
+  const bits = [b.look, b.persona].filter(Boolean).join(". ");
+  const outfit = b.outfit ? ` Wearing ${b.outfit}.` : "";
+  const tags = b.tags?.length ? ` ${b.tags.join(", ")}.` : "";
+  return (
+    `Character portrait of ${subject}, ${attractivenessPhrase(b.gender)}` +
+    (bits ? `, ${bits}` : "") +
+    `.${outfit}${tags} Upper-body portrait, looking at the viewer, soft cinematic lighting, detailed, high quality, tasteful, safe for work.`
+  );
+}
+
+// Ambient background prompt for a story: an empty, atmospheric ENVIRONMENT built
+// from the story's setting/genre/tone. Deliberately no people or text — it sits
+// behind the prose as mood lighting, dimmed and blurred at render time.
+export function buildScenePrompt(e: { setting?: string | null; genre?: string | null; tone?: string | null; scenario?: string | null }): string {
+  const place = e.setting?.trim() || e.scenario?.trim() || "a quiet, intimate room at dusk";
+  const genre = e.genre?.trim() ? `${e.genre.trim()} atmosphere` : "cinematic atmosphere";
+  const tone = e.tone?.trim() ? `${e.tone.trim()} mood` : "warm, romantic mood";
+  return (
+    `Atmospheric establishing shot of ${place}. ${genre}, ${tone}. ` +
+    `Empty scenery with no people and no text, soft depth of field, moody cinematic lighting, ` +
+    `painterly, evocative, wide environment shot.`
+  );
+}
+
+export function imageConfigured(): boolean {
+  const provider = process.env.IMAGE_PROVIDER || "grok";
+  if (provider === "grok") return Boolean(grokKey());
+  if (provider === "modelslab") return Boolean(process.env.MODELSLAB_API_KEY);
+  if (provider === "fal") return Boolean(process.env.FAL_KEY);
+  return false;
+}
+
+// Scene-image generation (character scene art + per-chapter scenes) is a real
+// per-image cost with the provider, and generating one behind EVERY chapter
+// adds up fast. Gate it so the operator opts in at the volume they want:
+//   unset / "off"     -> no scene images at all (default; zero extra spend)
+//   "opening" / "on"  -> character scenes + only chapter 1's opening scene
+//   "all"             -> a scene for every chapter (the expensive mode)
+// Portraits and the story ambient background are separate and unaffected.
+export type SceneMode = "off" | "opening" | "all";
+export function sceneImageMode(): SceneMode {
+  const v = (process.env.SCENE_IMAGES || "off").trim().toLowerCase();
+  if (v === "all") return "all";
+  if (v === "opening" || v === "on" || v === "true" || v === "1") return "opening";
+  return "off";
+}
+
+/** Should a scene be generated for chapter `index` (0-based) under the current mode? */
+export function shouldGenerateChapterScene(index: number): boolean {
+  const mode = sceneImageMode();
+  if (!imageConfigured()) return false;
+  if (mode === "all") return true;
+  if (mode === "opening") return index === 0;
+  return false;
+}
+
+/** Should character scene art be generated under the current mode? */
+export function shouldGenerateCharacterScene(): boolean {
+  return sceneImageMode() !== "off" && imageConfigured();
+}
+
+export async function generateImage(prompt: string): Promise<{ base64: string; mime: string }> {
+  const provider = process.env.IMAGE_PROVIDER || "grok";
+  if (provider === "grok") return generateGrok(prompt);
+  if (provider === "modelslab") return generateModelsLab(prompt);
+  if (provider === "fal") return generateFal(prompt);
+  throw new Error(`unsupported IMAGE_PROVIDER: ${provider}`);
+}
+
+// ---- xAI Grok (OpenAI-compatible images endpoint) ----------------------------
+async function generateGrok(prompt: string): Promise<{ base64: string; mime: string }> {
+  const key = grokKey();
+  if (!key) throw new Error("XAI_IMAGE_KEY (or XAI_API_KEY) is not set");
+  const model = process.env.IMAGE_MODEL || "grok-2-image";
+  const base = (process.env.XAI_IMAGE_BASE_URL || "https://api.x.ai/v1").replace(/\/$/, "");
+
+  const res = await fetch(`${base}/images/generations`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+    // xAI's image endpoint takes model/prompt/n/response_format (no size/quality).
+    body: JSON.stringify({ model, prompt, n: 1, response_format: "b64_json" }),
+  });
+  if (!res.ok) throw new Error(`grok ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
+
+  const data = (await res.json()) as { data?: { b64_json?: string; url?: string }[] };
+  const item = data.data?.[0];
+  if (item?.b64_json) return { base64: item.b64_json, mime: "image/jpeg" };
+  if (item?.url) return urlToImage(item.url);
+  throw new Error("grok: no image in response");
+}
+
+async function urlToImage(url: string): Promise<{ base64: string; mime: string }> {
+  const bin = await fetch(url);
+  if (!bin.ok) throw new Error(`failed to fetch generated image (${bin.status})`);
+  const buf = Buffer.from(await bin.arrayBuffer());
+  const mime = /\.jpe?g($|\?)/i.test(url) ? "image/jpeg" : "image/png";
+  return { base64: buf.toString("base64"), mime };
+}
+
+// ModelsLab's `output` entries are normally URLs, but img2img with base64:"yes"
+// can hand back a data URI or a bare base64 string instead - handle both.
+async function outputToImage(value: string): Promise<{ base64: string; mime: string }> {
+  const dataUri = value.match(/^data:(image\/\w+);base64,(.+)$/s);
+  if (dataUri) return { base64: dataUri[2], mime: dataUri[1] };
+  if (/^https?:\/\//i.test(value)) return urlToImage(value);
+  return { base64: value, mime: "image/png" };
+}
+
+// ---- ModelsLab (FLUX) --------------------------------------------------------
+type MlResp = {
+  status?: string;
+  output?: string[];
+  fetch_result?: string;
+  id?: number | string;
+  message?: string;
+  messege?: string; // ModelsLab's (misspelled) field
+  eta?: number;
+};
+
+async function generateModelsLab(prompt: string): Promise<{ base64: string; mime: string }> {
+  const key = process.env.MODELSLAB_API_KEY;
+  if (!key) throw new Error("MODELSLAB_API_KEY is not set");
+  const model = process.env.IMAGE_MODEL || "flux";
+  const url = process.env.MODELSLAB_URL || "https://modelslab.com/api/v6/images/text2img";
+  const payload = {
+    key,
+    model_id: model,
+    prompt,
+    negative_prompt: "",
+    width: "768",
+    height: "1024",
+    samples: "1",
+    num_inference_steps: "25",
+    // "yes" blacks out images the provider flags as NSFW. Operator-configurable;
+    // default safe. See IMAGE_SAFETY_CHECKER in .env for the compliance caveat.
+    safety_checker: process.env.IMAGE_SAFETY_CHECKER || "yes",
+    enhance_prompt: "no",
+    base64: "no",
+  };
+
+  // "Try Again" = the model is warming up; ModelsLab wants a resubmit. Retry the
+  // whole request a few times, polling fetch_result when it returns "processing".
+  let lastMsg = "";
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    if (!res.ok) throw new Error(`modelslab ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
+
+    let data = (await res.json()) as MlResp;
+    if (data.output?.[0]) return urlToImage(data.output[0]); // synchronous (e.g. realtime endpoint)
+
+    if (data.status === "processing" && data.fetch_result) {
+      data = await pollModelsLab(data.fetch_result, key);
+      if (data.output?.[0]) return urlToImage(data.output[0]);
+    }
+
+    lastMsg = String(data.message || data.messege || data.status || "").trim();
+    // Warm-up: wait and resubmit. Anything else is a real error.
+    if (/try again|loading|warming/i.test(lastMsg)) {
+      await new Promise((r) => setTimeout(r, 5000));
+      continue;
+    }
+    throw new Error(`modelslab: ${lastMsg || "no image in response"}`);
+  }
+  throw new Error(`modelslab: the model kept warming up (${lastMsg || "Try Again"}) — wait a moment and retry`);
+}
+
+async function pollModelsLab(fetchUrl: string, key: string): Promise<MlResp> {
+  let last: MlResp = { status: "processing" };
+  // ~90s total; ModelsLab queue + generation can take a while on first use.
+  for (let i = 0; i < 30; i++) {
+    await new Promise((r) => setTimeout(r, 3000));
+    const res = await fetch(fetchUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key }),
+    });
+    if (!res.ok) continue;
+    last = (await res.json()) as MlResp;
+    if (last.output?.[0]) return last; // ready (regardless of exact status string)
+    if (last.status === "error" || last.status === "failed") return last;
+  }
+  return last; // still processing; caller throws with context
+}
+
+// ---- Expression variants (ModelsLab img2img only) ----------------------------
+// Same face/identity as an existing portrait, nudged toward a different
+// expression via img2img (init_image + a low-ish strength so it stays close to
+// the source instead of drifting into a different-looking person). Pilot
+// feature - only wired up for a handful of characters so far, and only
+// available on ModelsLab; grok/fal here are text-to-image only.
+export type Expression = "warm" | "flirty";
+
+const EXPRESSION_PROMPTS: Record<Expression, string> = {
+  warm: "same person, warm genuine smile, soft happy expression, gentle eyes, relaxed and affectionate, upper-body portrait, soft cinematic lighting, tasteful, safe for work",
+  flirty: "same person, flirty smirk, playful sultry expression, raised eyebrow, alluring inviting gaze, upper-body portrait, soft cinematic lighting, tasteful, safe for work",
+};
+
+export function expressionVariantsConfigured(): boolean {
+  return (process.env.IMAGE_PROVIDER || "grok") === "modelslab" && Boolean(process.env.MODELSLAB_API_KEY);
+}
+
+// Shared img2img caller (ModelsLab only) - same face/identity as an init image,
+// nudged by a prompt at a given strength. Used for both expression variants and
+// "visualize this moment" scene images.
+async function modelsLabImg2Img(initImageBase64: string, prompt: string, opts: { negativePrompt?: string; strength?: number } = {}): Promise<{ base64: string; mime: string }> {
+  const key = process.env.MODELSLAB_API_KEY;
+  if (!key) throw new Error("MODELSLAB_API_KEY is not set");
+  const model = process.env.IMAGE_MODEL || "flux";
+  const url = process.env.MODELSLAB_IMG2IMG_URL || "https://modelslab.com/api/v6/images/img2img";
+  const payload = {
+    key,
+    model_id: model,
+    init_image: initImageBase64,
+    prompt,
+    negative_prompt: opts.negativePrompt ?? "different person, different face, different identity, deformed",
+    strength: opts.strength ?? 0.4,
+    width: "768",
+    height: "1024",
+    samples: "1",
+    num_inference_steps: "25",
+    safety_checker: process.env.IMAGE_SAFETY_CHECKER || "yes",
+    enhance_prompt: "no",
+    // Unlike text2img, img2img reads this as "is init_image base64 data (yes)
+    // or a URL (no)?" - "no" here made ModelsLab reject our base64 init_image
+    // with "init image must be a valid url when base64 is a representation of
+    // false". We always pass base64 image data, so this must be "yes".
+    base64: "yes",
+  };
+
+  let lastMsg = "";
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    if (!res.ok) throw new Error(`modelslab img2img ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
+
+    let data = (await res.json()) as MlResp;
+    if (data.output?.[0]) return outputToImage(data.output[0]);
+
+    if (data.status === "processing" && data.fetch_result) {
+      data = await pollModelsLab(data.fetch_result, key);
+      if (data.output?.[0]) return outputToImage(data.output[0]);
+    }
+
+    lastMsg = String(data.message || data.messege || data.status || "").trim();
+    if (/try again|loading|warming/i.test(lastMsg)) {
+      await new Promise((r) => setTimeout(r, 5000));
+      continue;
+    }
+    throw new Error(`modelslab img2img: ${lastMsg || "no image in response"}`);
+  }
+  throw new Error(`modelslab img2img: the model kept warming up (${lastMsg || "Try Again"}) — wait a moment and retry`);
+}
+
+export async function generateExpressionVariant(baseImageBase64: string, expression: Expression): Promise<{ base64: string; mime: string }> {
+  return modelsLabImg2Img(baseImageBase64, EXPRESSION_PROMPTS[expression]);
+}
+
+// ---- "Visualize this moment" (a chat reply, illustrated) --------------------
+// A fresh text-to-image SCENE built from the reply, with the character's
+// appearance woven into the prompt so it still reads as them. Deliberately
+// on-demand only - never generated automatically per reply.
+//
+// (We do NOT use img2img off the canonical head-and-shoulders portrait here:
+// at the strengths that keep identity, it reproduces the portrait rather than
+// the scene, and morphing an attractive close-up is far more likely to trip
+// the provider's safety filter - which returns a fully blacked-out image that
+// shows up as a blank screen. A described scene is both truer to "visualize
+// this moment" and much more reliable.)
+export function buildMomentPrompt(def: { name?: string; gender?: string; look?: string }, sceneText: string): string {
+  const g = genderWord(def.gender);
+  const who = def.name ? (g ? `${g} named ${def.name}` : def.name) : g || "person";
+  const look = def.look ? `, ${def.look}` : "";
+  const scene = sceneText.trim().replace(/\s+/g, " ").slice(0, 300);
+  return (
+    `Photorealistic cinematic film still featuring ${who}${look}. The moment: ${scene} ` +
+    `Full scene with environment, realistic photography, sharp focus, natural cinematic lighting, evocative mood, tasteful, safe for work.`
+  );
+}
+
+export async function generateMomentImage(
+  def: { name?: string; gender?: string; look?: string },
+  sceneText: string,
+): Promise<{ base64: string; mime: string }> {
+  return generateImage(buildMomentPrompt(def, sceneText));
+}
+
+// ---- Character scene art (the companion in their world) ---------------------
+// A wide establishing image - the character within their backstory setting
+// (e.g. Sable at the piano in a closed club) - used behind the profile hero.
+// Wide/landscape, unlike the portrait, so it reads as a place, not a headshot.
+export function buildCharacterScenePrompt(def: { name?: string; gender?: string; look?: string; backstory?: string; tags?: string[] }): string {
+  const g = genderWord(def.gender);
+  const who = def.name ? (g ? `${g} named ${def.name}` : def.name) : g || "person";
+  const look = def.look ? `, ${def.look}` : "";
+  const place = def.backstory ? def.backstory.trim().replace(/\s+/g, " ").slice(0, 200) : "an intimate, atmospheric setting";
+  const genre = def.tags?.length ? ` ${def.tags.join(", ")} mood.` : "";
+  return (
+    `Wide photorealistic cinematic film still of ${who}${look}, within their world: ${place} ` +
+    `The character is present in the scene, environmental and atmospheric.${genre} ` +
+    `Realistic photography, sharp focus, moody natural cinematic lighting, depth of field, evocative, tasteful, safe for work.`
+  );
+}
+
+export async function generateCharacterScene(def: { name?: string; gender?: string; look?: string; backstory?: string; tags?: string[] }): Promise<{ base64: string; mime: string }> {
+  return generateImage(buildCharacterScenePrompt(def));
+}
+
+// ---- Per-chapter scene art --------------------------------------------------
+// One illustration per chapter, from that chapter's own prose, placed at a
+// turning point in the reader.
+export function buildChapterScenePrompt(def: { name?: string; gender?: string; look?: string }, chapterText: string): string {
+  const g = genderWord(def.gender);
+  const who = def.name ? (g ? `${g} named ${def.name}` : def.name) : g || "person";
+  const look = def.look ? `, ${def.look}` : "";
+  // Lead with the opening of the chapter - it usually sets the scene.
+  const scene = chapterText.trim().replace(/\s+/g, " ").slice(0, 320);
+  return (
+    `Photorealistic cinematic film still featuring ${who}${look}. Scene: ${scene} ` +
+    `Full environment, realistic photography, sharp focus, natural cinematic lighting, evocative mood, tasteful, safe for work.`
+  );
+}
+
+export async function generateChapterScene(def: { name?: string; gender?: string; look?: string }, chapterText: string): Promise<{ base64: string; mime: string }> {
+  return generateImage(buildChapterScenePrompt(def, chapterText));
+}
+
+// ---- fal.ai (FLUX.1 [dev]) ---------------------------------------------------
+async function generateFal(prompt: string): Promise<{ base64: string; mime: string }> {
+  const key = process.env.FAL_KEY;
+  if (!key) throw new Error("FAL_KEY is not set");
+  const model = process.env.IMAGE_MODEL || "fal-ai/flux/dev";
+
+  const res = await fetch(`https://fal.run/${model}`, {
+    method: "POST",
+    headers: { Authorization: `Key ${key}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ prompt, image_size: "portrait_4_3", num_images: 1, output_format: "jpeg", enable_safety_checker: (process.env.IMAGE_SAFETY_CHECKER || "yes") !== "no" }),
+  });
+  if (!res.ok) throw new Error(`fal ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
+
+  const data = (await res.json()) as { images?: { url?: string; content_type?: string }[] };
+  const img = data.images?.[0];
+  if (!img?.url) throw new Error("no image returned");
+  return urlToImage(img.url);
+}
