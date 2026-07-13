@@ -20,7 +20,9 @@ export async function GET(req: Request) {
 
   const url = new URL(req.url);
   const returnTo = safeReturnTo(url.searchParams.get("returnTo"));
-  const origin = process.env.APP_URL || url.origin;
+  // Strip any trailing slash so a stray slash in APP_URL doesn't produce a
+  // double-slash redirect_uri that fails Google's exact-match check.
+  const origin = (process.env.APP_URL || url.origin).replace(/\/$/, "");
   const redirectUri = `${origin}/api/auth/google/callback`;
 
   const state = randomBytes(16).toString("hex");

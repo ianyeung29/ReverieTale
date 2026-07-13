@@ -24,7 +24,9 @@ function fail(origin: string, returnTo: string) {
 // door into the same account system, not a separate one.
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
-  const origin = process.env.APP_URL || url.origin;
+  // Must match the redirect_uri sent in the auth step exactly (see the auth
+  // route) - strip a trailing slash from APP_URL to avoid a double slash.
+  const origin = (process.env.APP_URL || url.origin).replace(/\/$/, "");
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
 
