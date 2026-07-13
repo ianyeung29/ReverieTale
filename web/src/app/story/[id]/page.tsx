@@ -357,10 +357,10 @@ export default function StoryReadPage() {
           <textarea value={whatHappens} onChange={(e) => setWhatHappens(e.target.value)} placeholder="e.g. she finally says how she feels… we get caught in the rain…" style={S.textarea} maxLength={400} />
 
           <label style={S.label}>Add a twist</label>
-          <Chips options={TWISTS} value={twist} onPick={(v) => setTwist(v === twist ? "" : v)} />
+          <Chips options={TWISTS} value={twist} onPick={setTwist} custom maxLength={80} />
 
           <label style={S.label}>Mood</label>
-          <Chips options={MOODS} value={mood} onPick={(v) => setMood(v === mood ? "" : v)} />
+          <Chips options={MOODS} value={mood} onPick={setMood} custom maxLength={60} />
 
           <label style={S.label}>Move to a new setting (optional)</label>
           <input value={setting} onChange={(e) => setSetting(e.target.value)} placeholder="e.g. a quiet balcony, the last train home…" style={S.input} />
@@ -430,10 +430,49 @@ export default function StoryReadPage() {
   );
 }
 
-function Chips({ options, value, onPick }: { options: string[]; value: string; onPick: (v: string) => void }) {
+function Chips({
+  options,
+  value,
+  onPick,
+  custom,
+  maxLength = 80,
+}: {
+  options: string[];
+  value: string;
+  onPick: (v: string) => void;
+  custom?: boolean; // adds a "+ your own" chip that reveals a free-text input
+  maxLength?: number;
+}) {
+  // A non-empty value that isn't one of the presets is a custom entry.
+  const isCustom = Boolean(value) && !options.includes(value);
+  const [open, setOpen] = useState(isCustom);
   return (
-    <div style={S.chips}>
-      {options.map((o) => <button key={o} className="rv-chip" style={{ ...S.chip, ...(o === value ? S.chipOn : {}) }} onClick={() => onPick(o)}>{o}</button>)}
+    <div>
+      <div style={S.chips}>
+        {options.map((o) => (
+          <button key={o} type="button" className="rv-chip" style={{ ...S.chip, ...(o === value ? S.chipOn : {}) }} onClick={() => { setOpen(false); onPick(o === value ? "" : o); }}>{o}</button>
+        ))}
+        {custom ? (
+          <button
+            type="button"
+            className="rv-chip"
+            style={{ ...S.chip, ...(isCustom || open ? S.chipOn : {}) }}
+            onClick={() => { if (!isCustom) onPick(""); setOpen(true); }}
+          >
+            + your own
+          </button>
+        ) : null}
+      </div>
+      {custom && open ? (
+        <input
+          autoFocus
+          value={isCustom ? value : ""}
+          onChange={(e) => onPick(e.target.value)}
+          placeholder="Type your own…"
+          style={{ ...S.input, marginTop: 8 }}
+          maxLength={maxLength}
+        />
+      ) : null}
     </div>
   );
 }
