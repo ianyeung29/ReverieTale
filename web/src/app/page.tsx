@@ -144,13 +144,8 @@ export default async function Home() {
       <div style={S.auroraB} />
 
       <section style={S.hero} className="rv-reveal">
-        <div style={S.heroTop}>
-          <div style={S.heroTitleCol}>
-            <p style={S.eyebrow}>companions who remember you</p>
-            <h1 style={S.h1}><span className="rv-title">Reverie</span></h1>
-          </div>
-          <p style={S.sub}>Begin with a story. Meet a character. Then stay and talk to someone who remembers every word.</p>
-        </div>
+        <p style={S.eyebrow}>companions who remember you</p>
+        <h1 style={S.h1}><span className="rv-title">Reverie</span></h1>
         <div style={S.cta}>
           <a href="/story" className="rv-btn rv-btn-primary" style={btn(true)}>Begin a story →</a>
           <a href="/browse" className="rv-btn" style={btn(false)}>Browse companions</a>
@@ -302,9 +297,6 @@ const S: Record<string, React.CSSProperties> = {
   hero: { position: "relative", zIndex: 1, padding: 4, borderRadius: 24, overflow: "hidden" },
   eyebrow: { position: "relative", letterSpacing: ".22em", textTransform: "uppercase", fontSize: 12, color: "#E9A06B", fontWeight: 700, margin: 0 },
   h1: { position: "relative", fontFamily: "Georgia, serif", fontSize: 66, margin: "14px 0 16px", letterSpacing: "-.015em", lineHeight: 1 },
-  heroTop: { position: "relative", zIndex: 1, display: "flex", flexWrap: "wrap", alignItems: "center", gap: "12px 40px" },
-  heroTitleCol: { minWidth: 0 },
-  sub: { position: "relative", color: "#C6B7CC", fontSize: 18, maxWidth: 360, lineHeight: 1.55, margin: 0, flex: "1 1 280px" },
   stat: { position: "relative", color: "#8A7A90", fontSize: 13.5, margin: "16px 0 0", letterSpacing: ".02em", fontVariantNumeric: "tabular-nums" },
   cta: { position: "relative", display: "flex", gap: 12, marginTop: 26, flexWrap: "wrap" },
   spot: { position: "relative", zIndex: 1, marginTop: 40, borderRadius: 24, overflow: "hidden", border: "1px solid #3A2E44", display: "flex", flexWrap: "wrap", gap: 28, padding: 28 },
