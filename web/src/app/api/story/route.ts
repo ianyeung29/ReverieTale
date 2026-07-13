@@ -125,11 +125,11 @@ export async function POST(req: Request) {
     // A scene image for the opening chapter (chapter 0), in the background -
     // only when scene images are enabled (SCENE_IMAGES=opening|all).
     if (shouldGenerateChapterScene(0)) {
-      const chapterPrompt = buildChapterScenePrompt({ name: def.name, gender: def.gender, look: def.look }, content);
+      const chapterPrompt = buildChapterScenePrompt({ name: def.name, gender: def.gender, look: def.look, style: def.style }, content);
       if (!screenImagePrompt(chapterPrompt).blocked) {
         after(async () => {
           try {
-            const gen = await generateChapterScene({ name: def.name, gender: def.gender, look: def.look }, content);
+            const gen = await generateChapterScene({ name: def.name, gender: def.gender, look: def.look, style: def.style }, content);
             await db.insert(chapterScenes).values({ storyId: story.id, chapterIndex: 0, image: gen.base64, imageMime: gen.mime }).onConflictDoNothing();
           } catch (err) {
             console.error("[story] chapter scene generation failed:", err instanceof Error ? err.message : err);

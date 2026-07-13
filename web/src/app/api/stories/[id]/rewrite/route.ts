@@ -94,11 +94,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     // Regenerate a scene for the rewritten chapter, in the background - only
     // when scene images are enabled for this chapter index.
     if (shouldGenerateChapterScene(body.chapterIndex)) {
-      const prompt = buildChapterScenePrompt({ name: def.name, gender: def.gender, look: def.look }, newChapter);
+      const prompt = buildChapterScenePrompt({ name: def.name, gender: def.gender, look: def.look, style: def.style }, newChapter);
       if (!screenImagePrompt(prompt).blocked) {
         after(async () => {
           try {
-            const gen = await generateChapterScene({ name: def.name, gender: def.gender, look: def.look }, newChapter);
+            const gen = await generateChapterScene({ name: def.name, gender: def.gender, look: def.look, style: def.style }, newChapter);
             await db.insert(chapterScenes).values({ storyId: id, chapterIndex: body.chapterIndex, image: gen.base64, imageMime: gen.mime }).onConflictDoNothing();
           } catch (err) {
             console.error("[rewrite] chapter scene generation failed:", err instanceof Error ? err.message : err);

@@ -32,6 +32,7 @@ export default function CreateCharacterPage() {
   const [age, setAge] = useState("");
   const [outfit, setOutfit] = useState("");
   const [look, setLook] = useState("");
+  const [style, setStyle] = useState<"realistic" | "anime">("realistic");
   const [persona, setPersona] = useState("");
   const [backstory, setBackstory] = useState("");
   const [voice, setVoice] = useState("");
@@ -70,7 +71,7 @@ export default function CreateCharacterPage() {
     fetch(`/api/characters/${id}`).then((r) => (r.ok ? r.json() : Promise.reject(r.status))).then((d) => {
       setName(d.name || ""); setLook(d.look || ""); setPersona(d.persona || "");
       setBackstory(d.backstory || ""); setVoice(d.voice || ""); setGreeting(d.greeting || ""); setTags(Array.isArray(d.tags) ? d.tags : []);
-      setAge(d.age ? String(d.age) : ""); setGender(d.gender || "");
+      setAge(d.age ? String(d.age) : ""); setGender(d.gender || ""); setStyle(d.style === "anime" ? "anime" : "realistic");
       setHasImage(!!d.hasImage);
     }).catch(() => setLoadErr(true));
   }, []);
@@ -82,7 +83,7 @@ export default function CreateCharacterPage() {
       const res = await fetch("/api/characters/portrait", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ characterId: editId || undefined, name: name.trim() || undefined, gender: gender || undefined, age: ageOk ? ageNum : undefined, outfit: outfit.trim() || undefined, look: look.trim() || undefined, persona: persona.trim() || undefined, tags: tags.length ? tags : undefined }),
+        body: JSON.stringify({ characterId: editId || undefined, name: name.trim() || undefined, gender: gender || undefined, age: ageOk ? ageNum : undefined, outfit: outfit.trim() || undefined, look: look.trim() || undefined, persona: persona.trim() || undefined, tags: tags.length ? tags : undefined, style }),
       });
       const d = await res.json();
       if (res.status === 401) { setAuthEmail(null); return; }
@@ -192,6 +193,7 @@ export default function CreateCharacterPage() {
       voice: voice.trim() || undefined,
       greeting: greeting.trim() || undefined,
       tags: tags.length ? tags : undefined,
+      style,
       image: portrait?.image,
       imageMime: portrait?.mime,
     };
@@ -344,6 +346,13 @@ export default function CreateCharacterPage() {
 
               <label style={S.label}>Gender <span style={S.hint}>(set at creation — can&apos;t be changed)</span></label>
               <div style={S.lockedField}>{gender ? cap(gender) : "Not specified"}</div>
+
+              <label style={S.label}>Art style <span style={S.hint}>(applies to the portrait and every scene image)</span></label>
+              <div style={S.chips}>
+                {([{ value: "realistic", label: "Realistic" }, { value: "anime", label: "Anime / illustrated" }] as const).map((o) => (
+                  <button key={o.value} type="button" className="rv-chip" style={{ ...S.chip, ...(style === o.value ? S.chipOn : {}) }} onClick={() => setStyle(o.value)}>{o.label}</button>
+                ))}
+              </div>
 
               <label style={S.label}>Age <span style={S.hint}>(must be 18+)</span></label>
               <input value={age} onChange={(e) => setAge(e.target.value.replace(/[^0-9]/g, "").slice(0, 3))} placeholder="e.g. 24" style={S.input} inputMode="numeric" />
@@ -501,6 +510,13 @@ export default function CreateCharacterPage() {
                   >
                     {g.label}
                   </button>
+                ))}
+              </div>
+
+              <label style={S.label}>Art style <span style={S.hint}>(applies to the portrait and every scene image)</span></label>
+              <div style={S.chips}>
+                {([{ value: "realistic", label: "Realistic" }, { value: "anime", label: "Anime / illustrated" }] as const).map((o) => (
+                  <button key={o.value} type="button" className="rv-chip" style={{ ...S.chip, ...(style === o.value ? S.chipOn : {}) }} onClick={() => setStyle(o.value)}>{o.label}</button>
                 ))}
               </div>
 

@@ -12,7 +12,7 @@ import { intensityColor, intensityScore } from "@/lib/intensity";
 
 type Story = {
   id: string; title: string; content: string; characterId: string; characterName: string; characterTagline: string; characterTags: string[]; tone: string;
-  isOwner: boolean; hasBackup: boolean; hasBackground: boolean;
+  isOwner: boolean; isPublic: boolean; hasBackup: boolean; hasBackground: boolean;
   reads: number; rating: number; ratingCount: number; myRating: number | null; canRate: boolean;
   isSaved: boolean; canSave: boolean;
   isCharacterHidden: boolean;
@@ -61,6 +61,7 @@ export default function StoryReadPage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [chapterPrice, setChapterPrice] = useState(10);
   const [showToc, setShowToc] = useState(false);
+  const [zoomChapter, setZoomChapter] = useState<number | null>(null); // chapter image shown enlarged
   const [bgOn, setBgOn] = useState(true);
   const [fontSize, setFontSize] = useState<FontSize>("sm"); // small by default; a saved preference overrides below
   const [theme, setTheme] = useState<ReaderTheme>("dark");
@@ -124,6 +125,7 @@ export default function StoryReadPage() {
   // Keyboard paging (ignored while typing in the next-chapter form).
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") { setZoomChapter(null); return; }
       const el = document.activeElement;
       if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA")) return;
       if (e.key === "ArrowRight") { setShowForm(false); setIdx((i) => Math.min(i + 1, chapters.length - 1)); }
@@ -176,6 +178,26 @@ export default function StoryReadPage() {
     try {
       const d = await fetch(`/api/stories/${id}/backup`).then((r) => r.json());
       if (d.content) { setBackupText(d.content); setShowBackup(true); }
+    } catch {}
+  }
+
+  async function toggleHide() {
+    if (!story) return;
+    const nextPublic = story.isPublic === false; // hidden -> unhide (make public)
+    setStory((s) => (s ? { ...s, isPublic: nextPublic } : s));
+    await fetch(`/api/stories/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isPublic: nextPublic }),
+    }).catch(() => {});
+  }
+
+  async function deleteStory() {
+    if (!story) return;
+    if (!confirm(`Delete “${story.title}”? This can't be undone.`)) return;
+    try {
+      const res = await fetch(`/api/stories/${id}`, { method: "DELETE" });
+      if (res.ok) window.location.href = "/library";
     } catch {}
   }
 
@@ -285,11 +307,12 @@ export default function StoryReadPage() {
       ) : null}
 
       {story.chapterImages.includes(idx) ? (
-        <div style={S.chapterScene} key={`scene-${idx}`}>
+        <button type="button" style={S.chapterScene} key={`scene-${idx}`} onClick={() => setZoomChapter(idx)} aria-label="Enlarge image">
           <img src={`/api/stories/${id}/chapter-image?chapter=${idx}`} alt="" style={S.chapterSceneImg} />
           {idx === 0 ? <div style={S.chapterSceneScrim} /> : null}
           {idx === 0 ? <div style={S.chapterSceneCaption}>Chapter 1 of {chapters.length}</div> : null}
-        </div>
+          <span style={S.chapterZoomHint} aria-hidden>⤢</span>
+        </button>
       ) : null}
 
       <article
@@ -314,7 +337,14 @@ export default function StoryReadPage() {
       </article>
 
       {story.isOwner ? (
-        <button style={{ ...S.rewrite, opacity: busy ? 0.6 : 1 }} onClick={rewrite} disabled={busy}>↻ {busy ? "Rewriting…" : `Rewrite this chapter · ${chapterPrice} credits`}</button>
+        <div style={S.ownerControls}>
+          <button style={{ ...S.rewrite, opacity: busy ? 0.6 : 1 }} onClick={rewrite} disabled={busy}>↻ {busy ? "Rewriting…" : `Rewrite this chapter · ${chapterPrice} credits`}</button>
+          <button style={S.ownerCtl} onClick={toggleHide}>{story.isPublic === false ? "Unhide from feed" : "Hide from feed"}</button>
+          <button style={{ ...S.ownerCtl, ...S.ownerCtlDelete }} onClick={deleteStory}>Delete story</button>
+        </div>
+      ) : null}
+      {story.isOwner && story.isPublic === false ? (
+        <p style={S.hiddenNote}>This story is hidden — only you can see it. It won&apos;t appear in the public feed.</p>
       ) : null}
 
       <div style={S.nav}>
@@ -425,6 +455,13 @@ export default function StoryReadPage() {
         </div>
       ) : null}
 
+      {zoomChapter !== null ? (
+        <div style={S.zoomOverlay} onClick={() => setZoomChapter(null)}>
+          <button style={S.zoomClose} onClick={() => setZoomChapter(null)} aria-label="Close">×</button>
+          <img src={`/api/stories/${id}/chapter-image?chapter=${zoomChapter}`} alt="" style={S.zoomImg} onClick={(e) => e.stopPropagation()} />
+        </div>
+      ) : null}
+
       <ChatDock characterId={story.characterId} characterName={story.characterName} characterTags={story.characterTags} storyId={story.id} chapter={idx + 1} open={chatOpen} onOpenChange={setChatOpen} />
     </main>
   );
@@ -494,8 +531,12 @@ const S: Record<string, React.CSSProperties> = {
   railState: { color: "#E9A06B", fontSize: 12, margin: "1px 0 0", fontWeight: 600 },
   railLine: { color: "#8A7A90", fontSize: 12.5, margin: "3px 0 0", lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" },
   railBtn: { marginTop: 8, width: "100%", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", color: "#1A1220", border: 0, borderRadius: 10, padding: "9px 0", fontWeight: 650, fontSize: 13, cursor: "pointer" },
-  chapterScene: { position: "relative", margin: "0 0 22px", borderRadius: 16, overflow: "hidden", border: "1px solid #3A2E44", boxShadow: "0 16px 40px rgba(0,0,0,.4)" },
+  chapterScene: { position: "relative", display: "block", width: "100%", padding: 0, margin: "0 0 22px", borderRadius: 16, overflow: "hidden", border: "1px solid #3A2E44", boxShadow: "0 16px 40px rgba(0,0,0,.4)", cursor: "zoom-in", background: "none" },
   chapterSceneImg: { display: "block", width: "100%", aspectRatio: "16 / 9", objectFit: "cover" },
+  chapterZoomHint: { position: "absolute", top: 10, right: 10, width: 30, height: 30, display: "grid", placeItems: "center", borderRadius: 8, background: "rgba(15,10,19,.55)", color: "#F4EAF0", fontSize: 15, border: "1px solid rgba(255,255,255,.15)", backdropFilter: "blur(4px)" },
+  zoomOverlay: { position: "fixed", inset: 0, zIndex: 60, background: "rgba(8,5,11,.92)", display: "grid", placeItems: "center", padding: 20, cursor: "zoom-out", animation: "rvBgIn .2s ease" },
+  zoomImg: { maxWidth: "min(1100px, 96vw)", maxHeight: "92vh", width: "auto", height: "auto", objectFit: "contain", borderRadius: 12, boxShadow: "0 30px 80px rgba(0,0,0,.6)", cursor: "default" },
+  zoomClose: { position: "fixed", top: 16, right: 18, zIndex: 61, background: "rgba(35,26,43,.7)", color: "#F4EAF0", border: "1px solid #4a3a50", borderRadius: 999, width: 40, height: 40, fontSize: 24, lineHeight: 1, cursor: "pointer" },
   chapterSceneScrim: { position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(15,10,19,0) 55%, rgba(15,10,19,.8) 100%)", pointerEvents: "none" },
   chapterSceneCaption: { position: "absolute", left: 16, bottom: 12, color: "#F4EAF0", fontSize: 12.5, letterSpacing: ".08em", textTransform: "uppercase", fontWeight: 700, textShadow: "0 1px 4px rgba(0,0,0,.6)" },
   head: { display: "flex", alignItems: "center", gap: 14, margin: "24px 0 28px" },
@@ -514,7 +555,11 @@ const S: Record<string, React.CSSProperties> = {
   overlayClose: { background: "transparent", border: 0, color: "#AC9CB0", fontSize: 22, cursor: "pointer", lineHeight: 1 },
   overlayBody: { overflowY: "auto", padding: "18px 22px" },
   overlayActions: { display: "flex", gap: 10, padding: "14px 18px", borderTop: "1px solid #3A2E44" },
-  rewrite: { marginTop: 18, background: "transparent", color: "#8A7A90", border: "1px solid #3A2E44", borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontSize: 13.5 },
+  rewrite: { background: "transparent", color: "#8A7A90", border: "1px solid #3A2E44", borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontSize: 13.5 },
+  ownerControls: { display: "flex", flexWrap: "wrap", gap: 8, marginTop: 18, alignItems: "center" },
+  ownerCtl: { background: "transparent", color: "#8A7A90", border: "1px solid #3A2E44", borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontSize: 13.5 },
+  ownerCtlDelete: { color: "#E08A8A", borderColor: "#5a3540" },
+  hiddenNote: { margin: "10px 0 0", color: "#C9A98A", fontSize: 13, fontStyle: "italic" },
   nav: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginTop: 22, borderTop: "1px solid #241a2b", paddingTop: 22 },
   navBtn: { background: "#231A2B", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 10, padding: "11px 16px", cursor: "pointer", fontSize: 14, fontWeight: 600 },
   navPrimary: { color: "#1A1220", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", border: "1px solid transparent" },
