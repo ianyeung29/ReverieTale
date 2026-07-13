@@ -17,6 +17,7 @@ export async function GET() {
       title: stories.title,
       content: stories.content,
       characterId: stories.characterId,
+      isPublic: stories.isPublic,
       name: sql<string>`${characters.definition}->>'name'`,
       createdAt: stories.createdAt,
     })
@@ -32,6 +33,7 @@ export async function GET() {
       title: r.title,
       name: r.name,
       characterId: r.characterId,
+      isPublic: r.isPublic,
       chapters: (r.content.match(/\n{2,}·\s·\s·\n{2,}/g)?.length ?? 0) + 1,
     })),
   );

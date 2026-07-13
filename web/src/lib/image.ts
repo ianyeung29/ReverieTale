@@ -16,6 +16,28 @@ function genderWord(gender?: string): string {
   return "person"; // non-binary / other -> neutral
 }
 
+// A character is drawn in one consistent art style, and BOTH the portrait and
+// every scene/chapter image for that character must use it - otherwise a
+// cartoon-looking character ends up with photorealistic chapter images (or vice
+// versa). Default is realistic; "anime" characters stay illustrated everywhere.
+export type ArtStyle = "realistic" | "anime";
+export function normalizeStyle(s?: string | null): ArtStyle {
+  const x = (s || "").trim().toLowerCase();
+  return x === "anime" || x === "cartoon" || x === "illustrated" ? "anime" : "realistic";
+}
+// Trailing style tags for a *portrait* (upper-body headshot).
+function portraitStyleTag(style: ArtStyle): string {
+  return style === "anime"
+    ? "anime illustration, cel-shaded, clean linework, vibrant colors, soft anime shading, high quality"
+    : "photorealistic, soft cinematic lighting, detailed, high quality";
+}
+// The leading frame + trailing tags for a wide *scene* image, per style.
+function sceneStyle(style: ArtStyle): { lead: string; tail: string } {
+  return style === "anime"
+    ? { lead: "Anime-style illustration, cinematic anime key visual", tail: "cel-shaded, clean linework, vibrant colors, soft anime shading, evocative mood, tasteful, safe for work." }
+    : { lead: "Photorealistic cinematic film still", tail: "realistic photography, sharp focus, natural cinematic lighting, evocative mood, tasteful, safe for work." };
+}
+
 // This is a companion app - portraits are meant to read as conventionally
 // attractive, per gender, while staying inside the "tasteful, safe for work"
 // line the trailing style tags enforce below.
@@ -36,6 +58,7 @@ export function buildPortraitPrompt(b: {
   look?: string;
   persona?: string;
   tags?: string[];
+  style?: string;
 }): string {
   const g = genderWord(b.gender);
   const who = b.name ? (g ? `${g} named ${b.name}` : b.name) : g || "person";
@@ -46,7 +69,7 @@ export function buildPortraitPrompt(b: {
   return (
     `Character portrait of ${subject}, ${attractivenessPhrase(b.gender)}` +
     (bits ? `, ${bits}` : "") +
-    `.${outfit}${tags} Upper-body portrait, looking at the viewer, soft cinematic lighting, detailed, high quality, tasteful, safe for work.`
+    `.${outfit}${tags} Upper-body portrait, looking at the viewer, ${portraitStyleTag(normalizeStyle(b.style))}, tasteful, safe for work.`
   );
 }
 
@@ -329,39 +352,41 @@ export async function generateMomentImage(
 // A wide establishing image - the character within their backstory setting
 // (e.g. Sable at the piano in a closed club) - used behind the profile hero.
 // Wide/landscape, unlike the portrait, so it reads as a place, not a headshot.
-export function buildCharacterScenePrompt(def: { name?: string; gender?: string; look?: string; backstory?: string; tags?: string[] }): string {
+export function buildCharacterScenePrompt(def: { name?: string; gender?: string; look?: string; backstory?: string; tags?: string[]; style?: string }): string {
   const g = genderWord(def.gender);
   const who = def.name ? (g ? `${g} named ${def.name}` : def.name) : g || "person";
   const look = def.look ? `, ${def.look}` : "";
   const place = def.backstory ? def.backstory.trim().replace(/\s+/g, " ").slice(0, 200) : "an intimate, atmospheric setting";
   const genre = def.tags?.length ? ` ${def.tags.join(", ")} mood.` : "";
+  const { lead, tail } = sceneStyle(normalizeStyle(def.style));
   return (
-    `Wide photorealistic cinematic film still of ${who}${look}, within their world: ${place} ` +
+    `Wide ${lead} of ${who}${look}, within their world: ${place} ` +
     `The character is present in the scene, environmental and atmospheric.${genre} ` +
-    `Realistic photography, sharp focus, moody natural cinematic lighting, depth of field, evocative, tasteful, safe for work.`
+    `${tail} Depth of field, moody lighting.`
   );
 }
 
-export async function generateCharacterScene(def: { name?: string; gender?: string; look?: string; backstory?: string; tags?: string[] }): Promise<{ base64: string; mime: string }> {
+export async function generateCharacterScene(def: { name?: string; gender?: string; look?: string; backstory?: string; tags?: string[]; style?: string }): Promise<{ base64: string; mime: string }> {
   return generateImage(buildCharacterScenePrompt(def));
 }
 
 // ---- Per-chapter scene art --------------------------------------------------
 // One illustration per chapter, from that chapter's own prose, placed at a
 // turning point in the reader.
-export function buildChapterScenePrompt(def: { name?: string; gender?: string; look?: string }, chapterText: string): string {
+export function buildChapterScenePrompt(def: { name?: string; gender?: string; look?: string; style?: string }, chapterText: string): string {
   const g = genderWord(def.gender);
   const who = def.name ? (g ? `${g} named ${def.name}` : def.name) : g || "person";
   const look = def.look ? `, ${def.look}` : "";
   // Lead with the opening of the chapter - it usually sets the scene.
   const scene = chapterText.trim().replace(/\s+/g, " ").slice(0, 320);
+  const { lead, tail } = sceneStyle(normalizeStyle(def.style));
   return (
-    `Photorealistic cinematic film still featuring ${who}${look}. Scene: ${scene} ` +
-    `Full environment, realistic photography, sharp focus, natural cinematic lighting, evocative mood, tasteful, safe for work.`
+    `${lead} featuring ${who}${look}. Scene: ${scene} ` +
+    `Full environment, ${tail}`
   );
 }
 
-export async function generateChapterScene(def: { name?: string; gender?: string; look?: string }, chapterText: string): Promise<{ base64: string; mime: string }> {
+export async function generateChapterScene(def: { name?: string; gender?: string; look?: string; style?: string }, chapterText: string): Promise<{ base64: string; mime: string }> {
   return generateImage(buildChapterScenePrompt(def, chapterText));
 }
 

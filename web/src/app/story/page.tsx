@@ -65,6 +65,9 @@ function buildOptions(fn: (pool: Pool, a: number, b: number) => string[]): Optio
 export default function StoryPage() {
   const [chars, setChars] = useState<Char[]>([]);
   const [charId, setCharId] = useState("");
+  // When you arrive from a character page (?characterId=…), start focused on
+  // just that companion; the full picker is revealed on demand.
+  const [showAllChars, setShowAllChars] = useState(true);
   const [relationship, setRelationship] = useState("");
   const [genre, setGenre] = useState("");
   const [scenario, setScenario] = useState("");
@@ -100,8 +103,11 @@ export default function StoryPage() {
     const urlChar = new URLSearchParams(window.location.search).get("characterId");
     fetch("/api/characters").then((r) => r.json()).then((c: Char[]) => {
       setChars(c);
-      const preferred = urlChar && c.some((x) => x.id === urlChar) ? urlChar : c[0]?.id;
+      const cameFromCharacter = Boolean(urlChar && c.some((x) => x.id === urlChar));
+      const preferred = cameFromCharacter ? urlChar! : c[0]?.id;
       if (preferred) setCharId(preferred);
+      // Arrived for a specific companion -> collapse the list to just them.
+      if (cameFromCharacter) setShowAllChars(false);
     }).catch(() => {});
     fetch("/api/config").then((r) => r.json()).then((d) => { setExplicitEnabled(!!d.explicitEnabled); if (d.pricing?.chapter) setChapterPrice(d.pricing.chapter); }).catch(() => {});
     roll(); // fresh blend of suggestions + a random combination each visit
@@ -154,7 +160,7 @@ export default function StoryPage() {
         <a href="/create" style={S.createLink}>＋ Create your own</a>
       </div>
       <div style={S.cards}>
-        {chars.map((c) => (
+        {(showAllChars ? chars : chars.filter((c) => c.id === charId)).map((c) => (
           <button key={c.id} style={{ ...S.card, ...(c.id === charId ? S.cardOn : {}) }} onClick={() => setCharId(c.id)}>
             <div style={S.cardHead}><CharacterAvatar characterId={c.id} name={c.name} size={38} /><div style={S.cardName}>{c.name}</div></div>
             <div style={S.cardPersona}>{c.persona}</div>
@@ -162,6 +168,9 @@ export default function StoryPage() {
           </button>
         ))}
       </div>
+      {!showAllChars && chars.length > 1 ? (
+        <button style={S.otherChar} onClick={() => setShowAllChars(true)} type="button">Choose a different companion →</button>
+      ) : null}
 
       <p style={S.section}>Your relationship</p>
       <Picker options={opts.relationship} value={relationship} onChange={setRelationship} placeholder="describe your own relationship" />
@@ -230,6 +239,7 @@ const S: Record<string, React.CSSProperties> = {
   sectionRow: { display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 },
   createLink: { color: "#E9A06B", textDecoration: "none", fontSize: 13.5, fontWeight: 600, whiteSpace: "nowrap" },
   cards: { display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))", gap: 12 },
+  otherChar: { marginTop: 12, background: "#231A2B", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 11, padding: "10px 16px", fontSize: 14, fontWeight: 600, cursor: "pointer" },
   card: { textAlign: "left", background: "#241B2D", border: "1px solid #3A2E44", borderRadius: 14, padding: "14px 16px", cursor: "pointer", color: "#F4EAF0", display: "flex", flexDirection: "column", gap: 8 },
   cardOn: { border: "1px solid #E9A06B", background: "#241726", boxShadow: "0 0 0 1px #E9A06B inset" },
   cardHead: { display: "flex", alignItems: "center", gap: 10 },

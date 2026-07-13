@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { characters, chapterScenes, stories } from "@/db/schema";
+import { bookmarks, characters, chapterScenes, stories } from "@/db/schema";
 import { ratingFor, userRating } from "@/lib/ratings";
 import { isBookmarked } from "@/lib/bookmarks";
 import { isCharacterBlocked } from "@/lib/blocks";
@@ -117,4 +117,46 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     canSave: Boolean(userId) && !isOwner,
     isCharacterHidden: characterHidden,
   });
+}
+
+// Confirm the signed-in user owns this story; returns its userId or an error
+// response the caller can return directly.
+async function requireOwner(id: string): Promise<{ ok: true } | { ok: false; res: NextResponse }> {
+  const userId = await getCurrentUserId();
+  if (!userId) return { ok: false, res: NextResponse.json({ error: "unauthorized" }, { status: 401 }) };
+  const [row] = await db.select({ ownerId: stories.userId }).from(stories).where(eq(stories.id, id)).limit(1);
+  if (!row) return { ok: false, res: NextResponse.json({ error: "not found" }, { status: 404 }) };
+  if (!row.ownerId || row.ownerId !== userId) return { ok: false, res: NextResponse.json({ error: "forbidden" }, { status: 403 }) };
+  return { ok: true };
+}
+
+// PATCH /api/stories/:id -> owner-only. Currently just the public/hidden toggle:
+// { isPublic: boolean }. Hiding keeps the story in the owner's library but drops
+// it from the public feed.
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const owner = await requireOwner(id);
+  if (!owner.ok) return owner.res;
+
+  const body = (await req.json().catch(() => ({}))) as { isPublic?: unknown };
+  if (typeof body.isPublic !== "boolean") return NextResponse.json({ error: "isPublic (boolean) required" }, { status: 400 });
+
+  await db.update(stories).set({ isPublic: body.isPublic }).where(eq(stories.id, id));
+  return NextResponse.json({ ok: true, isPublic: body.isPublic });
+}
+
+// DELETE /api/stories/:id -> owner-only hard delete. Removes the story's
+// dependent rows first (chapter scene images, bookmarks) so the FK constraints
+// are satisfied. Threads keep a loose storyId (no FK) and are left untouched.
+export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const owner = await requireOwner(id);
+  if (!owner.ok) return owner.res;
+
+  // Children of the story. Wrapped so a not-yet-migrated table never blocks the
+  // delete of the story itself.
+  try { await db.delete(chapterScenes).where(eq(chapterScenes.storyId, id)); } catch (e) { logUnlessMissingRelation("stories/:id delete chapter scenes", e); }
+  try { await db.delete(bookmarks).where(eq(bookmarks.storyId, id)); } catch (e) { logUnlessMissingRelation("stories/:id delete bookmarks", e); }
+  await db.delete(stories).where(eq(stories.id, id));
+  return NextResponse.json({ ok: true });
 }
