@@ -129,7 +129,7 @@ export async function POST(req: Request) {
       if (!screenImagePrompt(chapterPrompt).blocked) {
         after(async () => {
           try {
-            const gen = await generateChapterScene({ name: def.name, gender: def.gender, look: def.look, style: def.style }, content);
+            const gen = await generateChapterScene({ name: def.name, gender: def.gender, look: def.look, style: def.style }, content, char.image);
             await db.insert(chapterScenes).values({ storyId: story.id, chapterIndex: 0, image: gen.base64, imageMime: gen.mime }).onConflictDoNothing();
           } catch (err) {
             console.error("[story] chapter scene generation failed:", err instanceof Error ? err.message : err);

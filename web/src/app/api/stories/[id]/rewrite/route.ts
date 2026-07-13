@@ -41,7 +41,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   const [row] = await db
-    .select({ ownerId: stories.userId, content: stories.content, elements: stories.elements, chapterDates: stories.chapterDates, definition: characters.definition })
+    .select({ ownerId: stories.userId, content: stories.content, elements: stories.elements, chapterDates: stories.chapterDates, definition: characters.definition, portrait: characters.image })
     .from(stories)
     .innerJoin(characters, eq(stories.characterId, characters.id))
     .where(eq(stories.id, id))
@@ -98,7 +98,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       if (!screenImagePrompt(prompt).blocked) {
         after(async () => {
           try {
-            const gen = await generateChapterScene({ name: def.name, gender: def.gender, look: def.look, style: def.style }, newChapter);
+            const gen = await generateChapterScene({ name: def.name, gender: def.gender, look: def.look, style: def.style }, newChapter, row.portrait);
             await db.insert(chapterScenes).values({ storyId: id, chapterIndex: body.chapterIndex, image: gen.base64, imageMime: gen.mime }).onConflictDoNothing();
           } catch (err) {
             console.error("[rewrite] chapter scene generation failed:", err instanceof Error ? err.message : err);

@@ -4782,7 +4782,7 @@ async function main() {
   const { eq, sql, and } = await import("drizzle-orm");
   const { db } = await import("../db/index");
   const { characters, stories, users, chapterScenes } = await import("../db/schema");
-  const { buildPortraitPrompt, buildScenePrompt, generateImage, generateExpressionVariant, expressionVariantsConfigured, imageConfigured, generateCharacterScene, generateChapterScene, buildCharacterScenePrompt, buildChapterScenePrompt, sceneImageMode, shouldGenerateCharacterScene, shouldGenerateChapterScene, faceSwapEnabled } = await import("../lib/image");
+  const { buildPortraitPrompt, buildScenePrompt, generateImage, generateExpressionVariant, expressionVariantsConfigured, imageConfigured, generateCharacterScene, generateChapterScene, buildCharacterScenePrompt, buildChapterScenePrompt, sceneImageMode, shouldGenerateCharacterScene, shouldGenerateChapterScene, faceSwapEnabled, identityScenesEnabled } = await import("../lib/image");
   const { screenImagePrompt } = await import("../lib/moderation");
 
   const canDrawImages = imageConfigured();
@@ -4796,13 +4796,17 @@ async function main() {
   if (!canDrawImages) console.log("(image generation not configured - characters/stories will seed without portraits/backgrounds)\n");
   else if (!canDrawVariants) console.log("(IMAGE_PROVIDER isn't modelslab - expression variants will be skipped for the pilot characters)\n");
   if (canDrawImages) console.log(`(scene images: SCENE_IMAGES=${sceneMode} - ${sceneMode === "off" ? "no scene art will be generated" : sceneMode === "opening" ? "character scenes + chapter-1 opening only" : "a scene for EVERY chapter (highest cost)"}${regenScenes ? ", REGEN on - existing scenes will be redrawn" : ""})\n`);
-  if (canDrawImages && faceSwapEnabled()) console.log("(FACE_SWAP on - character hero scenes will have the portrait's face swapped in; experiment, hero scene only)\n");
+  if (canDrawImages && identityScenesEnabled()) console.log("(SCENE_IDENTITY on - scenes will be identity-conditioned on each character's portrait via IP-Adapter, so they render as the same person)\n");
+  if (canDrawImages && faceSwapEnabled()) console.log("(FACE_SWAP on - an extra face-swap pass will paste the portrait's face onto each scene)\n");
 
   const email = "dev@local.test";
   let [u] = await db.select().from(users).where(eq(users.email, email)).limit(1);
   if (!u) [u] = await db.insert(users).values({ email, ageVerified: true }).returning();
 
   const idByName = new Map<string, string>();
+  // Portrait base64 per character, so chapter scenes can be identity-conditioned
+  // (IP-Adapter) on the same face as the portrait.
+  const portraitByName = new Map<string, string | null>();
 
   for (const def of CHARACTERS) {
     const [existing] = await db
@@ -4893,6 +4897,8 @@ async function main() {
         }
       }
     }
+
+    portraitByName.set(def.name, canonicalBase64);
   }
 
   for (const s of STORIES) {
@@ -4966,7 +4972,7 @@ async function main() {
         const prompt = buildChapterScenePrompt({ name: charDef?.name, gender: charDef?.gender, look: charDef?.look, style: charDef?.style }, chapters[i]);
         if (screenImagePrompt(prompt).blocked) continue;
         try {
-          const gen = await generateChapterScene({ name: charDef?.name, gender: charDef?.gender, look: charDef?.look, style: charDef?.style }, chapters[i]);
+          const gen = await generateChapterScene({ name: charDef?.name, gender: charDef?.gender, look: charDef?.look, style: charDef?.style }, chapters[i], portraitByName.get(s.character));
           // Replace the cached row when regenerating (unique on storyId+chapterIndex).
           if (have) await db.delete(chapterScenes).where(eq(chapterScenes.id, have.id));
           await db.insert(chapterScenes).values({ storyId, chapterIndex: i, image: gen.base64, imageMime: gen.mime });

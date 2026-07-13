@@ -182,12 +182,12 @@ type MlResp = {
   eta?: number;
 };
 
-async function generateModelsLab(prompt: string): Promise<{ base64: string; mime: string }> {
+async function generateModelsLab(prompt: string, ref?: { image: string }): Promise<{ base64: string; mime: string }> {
   const key = process.env.MODELSLAB_API_KEY;
   if (!key) throw new Error("MODELSLAB_API_KEY is not set");
   const model = process.env.IMAGE_MODEL || "flux";
   const url = process.env.MODELSLAB_URL || "https://modelslab.com/api/v6/images/text2img";
-  const payload = {
+  const payload: Record<string, string> = {
     key,
     model_id: model,
     prompt,
@@ -203,6 +203,19 @@ async function generateModelsLab(prompt: string): Promise<{ base64: string; mime
     base64: "no",
   };
 
+  // IP-Adapter: condition this text2img generation on a reference face (the
+  // character's portrait) so the scene renders as the SAME person, not a
+  // text-described lookalike. The adapter id must match the base model family;
+  // it and the strength are env-overridable because the right values depend on
+  // IMAGE_MODEL and need tuning against the live account.
+  if (ref?.image) {
+    payload.ip_adapter_id = process.env.IP_ADAPTER_ID || "ip-adapter-plus-face_sd15";
+    payload.ip_adapter_image = ref.image;
+    payload.ip_adapter_scale = process.env.IP_ADAPTER_SCALE || "0.6";
+    // ip_adapter_image is base64 data, not a URL.
+    payload.base64 = "yes";
+  }
+
   // "Try Again" = the model is warming up; ModelsLab wants a resubmit. Retry the
   // whole request a few times, polling fetch_result when it returns "processing".
   let lastMsg = "";
@@ -211,11 +224,11 @@ async function generateModelsLab(prompt: string): Promise<{ base64: string; mime
     if (!res.ok) throw new Error(`modelslab ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
 
     let data = (await res.json()) as MlResp;
-    if (data.output?.[0]) return urlToImage(data.output[0]); // synchronous (e.g. realtime endpoint)
+    if (data.output?.[0]) return outputToImage(data.output[0]); // synchronous (e.g. realtime endpoint)
 
     if (data.status === "processing" && data.fetch_result) {
       data = await pollModelsLab(data.fetch_result, key);
-      if (data.output?.[0]) return urlToImage(data.output[0]);
+      if (data.output?.[0]) return outputToImage(data.output[0]);
     }
 
     lastMsg = String(data.message || data.messege || data.status || "").trim();
@@ -391,6 +404,35 @@ async function withFaceSwap(
   }
 }
 
+// ---- Identity-conditioned scenes (IP-Adapter) -------------------------------
+// The long-term "same person, not a lookalike" path: generate the scene while
+// conditioning on the character's portrait as a face reference (IP-Adapter), so
+// the identity is baked into a single generation - cheaper and more natural than
+// a face-swap-on-top, and it works even on wide shots. ModelsLab only; opt-in.
+export function identityScenesEnabled(): boolean {
+  return /^(1|true|yes|on)$/i.test((process.env.SCENE_IDENTITY || "").trim())
+    && (process.env.IMAGE_PROVIDER || "grok") === "modelslab"
+    && Boolean(process.env.MODELSLAB_API_KEY);
+}
+
+// Generate a scene from `prompt`, conditioned on the character's portrait when
+// identity scenes are enabled and a portrait is available. Falls back to a plain
+// text2img scene if conditioning is off or the reference generation fails, so an
+// image is always produced.
+export async function generateSceneWithIdentity(
+  prompt: string,
+  portraitBase64?: string | null,
+): Promise<{ base64: string; mime: string }> {
+  if (portraitBase64 && identityScenesEnabled()) {
+    try {
+      return await generateModelsLab(prompt, { image: portraitBase64 });
+    } catch (e) {
+      console.error("[image] identity-conditioned scene failed, using plain scene:", e instanceof Error ? e.message : e);
+    }
+  }
+  return generateImage(prompt);
+}
+
 // ---- "Visualize this moment" (a chat reply, illustrated) --------------------
 // A fresh text-to-image SCENE built from the reply, with the character's
 // appearance woven into the prompt so it still reads as them. Deliberately
@@ -417,8 +459,10 @@ export function buildMomentPrompt(def: { name?: string; gender?: string; look?: 
 export async function generateMomentImage(
   def: { name?: string; gender?: string; look?: string; style?: string },
   sceneText: string,
+  portraitBase64?: string | null,
 ): Promise<{ base64: string; mime: string }> {
-  return generateImage(buildMomentPrompt(def, sceneText));
+  const scene = await generateSceneWithIdentity(buildMomentPrompt(def, sceneText), portraitBase64);
+  return withFaceSwap(scene, portraitBase64);
 }
 
 // ---- Character scene art (the companion in their world) ---------------------
@@ -443,9 +487,10 @@ export async function generateCharacterScene(
   def: { name?: string; gender?: string; look?: string; backstory?: string; tags?: string[]; style?: string },
   portraitBase64?: string | null,
 ): Promise<{ base64: string; mime: string }> {
-  const scene = await generateImage(buildCharacterScenePrompt(def));
-  // Experiment: put the character's real face on the hero scene so it matches
-  // the portrait instead of being a lookalike. No-op unless FACE_SWAP is on.
+  // Identity-conditioned when SCENE_IDENTITY is on (the same person, via
+  // IP-Adapter); plain text2img otherwise. FACE_SWAP, if separately enabled,
+  // pastes the portrait face on top as an extra pass. Both default off.
+  const scene = await generateSceneWithIdentity(buildCharacterScenePrompt(def), portraitBase64);
   return withFaceSwap(scene, portraitBase64);
 }
 
@@ -465,8 +510,13 @@ export function buildChapterScenePrompt(def: { name?: string; gender?: string; l
   );
 }
 
-export async function generateChapterScene(def: { name?: string; gender?: string; look?: string; style?: string }, chapterText: string): Promise<{ base64: string; mime: string }> {
-  return generateImage(buildChapterScenePrompt(def, chapterText));
+export async function generateChapterScene(
+  def: { name?: string; gender?: string; look?: string; style?: string },
+  chapterText: string,
+  portraitBase64?: string | null,
+): Promise<{ base64: string; mime: string }> {
+  const scene = await generateSceneWithIdentity(buildChapterScenePrompt(def, chapterText), portraitBase64);
+  return withFaceSwap(scene, portraitBase64);
 }
 
 // ---- fal.ai (FLUX.1 [dev]) ---------------------------------------------------
