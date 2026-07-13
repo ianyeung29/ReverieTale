@@ -75,25 +75,34 @@ export async function generateNextChapter(
   tier: Tier = "standard",
 ) {
   const standardSystem =
-    "You are a skilled fiction writer continuing a flirtatious, romantically-charged story. Write the NEXT chapter (550-1000 words) that " +
-    "moves the scene forward with new events and deepens the attraction between the reader and the character - more tension, teasing, and heat " +
-    "than before. Do not repeat what already happened. Second person, present tense. Lean into flirtation, longing, and a sensual atmosphere - " +
-    "keep it heated and suggestive but tasteful: imply and smoulder rather than depict, and fade to black before anything sexually explicit.";
+    "You are a skilled fiction writer continuing a flirtatious, romantically-charged story. Write the NEXT chapter (550-1000 words). " +
+    "CRUCIAL: when the reader tells you what happens next, that request is the required spine of the chapter - make those exact events " +
+    "actually happen on the page, as the central thread of the chapter. Never ignore, water down, postpone to 'later', or merely hint at " +
+    "them; if the reader's request would resolve quickly, build the whole chapter around leading into it and playing it out. Within that, " +
+    "move the scene forward and deepen the attraction between the reader and the character - more tension, teasing, and heat than before. " +
+    "Do not repeat what already happened. Second person, present tense. Lean into flirtation, longing, and a sensual atmosphere - keep it " +
+    "heated and suggestive but tasteful: imply and smoulder rather than depict, and fade to black before anything sexually explicit.";
 
   const explicitSystem = process.env.EXPLICIT_SYSTEM_PROMPT_STORY || "";
   const useExplicit = tier === "explicit" && explicitSystem.length > 0;
   const system = `${useExplicit ? explicitSystem : standardSystem}\nDo NOT include a title; write only the prose.`;
 
   const dir = [
-    direction.whatHappens ? `What happens next: ${direction.whatHappens}.` : "",
-    direction.twist ? `Include this beat: ${direction.twist}.` : "",
-    direction.mood ? `Mood: ${direction.mood}.` : "Mood: flirtatious and charged with romantic tension.",
-    direction.setting ? `Move the scene to: ${direction.setting}.` : "",
+    direction.whatHappens ? `- What the reader wants to happen (MUST occur in this chapter): ${direction.whatHappens}` : "",
+    direction.twist ? `- Work in this beat: ${direction.twist}` : "",
+    direction.mood ? `- Mood: ${direction.mood}` : "- Mood: flirtatious and charged with romantic tension",
+    direction.setting ? `- Move the scene to: ${direction.setting}` : "",
   ]
     .filter(Boolean)
     .join("\n");
 
-  const user = `Character: ${def.name}. ${def.persona}. Voice: ${def.voice}.\n\nStory so far:\n${storySoFar.slice(-4000)}\n\n${dir}\n\nWrite the next chapter.`;
+  // Put the reader's direction LAST, right before the write instruction - recency
+  // meaningfully improves how closely the model follows it, and separating it from
+  // the story-so-far stops it being read as just more narration.
+  const closer = direction.whatHappens
+    ? "Write the next chapter now, and make sure the reader's requested events above genuinely play out on the page."
+    : "Write the next chapter now.";
+  const user = `Character: ${def.name}. ${def.persona}. Voice: ${def.voice}.\n\nStory so far:\n${storySoFar.slice(-4000)}\n\nReader's direction for THIS chapter:\n${dir}\n\n${closer}`;
 
   const res = await chat(
     [
