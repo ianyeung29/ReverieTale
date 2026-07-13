@@ -319,6 +319,78 @@ export async function generateExpressionVariant(baseImageBase64: string, express
   return modelsLabImg2Img(baseImageBase64, EXPRESSION_PROMPTS[expression]);
 }
 
+// ---- Face swap (ModelsLab) --------------------------------------------------
+// The only way to make a scene image show the SAME person as the portrait
+// (text2img just reinvents a lookalike from the description). We generate the
+// scene normally, then paste the portrait's face onto it. Opt-in and gated:
+// experiment on the character hero scene first before spending credits on every
+// chapter. Only meaningful on ModelsLab with a key.
+export function faceSwapEnabled(): boolean {
+  return /^(1|true|yes|on)$/i.test((process.env.FACE_SWAP || "").trim())
+    && (process.env.IMAGE_PROVIDER || "grok") === "modelslab"
+    && Boolean(process.env.MODELSLAB_API_KEY);
+}
+
+// Swap the face from `portraitBase64` onto `sceneBase64`. Both are raw base64
+// (the format outputToImage/generateImage already return). ModelsLab's face_swap
+// fields aren't consistently documented as to which image is the face source vs.
+// the target, so the mapping is overridable: set FACE_SWAP_INVERT=1 if the result
+// comes out reversed.
+async function modelsLabFaceSwap(portraitBase64: string, sceneBase64: string): Promise<{ base64: string; mime: string }> {
+  const key = process.env.MODELSLAB_API_KEY;
+  if (!key) throw new Error("MODELSLAB_API_KEY is not set");
+  const url = process.env.MODELSLAB_FACESWAP_URL || "https://modelslab.com/api/v6/image_editing/face_swap";
+  const invert = /^(1|true|yes|on)$/i.test((process.env.FACE_SWAP_INVERT || "").trim());
+  const payload: Record<string, string> = {
+    key,
+    // Default mapping: init_image carries the face to use (portrait), target_image
+    // is the scene it gets placed onto. Flip with FACE_SWAP_INVERT if reversed.
+    init_image: invert ? sceneBase64 : portraitBase64,
+    target_image: invert ? portraitBase64 : sceneBase64,
+    safety_checker: process.env.IMAGE_SAFETY_CHECKER || "yes",
+    base64: "yes",
+  };
+
+  let lastMsg = "";
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    if (!res.ok) throw new Error(`modelslab face_swap ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
+
+    let data = (await res.json()) as MlResp;
+    if (data.output?.[0]) return outputToImage(data.output[0]);
+
+    if (data.status === "processing" && data.fetch_result) {
+      data = await pollModelsLab(data.fetch_result, key);
+      if (data.output?.[0]) return outputToImage(data.output[0]);
+    }
+
+    lastMsg = String(data.message || data.messege || data.status || "").trim();
+    if (/try again|loading|warming/i.test(lastMsg)) {
+      await new Promise((r) => setTimeout(r, 5000));
+      continue;
+    }
+    throw new Error(`modelslab face_swap: ${lastMsg || "no image in response"}`);
+  }
+  throw new Error(`modelslab face_swap: the model kept warming up (${lastMsg || "Try Again"}) — wait a moment and retry`);
+}
+
+// Generate a scene, then (when face-swap is on and we have a portrait) place the
+// character's real face onto it. Falls back to the plain scene if the swap fails
+// - a wide establishing shot may have no clear face for the swapper to target,
+// and a missing swap should never break image generation.
+async function withFaceSwap(
+  scene: { base64: string; mime: string },
+  portraitBase64: string | null | undefined,
+): Promise<{ base64: string; mime: string }> {
+  if (!portraitBase64 || !faceSwapEnabled()) return scene;
+  try {
+    return await modelsLabFaceSwap(portraitBase64, scene.base64);
+  } catch (e) {
+    console.error("[image] face-swap failed, using plain scene:", e instanceof Error ? e.message : e);
+    return scene;
+  }
+}
+
 // ---- "Visualize this moment" (a chat reply, illustrated) --------------------
 // A fresh text-to-image SCENE built from the reply, with the character's
 // appearance woven into the prompt so it still reads as them. Deliberately
@@ -367,8 +439,14 @@ export function buildCharacterScenePrompt(def: { name?: string; gender?: string;
   );
 }
 
-export async function generateCharacterScene(def: { name?: string; gender?: string; look?: string; backstory?: string; tags?: string[]; style?: string }): Promise<{ base64: string; mime: string }> {
-  return generateImage(buildCharacterScenePrompt(def));
+export async function generateCharacterScene(
+  def: { name?: string; gender?: string; look?: string; backstory?: string; tags?: string[]; style?: string },
+  portraitBase64?: string | null,
+): Promise<{ base64: string; mime: string }> {
+  const scene = await generateImage(buildCharacterScenePrompt(def));
+  // Experiment: put the character's real face on the hero scene so it matches
+  // the portrait instead of being a lookalike. No-op unless FACE_SWAP is on.
+  return withFaceSwap(scene, portraitBase64);
 }
 
 // ---- Per-chapter scene art --------------------------------------------------

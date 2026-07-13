@@ -4782,7 +4782,7 @@ async function main() {
   const { eq, sql, and } = await import("drizzle-orm");
   const { db } = await import("../db/index");
   const { characters, stories, users, chapterScenes } = await import("../db/schema");
-  const { buildPortraitPrompt, buildScenePrompt, generateImage, generateExpressionVariant, expressionVariantsConfigured, imageConfigured, generateCharacterScene, generateChapterScene, buildCharacterScenePrompt, buildChapterScenePrompt, sceneImageMode, shouldGenerateCharacterScene, shouldGenerateChapterScene } = await import("../lib/image");
+  const { buildPortraitPrompt, buildScenePrompt, generateImage, generateExpressionVariant, expressionVariantsConfigured, imageConfigured, generateCharacterScene, generateChapterScene, buildCharacterScenePrompt, buildChapterScenePrompt, sceneImageMode, shouldGenerateCharacterScene, shouldGenerateChapterScene, faceSwapEnabled } = await import("../lib/image");
   const { screenImagePrompt } = await import("../lib/moderation");
 
   const canDrawImages = imageConfigured();
@@ -4796,6 +4796,7 @@ async function main() {
   if (!canDrawImages) console.log("(image generation not configured - characters/stories will seed without portraits/backgrounds)\n");
   else if (!canDrawVariants) console.log("(IMAGE_PROVIDER isn't modelslab - expression variants will be skipped for the pilot characters)\n");
   if (canDrawImages) console.log(`(scene images: SCENE_IMAGES=${sceneMode} - ${sceneMode === "off" ? "no scene art will be generated" : sceneMode === "opening" ? "character scenes + chapter-1 opening only" : "a scene for EVERY chapter (highest cost)"}${regenScenes ? ", REGEN on - existing scenes will be redrawn" : ""})\n`);
+  if (canDrawImages && faceSwapEnabled()) console.log("(FACE_SWAP on - character hero scenes will have the portrait's face swapped in; experiment, hero scene only)\n");
 
   const email = "dev@local.test";
   let [u] = await db.select().from(users).where(eq(users.email, email)).limit(1);
@@ -4884,7 +4885,7 @@ async function main() {
         console.log(`  ! scene prompt blocked for ${def.name}, skipping`);
       } else {
         try {
-          const gen = await generateCharacterScene({ name: def.name, gender: def.gender, look: def.look, backstory: def.backstory, tags: def.tags, style: def.style });
+          const gen = await generateCharacterScene({ name: def.name, gender: def.gender, look: def.look, backstory: def.backstory, tags: def.tags, style: def.style }, canonicalBase64);
           await db.update(characters).set({ sceneImage: gen.base64, sceneImageMime: gen.mime }).where(eq(characters.id, charId));
           console.log(`  scene drawn for ${def.name}`);
         } catch (e) {
