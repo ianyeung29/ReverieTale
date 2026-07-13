@@ -50,6 +50,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     greeting: (def.greeting as string) ?? "",
     tags: Array.isArray(def.tags) ? (def.tags as string[]) : [],
     age: typeof def.age === "number" ? def.age : null,
+    style: def.style === "anime" ? "anime" : "realistic",
   });
 }
 
@@ -65,6 +66,7 @@ const Patch = z.object({
   voice: z.string().trim().max(300).optional(),
   greeting: z.string().trim().max(300).optional(),
   tags: z.array(z.string().trim().min(1).max(30)).max(8).optional(),
+  style: z.enum(["realistic", "anime"]).optional(),
   status: z.enum(["published", "disabled"]).optional(),
   image: z.string().max(12_000_000).optional(),
   imageMime: z.string().max(60).optional(),
@@ -99,9 +101,15 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     return NextResponse.json({ ok: true, status: "disabled" });
   }
 
-  // A portrait-only change (no text edit) doesn't need re-moderation.
-  if (!editsDefinition && body.status === undefined && body.image !== undefined) {
-    await db.update(characters).set({ ...image, updatedAt: new Date() }).where(eq(characters.id, id));
+  // A portrait-only and/or style change (no text edit) doesn't need re-moderation
+  // - style is a benign rendering attribute, not publishable content.
+  if (!editsDefinition && body.status === undefined && (body.image !== undefined || body.style !== undefined)) {
+    const set: Record<string, unknown> = { ...image, updatedAt: new Date() };
+    if (body.style !== undefined) {
+      const def2 = { ...((row.definition ?? {}) as Record<string, unknown>), style: body.style };
+      set.definition = def2;
+    }
+    await db.update(characters).set(set).where(eq(characters.id, id));
     return NextResponse.json({ ok: true });
   }
 
@@ -110,6 +118,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const def = { ...((row.definition ?? {}) as Record<string, unknown>) };
   for (const k of FIELDS) if (body[k] !== undefined) def[k] = body[k];
   if (body.age !== undefined) def.age = body.age;
+  if (body.style !== undefined) def.style = body.style;
 
   const blob = [def.name, def.look, def.persona, def.backstory, def.voice, def.greeting, ...(Array.isArray(def.tags) ? def.tags : [])]
     .filter(Boolean)

@@ -82,11 +82,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     // A scene image for the new chapter, in the background - only when scene
     // images are enabled for this chapter (SCENE_IMAGES=all covers later chapters).
     if (shouldGenerateChapterScene(newIndex)) {
-      const prompt = buildChapterScenePrompt({ name: def.name, gender: def.gender, look: def.look }, chapter);
+      const prompt = buildChapterScenePrompt({ name: def.name, gender: def.gender, look: def.look, style: def.style }, chapter);
       if (!screenImagePrompt(prompt).blocked) {
         after(async () => {
           try {
-            const gen = await generateChapterScene({ name: def.name, gender: def.gender, look: def.look }, chapter);
+            const gen = await generateChapterScene({ name: def.name, gender: def.gender, look: def.look, style: def.style }, chapter);
             await db.insert(chapterScenes).values({ storyId: id, chapterIndex: newIndex, image: gen.base64, imageMime: gen.mime }).onConflictDoNothing();
           } catch (err) {
             console.error("[continue] chapter scene generation failed:", err instanceof Error ? err.message : err);

@@ -78,6 +78,7 @@ const Body = z.object({
   voice: z.string().trim().max(300).optional(),
   greeting: z.string().trim().max(300).optional(), // their first line, shown on cards/profile/chat
   tags: z.array(z.string().trim().min(1).max(30)).max(8).optional(),
+  style: z.enum(["realistic", "anime"]).optional(), // art style for portrait + all scene images
   image: z.string().max(12_000_000).optional(), // base64 portrait
   imageMime: z.string().max(60).optional(),
 });
@@ -112,6 +113,7 @@ export async function POST(req: Request) {
     voice: body.voice ?? "",
     greeting: body.greeting ?? "",
     tags: body.tags ?? [],
+    style: body.style ?? "realistic",
   };
 
   const [char] = await db
@@ -134,7 +136,7 @@ export async function POST(req: Request) {
   // row is updated when the image lands (best-effort — the character exists either
   // way, and the user can regenerate from the edit page if it never arrives).
   if (!body.image && imageConfigured()) {
-    const prompt = buildPortraitPrompt({ name: body.name, gender: body.gender, age: body.age, look: body.look, persona: body.persona, tags: body.tags });
+    const prompt = buildPortraitPrompt({ name: body.name, gender: body.gender, age: body.age, look: body.look, persona: body.persona, tags: body.tags, style: body.style });
     if (!screenImagePrompt(prompt).blocked) {
       after(async () => {
         try {

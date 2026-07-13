@@ -330,19 +330,20 @@ export async function generateExpressionVariant(baseImageBase64: string, express
 // the provider's safety filter - which returns a fully blacked-out image that
 // shows up as a blank screen. A described scene is both truer to "visualize
 // this moment" and much more reliable.)
-export function buildMomentPrompt(def: { name?: string; gender?: string; look?: string }, sceneText: string): string {
+export function buildMomentPrompt(def: { name?: string; gender?: string; look?: string; style?: string }, sceneText: string): string {
   const g = genderWord(def.gender);
   const who = def.name ? (g ? `${g} named ${def.name}` : def.name) : g || "person";
   const look = def.look ? `, ${def.look}` : "";
   const scene = sceneText.trim().replace(/\s+/g, " ").slice(0, 300);
+  const { lead, tail } = sceneStyle(normalizeStyle(def.style));
   return (
-    `Photorealistic cinematic film still featuring ${who}${look}. The moment: ${scene} ` +
-    `Full scene with environment, realistic photography, sharp focus, natural cinematic lighting, evocative mood, tasteful, safe for work.`
+    `${lead} featuring ${who}${look}. The moment: ${scene} ` +
+    `Full scene with environment, ${tail}`
   );
 }
 
 export async function generateMomentImage(
-  def: { name?: string; gender?: string; look?: string },
+  def: { name?: string; gender?: string; look?: string; style?: string },
   sceneText: string,
 ): Promise<{ base64: string; mime: string }> {
   return generateImage(buildMomentPrompt(def, sceneText));

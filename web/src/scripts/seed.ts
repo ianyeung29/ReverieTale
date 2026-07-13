@@ -54,6 +54,7 @@ const CHARACTERS: CharDef[] = [
     voice: "bright, fast, playful",
     greeting: "You're just in time — I was about to lose spectacularly and I need a witness.",
     tags: ["flirty", "gamer"],
+    style: "anime",
   },
   {
     name: "Sable",
