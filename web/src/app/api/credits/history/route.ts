@@ -6,20 +6,22 @@ export const dynamic = "force-dynamic";
 
 const DAILY_DRIP = Number(process.env.DAILY_DRIP || 20);
 
-// Turn a raw ledger transaction into a human label for the credits page.
-function describe(type: string, metadata: unknown, key: string): string {
+// Turn a raw ledger transaction into a human label + icon for the credits page.
+// Icons mirror the "how credits are spent" cards so the history reads at a glance.
+function describe(type: string, metadata: unknown, key: string): { label: string; icon: string } {
   const m = (metadata ?? {}) as Record<string, unknown>;
-  if (type === "purchase") return "Credit purchase";
-  if (type === "drip") return key.startsWith("welcome:") ? "Welcome bonus" : "Daily free credits";
-  if (type === "reward") return m.kind === "revshare" ? "Earned from a reader" : "Creator reward";
+  if (type === "purchase") return { label: "Credit purchase", icon: "💳" };
+  if (type === "drip") return key.startsWith("welcome:") ? { label: "Welcome bonus", icon: "🎁" } : { label: "Daily free credits", icon: "☀︎" };
+  if (type === "reward") return m.kind === "revshare" ? { label: "Earned from a reader", icon: "★" } : { label: "Creator reward", icon: "★" };
   if (type === "spend") {
-    if (m.kind === "chapter") return "Story chapter";
-    if (m.kind === "rewrite") return "Chapter rewrite";
-    if (m.kind === "portrait") return "Character portrait";
-    if (m.threadId || m.characterId) return "Chat message";
-    return "Spent";
+    if (m.kind === "chapter") return { label: "Story chapter", icon: "📖" };
+    if (m.kind === "rewrite") return { label: "Chapter rewrite", icon: "📖" };
+    if (m.kind === "portrait") return { label: "Character portrait", icon: "🎨" };
+    if (m.kind === "moment_image") return { label: "Scene image", icon: "✨" };
+    if (m.threadId || m.characterId) return { label: "Chat message", icon: "💬" };
+    return { label: "Spent", icon: "◈" };
   }
-  return type;
+  return { label: type, icon: "◈" };
 }
 
 // GET /api/credits/history -> balance + earnings + a dated ledger for the credits page.
@@ -34,12 +36,10 @@ export async function GET() {
     ledgerHistory(userId, 100),
   ]);
 
-  const items = events.map((e) => ({
-    id: e.id,
-    label: describe(e.type, e.metadata, e.key),
-    amount: e.amount,
-    at: e.createdAt,
-  }));
+  const items = events.map((e) => {
+    const d = describe(e.type, e.metadata, e.key);
+    return { id: e.id, label: d.label, icon: d.icon, amount: e.amount, at: e.createdAt };
+  });
 
   return NextResponse.json({ balance, earnedFromReaders, items });
 }

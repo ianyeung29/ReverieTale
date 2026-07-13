@@ -5,7 +5,7 @@ import { EntryGate } from "@/components/EntryGate";
 import { MIN_AGE } from "@/lib/legal";
 
 type Balance = { purchased: number; earned: number; total: number };
-type Item = { id: string; label: string; amount: number; at: string };
+type Item = { id: string; label: string; icon?: string; amount: number; at: string };
 type Data = { balance: Balance; earnedFromReaders: number; items: Item[] };
 type Pack = { id: string; credits: number; price: number; label: string; blurb?: string };
 type Pricing = { chat: number; chapter: number; portrait: number; portraitFree: number; chatFree: number; dailyDrip: number; creatorRewardRate: number };
@@ -179,6 +179,7 @@ export default function CreditsPage() {
           {data.items.map((it) => (
             <div key={it.id} style={S.row}>
               <div style={S.rowLeft}>
+                {it.icon ? <span style={S.rowIcon} aria-hidden>{it.icon}</span> : null}
                 <span style={S.label}>{it.label}</span>
                 <span style={S.time}>· {when(it.at)}</span>
               </div>
@@ -230,6 +231,7 @@ const S: Record<string, React.CSSProperties> = {
   list: { display: "flex", flexDirection: "column", border: "1px solid #2a2033", borderRadius: 12, overflow: "hidden" },
   row: { display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, padding: "8px 14px", borderBottom: "1px solid #241a2b", background: "#1A121F" },
   rowLeft: { display: "flex", flexDirection: "row", alignItems: "baseline", flexWrap: "wrap", gap: 7, minWidth: 0 },
+  rowIcon: { fontSize: 13, width: 18, textAlign: "center", flexShrink: 0 },
   label: { color: "#F4EAF0", fontSize: 13 },
   time: { color: "#8A7A90", fontSize: 11.5 },
   amount: { fontWeight: 700, fontSize: 13, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" },
