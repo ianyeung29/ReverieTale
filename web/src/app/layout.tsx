@@ -28,6 +28,9 @@ export const metadata: Metadata = {
     description: SITE_DESC,
   },
   robots: { index: true, follow: true },
+  // Set GOOGLE_SITE_VERIFICATION to the token Search Console gives you (the
+  // content value of its <meta> tag) to verify ownership - no code change needed.
+  verification: process.env.GOOGLE_SITE_VERIFICATION ? { google: process.env.GOOGLE_SITE_VERIFICATION } : undefined,
 };
 
 // Shared motion/hover/focus utilities used across pages (inline styles can't do
