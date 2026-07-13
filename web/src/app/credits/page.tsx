@@ -149,9 +149,9 @@ export default function CreditsPage() {
       <p style={S.section}>Get more credits</p>
       {promo && payEnabled ? (
         <div style={S.promo}>
-          <span style={S.promoTag}>🎉 {promo.text || (promo.percent ? `${promo.percent}% off launch offer` : "Launch offer")}</span>
+          <span style={S.promoTag}>🎉 {promo.text || (promo.percent ? `Launch week — ${promo.percent}% off!` : "Launch offer")}</span>
           <span style={S.promoBody}>
-            {promo.percent ? `${promo.percent}% off any credit pack. ` : ""}Use code <b style={S.promoCode}>{promo.code}</b> at checkout.
+            {promo.percent ? `Grab ${promo.percent}% off any credit pack — ` : ""}enter code <b style={S.promoCode}>{promo.code}</b> at checkout. Limited time.
           </span>
         </div>
       ) : null}
