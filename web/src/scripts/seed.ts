@@ -12,6 +12,10 @@ type CharDef = {
   voice: string;
   greeting: string;
   tags: string[];
+  // Art style for this character's portrait AND all of their scene/chapter
+  // images, so the two always match. Defaults to "realistic" when omitted;
+  // set "anime" for characters drawn in a cartoon/illustrated style.
+  style?: "realistic" | "anime";
 };
 
 const CHARACTERS: CharDef[] = [
@@ -4368,6 +4372,7 @@ async function main() {
             voice: def.voice,
             greeting: def.greeting,
             tags: def.tags,
+            ...(def.style ? { style: def.style } : {}),
           },
         })
         .returning({ id: characters.id });
@@ -4377,7 +4382,7 @@ async function main() {
     idByName.set(def.name, charId);
 
     if (!hasImage && canDrawImages) {
-      const prompt = buildPortraitPrompt({ name: def.name, gender: def.gender, age: def.age, outfit: def.outfit, look: def.look, persona: def.persona, tags: def.tags });
+      const prompt = buildPortraitPrompt({ name: def.name, gender: def.gender, age: def.age, outfit: def.outfit, look: def.look, persona: def.persona, tags: def.tags, style: def.style });
       if (screenImagePrompt(prompt).blocked) {
         console.log(`  ! portrait prompt blocked for ${def.name}, skipping`);
       } else {
@@ -4407,12 +4412,12 @@ async function main() {
 
     // Character scene art: the companion within their world, behind the profile hero.
     if ((!hasScene || regenScenes) && shouldGenerateCharacterScene()) {
-      const scenePrompt = buildCharacterScenePrompt({ name: def.name, gender: def.gender, look: def.look, backstory: def.backstory, tags: def.tags });
+      const scenePrompt = buildCharacterScenePrompt({ name: def.name, gender: def.gender, look: def.look, backstory: def.backstory, tags: def.tags, style: def.style });
       if (screenImagePrompt(scenePrompt).blocked) {
         console.log(`  ! scene prompt blocked for ${def.name}, skipping`);
       } else {
         try {
-          const gen = await generateCharacterScene({ name: def.name, gender: def.gender, look: def.look, backstory: def.backstory, tags: def.tags });
+          const gen = await generateCharacterScene({ name: def.name, gender: def.gender, look: def.look, backstory: def.backstory, tags: def.tags, style: def.style });
           await db.update(characters).set({ sceneImage: gen.base64, sceneImageMime: gen.mime }).where(eq(characters.id, charId));
           console.log(`  scene drawn for ${def.name}`);
         } catch (e) {
@@ -4490,10 +4495,10 @@ async function main() {
           .where(and(eq(chapterScenes.storyId, storyId), eq(chapterScenes.chapterIndex, i)))
           .limit(1);
         if (have && !regenScenes) continue;
-        const prompt = buildChapterScenePrompt({ name: charDef?.name, gender: charDef?.gender, look: charDef?.look }, chapters[i]);
+        const prompt = buildChapterScenePrompt({ name: charDef?.name, gender: charDef?.gender, look: charDef?.look, style: charDef?.style }, chapters[i]);
         if (screenImagePrompt(prompt).blocked) continue;
         try {
-          const gen = await generateChapterScene({ name: charDef?.name, gender: charDef?.gender, look: charDef?.look }, chapters[i]);
+          const gen = await generateChapterScene({ name: charDef?.name, gender: charDef?.gender, look: charDef?.look, style: charDef?.style }, chapters[i]);
           // Replace the cached row when regenerating (unique on storyId+chapterIndex).
           if (have) await db.delete(chapterScenes).where(eq(chapterScenes.id, have.id));
           await db.insert(chapterScenes).values({ storyId, chapterIndex: i, image: gen.base64, imageMime: gen.mime });
