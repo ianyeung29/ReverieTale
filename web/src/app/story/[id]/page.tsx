@@ -12,7 +12,7 @@ import { intensityColor, intensityScore } from "@/lib/intensity";
 
 type Story = {
   id: string; title: string; content: string; characterId: string; characterName: string; characterTagline: string; characterTags: string[]; tone: string;
-  isOwner: boolean; hasBackup: boolean; hasBackground: boolean;
+  isOwner: boolean; isPublic: boolean; hasBackup: boolean; hasBackground: boolean;
   reads: number; rating: number; ratingCount: number; myRating: number | null; canRate: boolean;
   isSaved: boolean; canSave: boolean;
   isCharacterHidden: boolean;
@@ -181,6 +181,26 @@ export default function StoryReadPage() {
     } catch {}
   }
 
+  async function toggleHide() {
+    if (!story) return;
+    const nextPublic = story.isPublic === false; // hidden -> unhide (make public)
+    setStory((s) => (s ? { ...s, isPublic: nextPublic } : s));
+    await fetch(`/api/stories/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isPublic: nextPublic }),
+    }).catch(() => {});
+  }
+
+  async function deleteStory() {
+    if (!story) return;
+    if (!confirm(`Delete “${story.title}”? This can't be undone.`)) return;
+    try {
+      const res = await fetch(`/api/stories/${id}`, { method: "DELETE" });
+      if (res.ok) window.location.href = "/library";
+    } catch {}
+  }
+
   async function restore() {
     if (!confirm("Restore the previous version? This replaces the current story with your saved backup.")) return;
     try {
@@ -317,7 +337,14 @@ export default function StoryReadPage() {
       </article>
 
       {story.isOwner ? (
-        <button style={{ ...S.rewrite, opacity: busy ? 0.6 : 1 }} onClick={rewrite} disabled={busy}>↻ {busy ? "Rewriting…" : `Rewrite this chapter · ${chapterPrice} credits`}</button>
+        <div style={S.ownerControls}>
+          <button style={{ ...S.rewrite, opacity: busy ? 0.6 : 1 }} onClick={rewrite} disabled={busy}>↻ {busy ? "Rewriting…" : `Rewrite this chapter · ${chapterPrice} credits`}</button>
+          <button style={S.ownerCtl} onClick={toggleHide}>{story.isPublic === false ? "Unhide from feed" : "Hide from feed"}</button>
+          <button style={{ ...S.ownerCtl, ...S.ownerCtlDelete }} onClick={deleteStory}>Delete story</button>
+        </div>
+      ) : null}
+      {story.isOwner && story.isPublic === false ? (
+        <p style={S.hiddenNote}>This story is hidden — only you can see it. It won&apos;t appear in the public feed.</p>
       ) : null}
 
       <div style={S.nav}>
@@ -528,7 +555,11 @@ const S: Record<string, React.CSSProperties> = {
   overlayClose: { background: "transparent", border: 0, color: "#AC9CB0", fontSize: 22, cursor: "pointer", lineHeight: 1 },
   overlayBody: { overflowY: "auto", padding: "18px 22px" },
   overlayActions: { display: "flex", gap: 10, padding: "14px 18px", borderTop: "1px solid #3A2E44" },
-  rewrite: { marginTop: 18, background: "transparent", color: "#8A7A90", border: "1px solid #3A2E44", borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontSize: 13.5 },
+  rewrite: { background: "transparent", color: "#8A7A90", border: "1px solid #3A2E44", borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontSize: 13.5 },
+  ownerControls: { display: "flex", flexWrap: "wrap", gap: 8, marginTop: 18, alignItems: "center" },
+  ownerCtl: { background: "transparent", color: "#8A7A90", border: "1px solid #3A2E44", borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontSize: 13.5 },
+  ownerCtlDelete: { color: "#E08A8A", borderColor: "#5a3540" },
+  hiddenNote: { margin: "10px 0 0", color: "#C9A98A", fontSize: 13, fontStyle: "italic" },
   nav: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginTop: 22, borderTop: "1px solid #241a2b", paddingTop: 22 },
   navBtn: { background: "#231A2B", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 10, padding: "11px 16px", cursor: "pointer", fontSize: 14, fontWeight: 600 },
   navPrimary: { color: "#1A1220", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", border: "1px solid transparent" },
