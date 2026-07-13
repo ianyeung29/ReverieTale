@@ -1,4 +1,4 @@
-export const metadata = { title: "Legal Information · Reverie" };
+export const metadata = { title: "Legal Information" };
 
 const DOCS = [
   { href: "/legal/terms", title: "Terms of Service", desc: "The rules for using Reverie." },

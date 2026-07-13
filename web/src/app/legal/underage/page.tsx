@@ -1,7 +1,7 @@
 import { LegalLayout, Section, S } from "@/components/LegalLayout";
 import { MIN_AGE, OPERATOR_NAME, SUPPORT_EMAIL } from "@/lib/legal";
 
-export const metadata = { title: "Underage Policy · Reverie" };
+export const metadata = { title: "Underage Policy" };
 
 export default function UnderagePolicyPage() {
   return (

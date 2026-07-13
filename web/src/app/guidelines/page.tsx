@@ -1,6 +1,6 @@
 import { MIN_AGE } from "@/lib/legal";
 
-export const metadata = { title: "Community guidelines · Reverie" };
+export const metadata = { title: "Community guidelines" };
 
 export default function GuidelinesPage() {
   return (

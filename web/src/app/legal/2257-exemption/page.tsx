@@ -1,7 +1,7 @@
 import { LegalLayout, Section, S } from "@/components/LegalLayout";
 import { OPERATOR_NAME, SUPPORT_EMAIL } from "@/lib/legal";
 
-export const metadata = { title: "18 U.S.C. 2257 Exemption · Reverie" };
+export const metadata = { title: "18 U.S.C. 2257 Exemption" };
 
 export default function Exemption2257Page() {
   return (

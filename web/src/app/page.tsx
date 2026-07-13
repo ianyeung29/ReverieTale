@@ -4,7 +4,6 @@ import { characters, stories, threads } from "@/db/schema";
 import { CharacterAvatar } from "@/components/CharacterAvatar";
 import { CharacterCard } from "@/components/CharacterCard";
 import { StoryTile } from "@/components/StoryTile";
-import { DiscoverSearch } from "@/components/DiscoverSearch";
 import { StarRating } from "@/components/StarRating";
 import { listCharacters, trendingScore } from "@/lib/discovery";
 import { ratingAggregates } from "@/lib/ratings";
@@ -73,19 +72,6 @@ async function recentThreads(userId: string) {
   }
 }
 
-async function storyCount() {
-  try {
-    const [row] = await db
-      .select({ n: sql<number>`count(*)::int` })
-      .from(stories)
-      .innerJoin(characters, eq(stories.characterId, characters.id))
-      .where(and(eq(stories.isPublic, true), eq(characters.status, "published")));
-    return row?.n ?? 0;
-  } catch {
-    return 0;
-  }
-}
-
 /** A public story to send the "Read their story" spotlight CTA to - most-read first. */
 async function topStoryFor(characterId: string): Promise<string | null> {
   try {
@@ -120,16 +106,13 @@ const STEPS = [
 
 export default async function Home() {
   const viewerId = await getCurrentUserId();
-  const [feed, allChars, storyTotal, continueWith] = await Promise.all([
+  const [feed, allChars, continueWith] = await Promise.all([
     recentStories(),
     listCharacters({ viewerId: viewerId ?? undefined }).catch(() => []),
-    storyCount(),
     viewerId ? recentThreads(viewerId) : Promise.resolve([]),
   ]);
   const trending = [...allChars].sort((a, b) => trendingScore(b.reads, b.createdAt) - trendingScore(a.reads, a.createdAt)).slice(0, 6);
-  const companions = allChars.length;
   const empty = trending.length === 0 && feed.length === 0;
-  const hasStats = companions > 0 || storyTotal > 0;
 
   // Spotlight: a companion with a real portrait, rotated once a day. Personalized
   // when signed in - prefer someone the reader hasn't met yet (a discovery nudge;
@@ -161,18 +144,18 @@ export default async function Home() {
       <div style={S.auroraB} />
 
       <section style={S.hero} className="rv-reveal">
-        <p style={S.eyebrow}>companions who remember you</p>
-        <h1 style={S.h1}><span className="rv-title">Reverie</span></h1>
-        <p style={S.sub}>Begin with a story. Meet a character. Then stay and talk to someone who remembers every word.</p>
-        {hasStats ? (
-          <p style={S.stat}>{companions} companion{companions === 1 ? "" : "s"} · {storyTotal} stor{storyTotal === 1 ? "y" : "ies"} · always remembering</p>
-        ) : null}
+        <div style={S.heroTop}>
+          <div style={S.heroTitleCol}>
+            <p style={S.eyebrow}>companions who remember you</p>
+            <h1 style={S.h1}><span className="rv-title">Reverie</span></h1>
+          </div>
+          <p style={S.sub}>Begin with a story. Meet a character. Then stay and talk to someone who remembers every word.</p>
+        </div>
         <div style={S.cta}>
           <a href="/story" className="rv-btn rv-btn-primary" style={btn(true)}>Begin a story →</a>
           <a href="/browse" className="rv-btn" style={btn(false)}>Browse companions</a>
           <a href="/create" className="rv-btn" style={btn(false)}>Create your own</a>
         </div>
-        <DiscoverSearch />
       </section>
 
       {spotlight ? (
@@ -319,7 +302,9 @@ const S: Record<string, React.CSSProperties> = {
   hero: { position: "relative", zIndex: 1, padding: 4, borderRadius: 24, overflow: "hidden" },
   eyebrow: { position: "relative", letterSpacing: ".22em", textTransform: "uppercase", fontSize: 12, color: "#E9A06B", fontWeight: 700, margin: 0 },
   h1: { position: "relative", fontFamily: "Georgia, serif", fontSize: 66, margin: "14px 0 16px", letterSpacing: "-.015em", lineHeight: 1 },
-  sub: { position: "relative", color: "#C6B7CC", fontSize: 19, maxWidth: 560, lineHeight: 1.55, margin: 0 },
+  heroTop: { position: "relative", zIndex: 1, display: "flex", flexWrap: "wrap", alignItems: "center", gap: "12px 40px" },
+  heroTitleCol: { minWidth: 0 },
+  sub: { position: "relative", color: "#C6B7CC", fontSize: 18, maxWidth: 360, lineHeight: 1.55, margin: 0, flex: "1 1 280px" },
   stat: { position: "relative", color: "#8A7A90", fontSize: 13.5, margin: "16px 0 0", letterSpacing: ".02em", fontVariantNumeric: "tabular-nums" },
   cta: { position: "relative", display: "flex", gap: 12, marginTop: 26, flexWrap: "wrap" },
   spot: { position: "relative", zIndex: 1, marginTop: 40, borderRadius: 24, overflow: "hidden", border: "1px solid #3A2E44", display: "flex", flexWrap: "wrap", gap: 28, padding: 28 },
