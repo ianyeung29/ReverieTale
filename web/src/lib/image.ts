@@ -157,18 +157,62 @@ async function generateGrok(prompt: string): Promise<{ base64: string; mime: str
 async function urlToImage(url: string): Promise<{ base64: string; mime: string }> {
   const bin = await fetch(url);
   if (!bin.ok) throw new Error(`failed to fetch generated image (${bin.status})`);
+  // ModelsLab's base64 mode (img2img / face_swap / ip-adapter) returns a URL to a
+  // ".base64" TEXT file whose CONTENTS are the image's base64. Fetch it as text
+  // and use that directly - re-encoding its bytes would double-encode into
+  // garbage (a broken image).
+  if (/\.base64($|\?)/i.test(url)) {
+    const txt = (await bin.text()).trim();
+    const m = txt.match(/^data:([^;]+);base64,(.+)$/s);
+    const b64 = m ? m[2] : txt;
+    return { base64: b64, mime: m && /^image\//.test(m[1]) ? m[1] : mimeFromBase64(b64) };
+  }
   const buf = Buffer.from(await bin.arrayBuffer());
   const mime = /\.jpe?g($|\?)/i.test(url) ? "image/jpeg" : "image/png";
   return { base64: buf.toString("base64"), mime };
 }
 
+// Detect an image mime from the first decoded bytes of a base64 payload.
+function mimeFromBase64(base64: string): string {
+  try {
+    const b = Buffer.from(base64, "base64");
+    if (b[0] === 0xff && b[1] === 0xd8) return "image/jpeg";
+    if (b[0] === 0x89 && b[1] === 0x50) return "image/png";
+    if (b.toString("ascii", 0, 4) === "RIFF" && b.toString("ascii", 8, 12) === "WEBP") return "image/webp";
+    if (b.toString("ascii", 0, 3) === "GIF") return "image/gif";
+  } catch {
+    /* fall through */
+  }
+  return "image/png";
+}
+
 // ModelsLab's `output` entries are normally URLs, but img2img with base64:"yes"
 // can hand back a data URI or a bare base64 string instead - handle both.
 async function outputToImage(value: string): Promise<{ base64: string; mime: string }> {
-  const dataUri = value.match(/^data:(image\/\w+);base64,(.+)$/s);
-  if (dataUri) return { base64: dataUri[2], mime: dataUri[1] };
+  // Strip any base64 data-URI prefix (not just image/* ones) so we always store
+  // raw base64, never "data:...;base64,..." which decodes to garbage.
+  const dataUri = value.match(/^data:([^;]+);base64,(.+)$/s);
+  if (dataUri) return { base64: dataUri[2], mime: /^image\//.test(dataUri[1]) ? dataUri[1] : "image/png" };
   if (/^https?:\/\//i.test(value)) return urlToImage(value);
   return { base64: value, mime: "image/png" };
+}
+
+// Sanity-check that a base64 payload actually decodes to a real image (magic
+// bytes), so a provider handing back an error page / JSON / empty body where we
+// expected an image never gets stored as a broken picture.
+function looksLikeImage(base64: string): boolean {
+  try {
+    const b = Buffer.from(base64, "base64");
+    if (b.length < 100) return false;
+    return (
+      (b[0] === 0xff && b[1] === 0xd8) || // JPEG
+      (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) || // PNG
+      (b.toString("ascii", 0, 4) === "RIFF" && b.toString("ascii", 8, 12) === "WEBP") || // WEBP
+      b.toString("ascii", 0, 3) === "GIF" // GIF
+    );
+  } catch {
+    return false;
+  }
 }
 
 // ---- ModelsLab (FLUX) --------------------------------------------------------
@@ -182,12 +226,12 @@ type MlResp = {
   eta?: number;
 };
 
-async function generateModelsLab(prompt: string): Promise<{ base64: string; mime: string }> {
+async function generateModelsLab(prompt: string, ref?: { image: string }): Promise<{ base64: string; mime: string }> {
   const key = process.env.MODELSLAB_API_KEY;
   if (!key) throw new Error("MODELSLAB_API_KEY is not set");
   const model = process.env.IMAGE_MODEL || "flux";
   const url = process.env.MODELSLAB_URL || "https://modelslab.com/api/v6/images/text2img";
-  const payload = {
+  const payload: Record<string, string> = {
     key,
     model_id: model,
     prompt,
@@ -203,6 +247,19 @@ async function generateModelsLab(prompt: string): Promise<{ base64: string; mime
     base64: "no",
   };
 
+  // IP-Adapter: condition this text2img generation on a reference face (the
+  // character's portrait) so the scene renders as the SAME person, not a
+  // text-described lookalike. The adapter id must match the base model family;
+  // it and the strength are env-overridable because the right values depend on
+  // IMAGE_MODEL and need tuning against the live account.
+  if (ref?.image) {
+    payload.ip_adapter_id = process.env.IP_ADAPTER_ID || "ip-adapter-plus-face_sd15";
+    payload.ip_adapter_image = ref.image;
+    payload.ip_adapter_scale = process.env.IP_ADAPTER_SCALE || "0.6";
+    // ip_adapter_image is base64 data, not a URL.
+    payload.base64 = "yes";
+  }
+
   // "Try Again" = the model is warming up; ModelsLab wants a resubmit. Retry the
   // whole request a few times, polling fetch_result when it returns "processing".
   let lastMsg = "";
@@ -211,11 +268,11 @@ async function generateModelsLab(prompt: string): Promise<{ base64: string; mime
     if (!res.ok) throw new Error(`modelslab ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
 
     let data = (await res.json()) as MlResp;
-    if (data.output?.[0]) return urlToImage(data.output[0]); // synchronous (e.g. realtime endpoint)
+    if (data.output?.[0]) return outputToImage(data.output[0]); // synchronous (e.g. realtime endpoint)
 
     if (data.status === "processing" && data.fetch_result) {
       data = await pollModelsLab(data.fetch_result, key);
-      if (data.output?.[0]) return urlToImage(data.output[0]);
+      if (data.output?.[0]) return outputToImage(data.output[0]);
     }
 
     lastMsg = String(data.message || data.messege || data.status || "").trim();
@@ -319,6 +376,208 @@ export async function generateExpressionVariant(baseImageBase64: string, express
   return modelsLabImg2Img(baseImageBase64, EXPRESSION_PROMPTS[expression]);
 }
 
+// ---- Face swap (ModelsLab) --------------------------------------------------
+// The only way to make a scene image show the SAME person as the portrait
+// (text2img just reinvents a lookalike from the description). We generate the
+// scene normally, then paste the portrait's face onto it. Opt-in and gated:
+// experiment on the character hero scene first before spending credits on every
+// chapter. Only meaningful on ModelsLab with a key.
+export function faceSwapEnabled(): boolean {
+  return /^(1|true|yes|on)$/i.test((process.env.FACE_SWAP || "").trim())
+    && (process.env.IMAGE_PROVIDER || "grok") === "modelslab"
+    && Boolean(process.env.MODELSLAB_API_KEY);
+}
+
+// Swap the face from `portraitBase64` onto `sceneBase64`. Both are raw base64
+// (the format outputToImage/generateImage already return). ModelsLab's face_swap
+// fields aren't consistently documented as to which image is the face source vs.
+// the target, so the mapping is overridable: set FACE_SWAP_INVERT=1 if the result
+// comes out reversed.
+async function modelsLabFaceSwap(portraitBase64: string, sceneBase64: string): Promise<{ base64: string; mime: string }> {
+  const key = process.env.MODELSLAB_API_KEY;
+  if (!key) throw new Error("MODELSLAB_API_KEY is not set");
+  const url = process.env.MODELSLAB_FACESWAP_URL || "https://modelslab.com/api/v6/deepfake/single_face_swap";
+  const invert = /^(1|true|yes|on)$/i.test((process.env.FACE_SWAP_INVERT || "").trim());
+  const payload: Record<string, string> = {
+    key,
+    // ModelsLab returns init_image as the base with target_image's face placed
+    // onto it. So the SCENE is init_image (the composition we keep) and the
+    // PORTRAIT is target_image (the face we swap in). Passing the portrait as
+    // init_image gave back the portrait on every chapter. Flip with
+    // FACE_SWAP_INVERT if a given account's semantics are reversed.
+    init_image: invert ? portraitBase64 : sceneBase64,
+    target_image: invert ? sceneBase64 : portraitBase64,
+    safety_checker: process.env.IMAGE_SAFETY_CHECKER || "yes",
+    base64: "yes",
+  };
+
+  // Resolve an output entry to an image, but only if it's really image bytes.
+  // If the endpoint hands back something else (URL to an error, JSON, empty),
+  // throw with a snippet so withFaceSwap logs what actually came back and falls
+  // back to the plain scene instead of storing a broken picture.
+  const faceSwapResult = async (value: string) => {
+    const img = await outputToImage(value);
+    if (!looksLikeImage(img.base64)) {
+      throw new Error(`face_swap returned non-image output: ${String(value).slice(0, 160)}`);
+    }
+    return img;
+  };
+
+  let lastMsg = "";
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    if (!res.ok) throw new Error(`modelslab face_swap ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
+
+    let data = (await res.json()) as MlResp;
+    if (data.output?.[0]) return faceSwapResult(data.output[0]);
+
+    if (data.status === "processing" && data.fetch_result) {
+      data = await pollModelsLab(data.fetch_result, key);
+      if (data.output?.[0]) return faceSwapResult(data.output[0]);
+    }
+
+    lastMsg = String(data.message || data.messege || data.status || "").trim();
+    if (/try again|loading|warming/i.test(lastMsg)) {
+      await new Promise((r) => setTimeout(r, 5000));
+      continue;
+    }
+    throw new Error(`modelslab face_swap: ${lastMsg || "no image in response"}`);
+  }
+  throw new Error(`modelslab face_swap: the model kept warming up (${lastMsg || "Try Again"}) — wait a moment and retry`);
+}
+
+// Generate a scene, then (when face-swap is on and we have a portrait) place the
+// character's real face onto it. Falls back to the plain scene if the swap fails
+// - a wide establishing shot may have no clear face for the swapper to target,
+// and a missing swap should never break image generation.
+async function withFaceSwap(
+  scene: { base64: string; mime: string },
+  portraitBase64: string | null | undefined,
+): Promise<{ base64: string; mime: string }> {
+  if (!portraitBase64 || !faceSwapEnabled()) return scene;
+  try {
+    return await modelsLabFaceSwap(portraitBase64, scene.base64);
+  } catch (e) {
+    console.error("[image] face-swap failed, using plain scene:", e instanceof Error ? e.message : e);
+    return scene;
+  }
+}
+
+// ---- Identity-conditioned scenes (IP-Adapter) -------------------------------
+// The long-term "same person, not a lookalike" path: generate the scene while
+// conditioning on the character's portrait as a face reference (IP-Adapter), so
+// the identity is baked into a single generation - cheaper and more natural than
+// a face-swap-on-top, and it works even on wide shots. ModelsLab only; opt-in.
+export function identityScenesEnabled(): boolean {
+  return /^(1|true|yes|on)$/i.test((process.env.SCENE_IDENTITY || "").trim())
+    && (process.env.IMAGE_PROVIDER || "grok") === "modelslab"
+    && Boolean(process.env.MODELSLAB_API_KEY);
+}
+
+// ---- FLUX headshot (ModelsLab) ----------------------------------------------
+// A ModelsLab model that takes the character's portrait + a text description and
+// generates a fresh 1024x1024 image with that person's face baked in - far
+// better quality than a face-swap paste, and it stays on the ModelsLab key.
+// Opt-in via FLUX_HEADSHOT. Model/endpoint/param name are env-overridable so we
+// can match ModelsLab's exact API without a code change.
+export function fluxHeadshotEnabled(): boolean {
+  return /^(1|true|yes|on)$/i.test((process.env.FLUX_HEADSHOT || "").trim())
+    && (process.env.IMAGE_PROVIDER || "grok") === "modelslab"
+    && Boolean(process.env.MODELSLAB_API_KEY);
+}
+
+// Public URL of a character's portrait, which flux-headshot fetches as face_image.
+// Must be a host ModelsLab can reach - so seed/generate against a public deploy
+// (APP_URL), not localhost. Returns null if no public base is configured.
+export function characterImageUrl(characterId: string): string | null {
+  const base = (process.env.APP_URL || process.env.PUBLIC_IMAGE_BASE || "").trim().replace(/\/$/, "");
+  if (!base || /^https?:\/\/localhost/i.test(base)) return null;
+  return `${base}/api/characters/${characterId}/image`;
+}
+
+const HEADSHOT_NEGATIVE =
+  "anime, cartoon, drawing, big nose, long nose, fat, ugly, big lips, big mouth, face proportion mismatch, unrealistic, monochrome, lowres, bad anatomy, worst quality, low quality, blurry";
+
+// `faceImage` is the character's portrait. Per the flux-headshot API, this is a
+// public image URL; we also accept raw base64 (sent with base64:"yes") as a
+// fallback in case the account supports it.
+async function generateModelsLabHeadshot(faceImage: string, prompt: string): Promise<{ base64: string; mime: string }> {
+  const key = process.env.MODELSLAB_API_KEY;
+  if (!key) throw new Error("MODELSLAB_API_KEY is not set");
+  const url = process.env.MODELSLAB_HEADSHOT_URL || "https://modelslab.com/api/v8/images/flux-headshot";
+  const imageField = process.env.MODELSLAB_HEADSHOT_IMAGE_FIELD || "face_image";
+  const isUrl = /^https?:\/\//i.test(faceImage);
+  const payload: Record<string, string> = {
+    key,
+    model_id: process.env.MODELSLAB_HEADSHOT_MODEL || "flux_headshot",
+    prompt,
+    negative_prompt: HEADSHOT_NEGATIVE,
+    [imageField]: faceImage,
+    width: "1024",
+    height: "1024",
+    num_inference_steps: process.env.MODELSLAB_HEADSHOT_STEPS || "21",
+    guidance_scale: process.env.MODELSLAB_HEADSHOT_GUIDANCE || "7.5",
+    safety_checker: process.env.IMAGE_SAFETY_CHECKER || "yes",
+    // Only relevant when the face image is base64 (not a URL).
+    ...(isUrl ? {} : { base64: "yes" }),
+  };
+
+  let lastMsg = "";
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    if (!res.ok) throw new Error(`modelslab headshot ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
+
+    let data = (await res.json()) as MlResp;
+    const take = async (v: string) => {
+      const img = await outputToImage(v);
+      if (!looksLikeImage(img.base64)) throw new Error(`headshot returned non-image output: ${String(v).slice(0, 160)}`);
+      return img;
+    };
+    if (data.output?.[0]) return take(data.output[0]);
+    if (data.status === "processing" && data.fetch_result) {
+      data = await pollModelsLab(data.fetch_result, key);
+      if (data.output?.[0]) return take(data.output[0]);
+    }
+
+    lastMsg = String(data.message || data.messege || data.status || "").trim();
+    if (/try again|loading|warming/i.test(lastMsg)) {
+      await new Promise((r) => setTimeout(r, 5000));
+      continue;
+    }
+    throw new Error(`modelslab headshot: ${lastMsg || "no image in response"}`);
+  }
+  throw new Error(`modelslab headshot: the model kept warming up (${lastMsg || "Try Again"}) — wait a moment and retry`);
+}
+
+// Generate a scene from `prompt`, conditioned on the character's portrait when
+// identity scenes are enabled and a portrait is available. Falls back to a plain
+// text2img scene if conditioning is off or the reference generation fails, so an
+// image is always produced.
+export async function generateSceneWithIdentity(
+  prompt: string,
+  portraitBase64?: string | null,
+  portraitUrl?: string | null,
+): Promise<{ base64: string; mime: string }> {
+  // Preferred: the FLUX headshot model bakes the real face into a fresh image.
+  // It wants a public image URL; fall back to base64 if no URL is available.
+  const face = portraitUrl || portraitBase64;
+  if (face && fluxHeadshotEnabled()) {
+    try {
+      return await generateModelsLabHeadshot(face, prompt);
+    } catch (e) {
+      console.error("[image] flux-headshot failed, using plain scene:", e instanceof Error ? e.message : e);
+    }
+  }
+  if (portraitBase64 && identityScenesEnabled()) {
+    try {
+      return await generateModelsLab(prompt, { image: portraitBase64 });
+    } catch (e) {
+      console.error("[image] identity-conditioned scene failed, using plain scene:", e instanceof Error ? e.message : e);
+    }
+  }
+  return generateImage(prompt);
+}
+
 // ---- "Visualize this moment" (a chat reply, illustrated) --------------------
 // A fresh text-to-image SCENE built from the reply, with the character's
 // appearance woven into the prompt so it still reads as them. Deliberately
@@ -345,8 +604,11 @@ export function buildMomentPrompt(def: { name?: string; gender?: string; look?: 
 export async function generateMomentImage(
   def: { name?: string; gender?: string; look?: string; style?: string },
   sceneText: string,
+  portraitBase64?: string | null,
+  portraitUrl?: string | null,
 ): Promise<{ base64: string; mime: string }> {
-  return generateImage(buildMomentPrompt(def, sceneText));
+  const scene = await generateSceneWithIdentity(buildMomentPrompt(def, sceneText), portraitBase64, portraitUrl);
+  return withFaceSwap(scene, portraitBase64);
 }
 
 // ---- Character scene art (the companion in their world) ---------------------
@@ -367,8 +629,16 @@ export function buildCharacterScenePrompt(def: { name?: string; gender?: string;
   );
 }
 
-export async function generateCharacterScene(def: { name?: string; gender?: string; look?: string; backstory?: string; tags?: string[]; style?: string }): Promise<{ base64: string; mime: string }> {
-  return generateImage(buildCharacterScenePrompt(def));
+export async function generateCharacterScene(
+  def: { name?: string; gender?: string; look?: string; backstory?: string; tags?: string[]; style?: string },
+  portraitBase64?: string | null,
+  portraitUrl?: string | null,
+): Promise<{ base64: string; mime: string }> {
+  // Identity: flux-headshot (from the portrait URL) if enabled, else IP-Adapter,
+  // else plain text2img. FACE_SWAP, if separately enabled, pastes the portrait
+  // face on top as an extra pass. All default off.
+  const scene = await generateSceneWithIdentity(buildCharacterScenePrompt(def), portraitBase64, portraitUrl);
+  return withFaceSwap(scene, portraitBase64);
 }
 
 // ---- Per-chapter scene art --------------------------------------------------
@@ -387,8 +657,26 @@ export function buildChapterScenePrompt(def: { name?: string; gender?: string; l
   );
 }
 
-export async function generateChapterScene(def: { name?: string; gender?: string; look?: string; style?: string }, chapterText: string): Promise<{ base64: string; mime: string }> {
-  return generateImage(buildChapterScenePrompt(def, chapterText));
+export async function generateChapterScene(
+  def: { name?: string; gender?: string; look?: string; style?: string },
+  chapterText: string,
+  portraitBase64?: string | null,
+  portraitUrl?: string | null,
+): Promise<{ base64: string; mime: string }> {
+  // Distill the chapter into a distinct visual description so each chapter's
+  // image differs, instead of every image being built from the same generic
+  // opening lines. Falls back to the raw chapter text if the model is
+  // unavailable (buildChapterScenePrompt still trims it).
+  let sceneText = chapterText;
+  try {
+    const { describeChapterForImage } = await import("./story");
+    const desc = await describeChapterForImage(chapterText, def.name);
+    if (desc) sceneText = desc;
+  } catch (e) {
+    console.error("[image] chapter scene description failed, using raw text:", e instanceof Error ? e.message : e);
+  }
+  const scene = await generateSceneWithIdentity(buildChapterScenePrompt(def, sceneText), portraitBase64, portraitUrl);
+  return withFaceSwap(scene, portraitBase64);
 }
 
 // ---- fal.ai (FLUX.1 [dev]) ---------------------------------------------------

@@ -121,3 +121,26 @@ export async function generateNextChapter(
   );
   return res.text.trim();
 }
+
+/**
+ * Distill ONE chapter into a single vivid, concrete visual sentence for image
+ * generation - the specific location, time of day, what is physically
+ * happening, the lighting/mood, and what the character is wearing or doing in
+ * THIS chapter. This makes each chapter's image distinct instead of every image
+ * looking alike (the old approach fed the generator the same generic opening
+ * lines). Throws if the model is unavailable; callers fall back to the raw text.
+ */
+export async function describeChapterForImage(chapterText: string, name?: string): Promise<string> {
+  const who = name || "the character";
+  const system =
+    "You write a single-sentence visual prompt for an image generator. Given a chapter of prose, output ONE vivid, concrete sentence describing THIS chapter's specific scene: the location, the time of day, what is physically happening, the lighting and mood, and what the character is wearing or doing. Visual and specific only - no character names, no plot summary, no dialogue, no abstract emotions. Max 40 words.";
+  const user = `Character: ${who}.\n\nChapter:\n${chapterText.slice(0, 2000)}\n\nOne vivid visual sentence describing this specific chapter's scene:`;
+  const res = await chat(
+    [
+      { role: "system", content: system },
+      { role: "user", content: user },
+    ],
+    { temperature: 0.7, maxTokens: 120, tier: "standard" },
+  );
+  return res.text.trim().replace(/^["']|["']$/g, "").replace(/\s+/g, " ").slice(0, 320);
+}

@@ -6,7 +6,7 @@ import { characters, chapterScenes, stories, users } from "@/db/schema";
 import { generateNextChapter } from "@/lib/story";
 import { resolveTier, type Tier } from "@/lib/model";
 import { screen, screenImagePrompt } from "@/lib/moderation";
-import { buildChapterScenePrompt, generateChapterScene, shouldGenerateChapterScene } from "@/lib/image";
+import { buildChapterScenePrompt, generateChapterScene, shouldGenerateChapterScene, characterImageUrl } from "@/lib/image";
 import { getCurrentUserId } from "@/lib/session";
 import { ensureDailyDrip, spend, userBalance } from "@/lib/ledger";
 
@@ -44,7 +44,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   const [row] = await db
-    .select({ ownerId: stories.userId, content: stories.content, elements: stories.elements, chapterDates: stories.chapterDates, definition: characters.definition })
+    .select({ ownerId: stories.userId, content: stories.content, elements: stories.elements, chapterDates: stories.chapterDates, definition: characters.definition, portrait: characters.image, characterId: stories.characterId })
     .from(stories)
     .innerJoin(characters, eq(stories.characterId, characters.id))
     .where(eq(stories.id, id))
@@ -86,7 +86,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       if (!screenImagePrompt(prompt).blocked) {
         after(async () => {
           try {
-            const gen = await generateChapterScene({ name: def.name, gender: def.gender, look: def.look, style: def.style }, chapter);
+            const gen = await generateChapterScene({ name: def.name, gender: def.gender, look: def.look, style: def.style }, chapter, row.portrait, characterImageUrl(row.characterId));
             await db.insert(chapterScenes).values({ storyId: id, chapterIndex: newIndex, image: gen.base64, imageMime: gen.mime }).onConflictDoNothing();
           } catch (err) {
             console.error("[continue] chapter scene generation failed:", err instanceof Error ? err.message : err);

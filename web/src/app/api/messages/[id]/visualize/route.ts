@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { characters, messages, threads } from "@/db/schema";
-import { generateMomentImage, imageConfigured } from "@/lib/image";
+import { generateMomentImage, imageConfigured, characterImageUrl } from "@/lib/image";
 import { screenImagePrompt } from "@/lib/moderation";
 import { getCurrentUserId } from "@/lib/session";
 import { ensureDailyDrip, spend, userBalance } from "@/lib/ledger";
@@ -49,12 +49,12 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   }
 
   try {
-    const [char] = await db.select({ definition: characters.definition }).from(characters).where(eq(characters.id, row.characterId)).limit(1);
+    const [char] = await db.select({ definition: characters.definition, portrait: characters.image }).from(characters).where(eq(characters.id, row.characterId)).limit(1);
     const def = (char?.definition ?? {}) as Record<string, string>;
 
     if (screenImagePrompt(row.content).blocked) return NextResponse.json({ error: "blocked", reason: "safety_minor" }, { status: 422 });
 
-    const gen = await generateMomentImage(def, row.content);
+    const gen = await generateMomentImage(def, row.content, char?.portrait, characterImageUrl(row.characterId));
     // A too-small payload means the provider handed back nothing usable (or a
     // blank). Don't cache it and flip the button to "View" over an empty image.
     if (!gen.base64 || gen.base64.length < 500) {

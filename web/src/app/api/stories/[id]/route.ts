@@ -7,6 +7,7 @@ import { isBookmarked } from "@/lib/bookmarks";
 import { isCharacterBlocked } from "@/lib/blocks";
 import { logUnlessMissingRelation } from "@/lib/db-errors";
 import { getCurrentUserId } from "@/lib/session";
+import { isAdmin } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +39,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const def = (row.definition ?? {}) as Record<string, string>;
   const userId = await getCurrentUserId();
   const isOwner = Boolean(row.ownerId && userId && row.ownerId === userId);
+  // Owner or admin can (re)generate chapter images from the reader.
+  const canManageImages = isOwner || (await isAdmin(userId));
   // Count reads by anyone other than the creator (powers the "most read" sort).
   let reads = row.reads;
   if (!isOwner) {
@@ -118,6 +121,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     isSaved: saved,
     canSave: Boolean(userId) && !isOwner,
     isCharacterHidden: characterHidden,
+    canManageImages,
   });
 }
 

@@ -15,7 +15,7 @@ type Story = {
   isOwner: boolean; isPublic: boolean; hasBackup: boolean; hasBackground: boolean;
   reads: number; rating: number; ratingCount: number; myRating: number | null; canRate: boolean;
   isSaved: boolean; canSave: boolean;
-  isCharacterHidden: boolean;
+  isCharacterHidden: boolean; canManageImages: boolean;
   createdAt: string; chapterDates: string[]; chapterImages: number[];
 };
 
@@ -62,6 +62,8 @@ export default function StoryReadPage() {
   const [chapterPrice, setChapterPrice] = useState(10);
   const [showToc, setShowToc] = useState(false);
   const [zoomChapter, setZoomChapter] = useState<number | null>(null); // chapter image shown enlarged
+  const [renderingImg, setRenderingImg] = useState<number | null>(null); // chapter whose image is (re)rendering
+  const [imgVersion, setImgVersion] = useState<Record<number, number>>({}); // cache-buster per chapter image
   const [bgOn, setBgOn] = useState(true);
   const [fontSize, setFontSize] = useState<FontSize>("sm"); // small by default; a saved preference overrides below
   const [theme, setTheme] = useState<ReaderTheme>("dark");
@@ -201,6 +203,30 @@ export default function StoryReadPage() {
     } catch {}
   }
 
+  async function reRenderImage(chapterIdx: number) {
+    if (renderingImg !== null) return;
+    setRenderingImg(chapterIdx);
+    setNotice(null);
+    try {
+      const res = await fetch(`/api/stories/${id}/chapter-image`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chapter: chapterIdx }),
+      });
+      if (res.ok) {
+        setStory((s) => (s && !s.chapterImages.includes(chapterIdx) ? { ...s, chapterImages: [...s.chapterImages, chapterIdx].sort((a, b) => a - b) } : s));
+        setImgVersion((v) => ({ ...v, [chapterIdx]: (v[chapterIdx] || 0) + 1 }));
+      } else {
+        const d = await res.json().catch(() => ({}));
+        setNotice(d.reason === "safety" ? "That chapter's image was blocked by the safety filter." : "Image render failed — try again in a moment.");
+      }
+    } catch {
+      setNotice("Image render failed — try again in a moment.");
+    } finally {
+      setRenderingImg(null);
+    }
+  }
+
   async function restore() {
     if (!confirm("Restore the previous version? This replaces the current story with your saved backup.")) return;
     try {
@@ -307,11 +333,25 @@ export default function StoryReadPage() {
       ) : null}
 
       {story.chapterImages.includes(idx) ? (
-        <button type="button" style={S.chapterScene} key={`scene-${idx}`} onClick={() => setZoomChapter(idx)} aria-label="Enlarge image">
-          <img src={`/api/stories/${id}/chapter-image?chapter=${idx}`} alt="" style={S.chapterSceneImg} />
+        <div style={S.chapterScene} key={`scene-${idx}`}>
+          <img
+            src={`/api/stories/${id}/chapter-image?chapter=${idx}${imgVersion[idx] ? `&v=${imgVersion[idx]}` : ""}`}
+            alt=""
+            style={{ ...S.chapterSceneImg, cursor: "zoom-in" }}
+            onClick={() => setZoomChapter(idx)}
+          />
           {idx === 0 ? <div style={S.chapterSceneScrim} /> : null}
           {idx === 0 ? <div style={S.chapterSceneCaption}>Chapter 1 of {chapters.length}</div> : null}
-          <span style={S.chapterZoomHint} aria-hidden>⤢</span>
+          <button style={S.chapterZoomHint} onClick={() => setZoomChapter(idx)} aria-label="Enlarge image">⤢</button>
+          {story.canManageImages ? (
+            <button style={S.reRenderBtn} onClick={() => reRenderImage(idx)} disabled={renderingImg === idx}>
+              {renderingImg === idx ? "Rendering…" : "↻ Re-render"}
+            </button>
+          ) : null}
+        </div>
+      ) : story.canManageImages ? (
+        <button style={S.genImgBtn} onClick={() => reRenderImage(idx)} disabled={renderingImg === idx} key={`genimg-${idx}`}>
+          {renderingImg === idx ? "Rendering…" : "＋ Generate image for this chapter"}
         </button>
       ) : null}
 
@@ -437,6 +477,15 @@ export default function StoryReadPage() {
         <span style={S.chatBridgeArrow}>→</span>
       </a>
 
+      {idx > 0 ? (
+        <button
+          style={S.toTop}
+          onClick={() => { setShowForm(false); setIdx(0); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+        >
+          ↑ Back to the beginning
+        </button>
+      ) : null}
+
       {showBackup && backupText ? (
         <div style={S.overlay} onClick={() => setShowBackup(false)}>
           <div style={S.overlayCard} onClick={(e) => e.stopPropagation()}>
@@ -533,7 +582,9 @@ const S: Record<string, React.CSSProperties> = {
   railBtn: { marginTop: 8, width: "100%", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", color: "#1A1220", border: 0, borderRadius: 10, padding: "9px 0", fontWeight: 650, fontSize: 13, cursor: "pointer" },
   chapterScene: { position: "relative", display: "block", width: "100%", padding: 0, margin: "0 0 22px", borderRadius: 16, overflow: "hidden", border: "1px solid #3A2E44", boxShadow: "0 16px 40px rgba(0,0,0,.4)", cursor: "zoom-in", background: "none" },
   chapterSceneImg: { display: "block", width: "100%", aspectRatio: "16 / 9", objectFit: "cover" },
-  chapterZoomHint: { position: "absolute", top: 10, right: 10, width: 30, height: 30, display: "grid", placeItems: "center", borderRadius: 8, background: "rgba(15,10,19,.55)", color: "#F4EAF0", fontSize: 15, border: "1px solid rgba(255,255,255,.15)", backdropFilter: "blur(4px)" },
+  chapterZoomHint: { position: "absolute", top: 10, right: 10, width: 30, height: 30, display: "grid", placeItems: "center", borderRadius: 8, background: "rgba(15,10,19,.55)", color: "#F4EAF0", fontSize: 15, border: "1px solid rgba(255,255,255,.15)", backdropFilter: "blur(4px)", cursor: "pointer", padding: 0 },
+  reRenderBtn: { position: "absolute", bottom: 10, right: 10, background: "rgba(15,10,19,.65)", color: "#F4EAF0", fontSize: 12, fontWeight: 600, border: "1px solid rgba(255,255,255,.18)", borderRadius: 8, padding: "5px 10px", cursor: "pointer", backdropFilter: "blur(4px)" },
+  genImgBtn: { display: "block", width: "100%", margin: "0 0 22px", background: "#1A1420", color: "#AC9CB0", border: "1px dashed #3A2E44", borderRadius: 14, padding: "14px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" },
   zoomOverlay: { position: "fixed", inset: 0, zIndex: 60, background: "rgba(8,5,11,.92)", display: "grid", placeItems: "center", padding: 20, cursor: "zoom-out", animation: "rvBgIn .2s ease" },
   zoomImg: { maxWidth: "min(1100px, 96vw)", maxHeight: "92vh", width: "auto", height: "auto", objectFit: "contain", borderRadius: 12, boxShadow: "0 30px 80px rgba(0,0,0,.6)", cursor: "default" },
   zoomClose: { position: "fixed", top: 16, right: 18, zIndex: 61, background: "rgba(35,26,43,.7)", color: "#F4EAF0", border: "1px solid #4a3a50", borderRadius: 999, width: 40, height: 40, fontSize: 24, lineHeight: 1, cursor: "pointer" },
@@ -589,6 +640,7 @@ const S: Record<string, React.CSSProperties> = {
   ratingRow: { marginTop: 26, paddingTop: 22, borderTop: "1px solid #241a2b", display: "flex", flexDirection: "column", gap: 10 },
   ratingLabel: { fontSize: 12, letterSpacing: ".14em", textTransform: "uppercase", color: "#8A7A90", fontWeight: 700 },
   chatBridge: { marginTop: 22, display: "flex", alignItems: "center", gap: 14, padding: "16px 18px", textDecoration: "none", color: "#F4EAF0", background: "linear-gradient(100deg, rgba(233,160,107,.12), rgba(212,106,139,.12))", border: "1px solid #4a3a50", borderRadius: 16 },
+  toTop: { display: "block", margin: "22px auto 0", background: "transparent", color: "#AC9CB0", border: "1px solid #3A2E44", borderRadius: 999, padding: "9px 18px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" },
   chatBridgeText: { flex: 1, minWidth: 0 },
   chatBridgeTitle: { fontFamily: "Georgia, serif", fontSize: 17, margin: 0, color: "#F4EAF0" },
   chatBridgeBody: { color: "#C6B7CC", fontSize: 13.5, margin: "3px 0 0" },
