@@ -352,7 +352,7 @@ export function faceSwapEnabled(): boolean {
 async function modelsLabFaceSwap(portraitBase64: string, sceneBase64: string): Promise<{ base64: string; mime: string }> {
   const key = process.env.MODELSLAB_API_KEY;
   if (!key) throw new Error("MODELSLAB_API_KEY is not set");
-  const url = process.env.MODELSLAB_FACESWAP_URL || "https://modelslab.com/api/v6/image_editing/face_swap";
+  const url = process.env.MODELSLAB_FACESWAP_URL || "https://modelslab.com/api/v6/deepfake/single_face_swap";
   const invert = /^(1|true|yes|on)$/i.test((process.env.FACE_SWAP_INVERT || "").trim());
   const payload: Record<string, string> = {
     key,
