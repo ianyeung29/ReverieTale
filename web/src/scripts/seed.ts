@@ -4812,6 +4812,7 @@ async function main() {
 
   const idByName = new Map<string, string>();
   const requestedCharacter = (process.env.SEED_CHARACTER || "").trim();
+  const portraitsOnly = /^(1|true|yes|on)$/i.test((process.env.SEED_PORTRAITS_ONLY || "").trim());
   const charactersToSeed = requestedCharacter
     ? PUBLISHED_CHARACTERS.filter((character) => character.name.toLowerCase() === requestedCharacter.toLowerCase())
     : PUBLISHED_CHARACTERS;
@@ -4928,6 +4929,11 @@ async function main() {
     }
 
     portraitByName.set(def.name, canonicalBase64);
+  }
+
+  if (portraitsOnly) {
+    console.log("\nPortrait-only run complete.");
+    return;
   }
 
   for (const s of STORIES) {
