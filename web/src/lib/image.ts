@@ -240,23 +240,43 @@ type MlResp = {
 async function generateModelsLab(prompt: string, ref?: { image: string }): Promise<{ base64: string; mime: string }> {
   const key = process.env.MODELSLAB_API_KEY;
   if (!key) throw new Error("MODELSLAB_API_KEY is not set");
-  const model = process.env.IMAGE_MODEL || "flux";
+  const model = process.env.IMAGE_MODEL || "z-image-base";
   const url = process.env.MODELSLAB_URL || "https://modelslab.com/api/v6/images/text2img";
-  const payload: Record<string, string> = {
-    key,
-    model_id: model,
-    prompt,
-    negative_prompt: "",
-    width: "768",
-    height: "1024",
-    samples: "1",
-    num_inference_steps: "25",
-    // "yes" blacks out images the provider flags as NSFW. Operator-configurable;
-    // default safe. See IMAGE_SAFETY_CHECKER in .env for the compliance caveat.
-    safety_checker: process.env.IMAGE_SAFETY_CHECKER || "yes",
-    enhance_prompt: "no",
-    base64: "no",
-  };
+  const safetyChecker = process.env.IMAGE_SAFETY_CHECKER || "yes";
+  const payload: Record<string, string | number | null> = model === "z-image-base"
+    ? {
+        key,
+        model_id: model,
+        prompt,
+        negative_prompt: null,
+        width: 768,
+        height: 1024,
+        samples: 1,
+        guidance_scale: Number(process.env.MODELSLAB_GUIDANCE_SCALE || 5),
+        safety_checker: safetyChecker,
+        safety_checker_type: process.env.IMAGE_SAFETY_CHECKER_TYPE || "black",
+        num_inference_steps: Number(process.env.MODELSLAB_STEPS || 30),
+        seed: null,
+        webhook: null,
+        track_id: null,
+        base64: "no",
+        highres_fix: null,
+        watermark: "no",
+        temp: "no",
+      }
+    : {
+        key,
+        model_id: model,
+        prompt,
+        negative_prompt: "",
+        width: "768",
+        height: "1024",
+        samples: "1",
+        num_inference_steps: "25",
+        safety_checker: safetyChecker,
+        enhance_prompt: "no",
+        base64: "no",
+      };
 
   // IP-Adapter: condition this text2img generation on a reference face (the
   // character's portrait) so the scene renders as the SAME person, not a
