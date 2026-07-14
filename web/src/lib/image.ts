@@ -400,10 +400,13 @@ async function modelsLabFaceSwap(portraitBase64: string, sceneBase64: string): P
   const invert = /^(1|true|yes|on)$/i.test((process.env.FACE_SWAP_INVERT || "").trim());
   const payload: Record<string, string> = {
     key,
-    // Default mapping: init_image carries the face to use (portrait), target_image
-    // is the scene it gets placed onto. Flip with FACE_SWAP_INVERT if reversed.
-    init_image: invert ? sceneBase64 : portraitBase64,
-    target_image: invert ? portraitBase64 : sceneBase64,
+    // ModelsLab returns init_image as the base with target_image's face placed
+    // onto it. So the SCENE is init_image (the composition we keep) and the
+    // PORTRAIT is target_image (the face we swap in). Passing the portrait as
+    // init_image gave back the portrait on every chapter. Flip with
+    // FACE_SWAP_INVERT if a given account's semantics are reversed.
+    init_image: invert ? portraitBase64 : sceneBase64,
+    target_image: invert ? sceneBase64 : portraitBase64,
     safety_checker: process.env.IMAGE_SAFETY_CHECKER || "yes",
     base64: "yes",
   };
