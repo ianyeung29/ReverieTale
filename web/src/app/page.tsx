@@ -145,7 +145,6 @@ export default async function Home() {
 
       <section style={S.hero} className="rv-reveal">
         <p style={S.eyebrow}>companions who remember you</p>
-        <h1 style={S.h1}><span className="rv-title">Reverie</span></h1>
         <div style={S.cta}>
           <a href="/story" className="rv-btn rv-btn-primary" style={btn(true)}>Begin a story →</a>
           <a href="/browse" style={S.heroTextLink}>Browse companions →</a>

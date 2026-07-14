@@ -42,7 +42,7 @@ export function Nav() {
 
   return (
     <nav style={S.nav}>
-      <a href="/" style={S.brand}>Reverie</a>
+      <a href="/" className="rv-title" style={S.brand}>Reverie</a>
 
       <button type="button" className="rv-nav-toggle" style={S.toggle} onClick={() => setOpen((v) => !v)} aria-label={open ? "Close menu" : "Open menu"} aria-expanded={open}>
         {open ? "✕" : "☰"}
@@ -80,7 +80,7 @@ const S: Record<string, React.CSSProperties> = {
     backdropFilter: "blur(8px)",
     borderBottom: "1px solid #2a2033",
   },
-  brand: { fontFamily: "Georgia, serif", fontSize: 19, color: "#F4EAF0", textDecoration: "none", fontWeight: 600, whiteSpace: "nowrap" },
+  brand: { fontFamily: "Georgia, serif", fontSize: 17.5, textDecoration: "none", fontWeight: 700, whiteSpace: "nowrap" },
   toggle: { marginLeft: "auto", background: "transparent", border: "1px solid #3A2E44", color: "#F4EAF0", borderRadius: 8, width: 36, height: 36, fontSize: 16, cursor: "pointer" },
   link: { color: "#AC9CB0", textDecoration: "none", fontSize: 14, fontWeight: 500, whiteSpace: "nowrap", padding: "6px 2px", borderBottom: "2px solid transparent" },
   linkOn: { color: "#F4EAF0", borderBottom: "2px solid #E9A06B" },
