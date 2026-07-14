@@ -489,13 +489,13 @@ export function fluxHeadshotEnabled(): boolean {
 async function generateModelsLabHeadshot(portraitBase64: string, prompt: string): Promise<{ base64: string; mime: string }> {
   const key = process.env.MODELSLAB_API_KEY;
   if (!key) throw new Error("MODELSLAB_API_KEY is not set");
-  const url = process.env.MODELSLAB_HEADSHOT_URL || "https://modelslab.com/api/v6/images/text2img";
+  const url = process.env.MODELSLAB_HEADSHOT_URL || "https://modelslab.com/api/v8/images/flux-headshot";
   // The field carrying the reference portrait varies by model; override with
   // MODELSLAB_HEADSHOT_IMAGE_FIELD if the API expects a different name.
   const imageField = process.env.MODELSLAB_HEADSHOT_IMAGE_FIELD || "init_image";
   const payload: Record<string, string> = {
     key,
-    model_id: process.env.MODELSLAB_HEADSHOT_MODEL || "flux-headshot",
+    model_id: process.env.MODELSLAB_HEADSHOT_MODEL || "flux_headshot",
     prompt,
     [imageField]: portraitBase64,
     width: "1024",
