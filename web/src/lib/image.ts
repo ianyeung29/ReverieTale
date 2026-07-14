@@ -474,6 +474,65 @@ export function identityScenesEnabled(): boolean {
     && Boolean(process.env.MODELSLAB_API_KEY);
 }
 
+// ---- FLUX headshot (ModelsLab) ----------------------------------------------
+// A ModelsLab model that takes the character's portrait + a text description and
+// generates a fresh 1024x1024 image with that person's face baked in - far
+// better quality than a face-swap paste, and it stays on the ModelsLab key.
+// Opt-in via FLUX_HEADSHOT. Model/endpoint/param name are env-overridable so we
+// can match ModelsLab's exact API without a code change.
+export function fluxHeadshotEnabled(): boolean {
+  return /^(1|true|yes|on)$/i.test((process.env.FLUX_HEADSHOT || "").trim())
+    && (process.env.IMAGE_PROVIDER || "grok") === "modelslab"
+    && Boolean(process.env.MODELSLAB_API_KEY);
+}
+
+async function generateModelsLabHeadshot(portraitBase64: string, prompt: string): Promise<{ base64: string; mime: string }> {
+  const key = process.env.MODELSLAB_API_KEY;
+  if (!key) throw new Error("MODELSLAB_API_KEY is not set");
+  const url = process.env.MODELSLAB_HEADSHOT_URL || "https://modelslab.com/api/v6/images/text2img";
+  // The field carrying the reference portrait varies by model; override with
+  // MODELSLAB_HEADSHOT_IMAGE_FIELD if the API expects a different name.
+  const imageField = process.env.MODELSLAB_HEADSHOT_IMAGE_FIELD || "init_image";
+  const payload: Record<string, string> = {
+    key,
+    model_id: process.env.MODELSLAB_HEADSHOT_MODEL || "flux-headshot",
+    prompt,
+    [imageField]: portraitBase64,
+    width: "1024",
+    height: "1024",
+    samples: "1",
+    num_inference_steps: process.env.MODELSLAB_HEADSHOT_STEPS || "25",
+    safety_checker: process.env.IMAGE_SAFETY_CHECKER || "yes",
+    base64: "yes",
+  };
+
+  let lastMsg = "";
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    if (!res.ok) throw new Error(`modelslab headshot ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
+
+    let data = (await res.json()) as MlResp;
+    const take = async (v: string) => {
+      const img = await outputToImage(v);
+      if (!looksLikeImage(img.base64)) throw new Error(`headshot returned non-image output: ${String(v).slice(0, 160)}`);
+      return img;
+    };
+    if (data.output?.[0]) return take(data.output[0]);
+    if (data.status === "processing" && data.fetch_result) {
+      data = await pollModelsLab(data.fetch_result, key);
+      if (data.output?.[0]) return take(data.output[0]);
+    }
+
+    lastMsg = String(data.message || data.messege || data.status || "").trim();
+    if (/try again|loading|warming/i.test(lastMsg)) {
+      await new Promise((r) => setTimeout(r, 5000));
+      continue;
+    }
+    throw new Error(`modelslab headshot: ${lastMsg || "no image in response"}`);
+  }
+  throw new Error(`modelslab headshot: the model kept warming up (${lastMsg || "Try Again"}) — wait a moment and retry`);
+}
+
 // Generate a scene from `prompt`, conditioned on the character's portrait when
 // identity scenes are enabled and a portrait is available. Falls back to a plain
 // text2img scene if conditioning is off or the reference generation fails, so an
@@ -482,6 +541,14 @@ export async function generateSceneWithIdentity(
   prompt: string,
   portraitBase64?: string | null,
 ): Promise<{ base64: string; mime: string }> {
+  // Preferred: the FLUX headshot model bakes the real face into a fresh image.
+  if (portraitBase64 && fluxHeadshotEnabled()) {
+    try {
+      return await generateModelsLabHeadshot(portraitBase64, prompt);
+    } catch (e) {
+      console.error("[image] flux-headshot failed, using plain scene:", e instanceof Error ? e.message : e);
+    }
+  }
   if (portraitBase64 && identityScenesEnabled()) {
     try {
       return await generateModelsLab(prompt, { image: portraitBase64 });
