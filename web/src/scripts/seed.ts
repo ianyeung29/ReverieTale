@@ -4782,7 +4782,7 @@ async function main() {
   const { eq, sql, and } = await import("drizzle-orm");
   const { db } = await import("../db/index");
   const { characters, stories, users, chapterScenes } = await import("../db/schema");
-  const { buildPortraitPrompt, buildScenePrompt, generateImage, generateExpressionVariant, expressionVariantsConfigured, imageConfigured, generateCharacterScene, generateChapterScene, buildCharacterScenePrompt, buildChapterScenePrompt, sceneImageMode, shouldGenerateCharacterScene, shouldGenerateChapterScene, faceSwapEnabled, identityScenesEnabled, fluxHeadshotEnabled } = await import("../lib/image");
+  const { buildPortraitPrompt, buildScenePrompt, generateImage, generateExpressionVariant, expressionVariantsConfigured, imageConfigured, generateCharacterScene, generateChapterScene, buildCharacterScenePrompt, buildChapterScenePrompt, sceneImageMode, shouldGenerateCharacterScene, shouldGenerateChapterScene, faceSwapEnabled, identityScenesEnabled, fluxHeadshotEnabled, characterImageUrl } = await import("../lib/image");
   const { screenImagePrompt } = await import("../lib/moderation");
 
   const canDrawImages = imageConfigured();
@@ -4890,7 +4890,7 @@ async function main() {
         console.log(`  ! scene prompt blocked for ${def.name}, skipping`);
       } else {
         try {
-          const gen = await generateCharacterScene({ name: def.name, gender: def.gender, look: def.look, backstory: def.backstory, tags: def.tags, style: def.style }, canonicalBase64);
+          const gen = await generateCharacterScene({ name: def.name, gender: def.gender, look: def.look, backstory: def.backstory, tags: def.tags, style: def.style }, canonicalBase64, characterImageUrl(charId));
           await db.update(characters).set({ sceneImage: gen.base64, sceneImageMime: gen.mime }).where(eq(characters.id, charId));
           console.log(`  scene drawn for ${def.name}`);
         } catch (e) {
@@ -4973,7 +4973,7 @@ async function main() {
         const prompt = buildChapterScenePrompt({ name: charDef?.name, gender: charDef?.gender, look: charDef?.look, style: charDef?.style }, chapters[i]);
         if (screenImagePrompt(prompt).blocked) continue;
         try {
-          const gen = await generateChapterScene({ name: charDef?.name, gender: charDef?.gender, look: charDef?.look, style: charDef?.style }, chapters[i], portraitByName.get(s.character));
+          const gen = await generateChapterScene({ name: charDef?.name, gender: charDef?.gender, look: charDef?.look, style: charDef?.style }, chapters[i], portraitByName.get(s.character), characterImageUrl(characterId));
           // Replace the cached row when regenerating (unique on storyId+chapterIndex).
           if (have) await db.delete(chapterScenes).where(eq(chapterScenes.id, have.id));
           await db.insert(chapterScenes).values({ storyId, chapterIndex: i, image: gen.base64, imageMime: gen.mime });

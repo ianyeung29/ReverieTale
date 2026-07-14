@@ -486,24 +486,40 @@ export function fluxHeadshotEnabled(): boolean {
     && Boolean(process.env.MODELSLAB_API_KEY);
 }
 
-async function generateModelsLabHeadshot(portraitBase64: string, prompt: string): Promise<{ base64: string; mime: string }> {
+// Public URL of a character's portrait, which flux-headshot fetches as face_image.
+// Must be a host ModelsLab can reach - so seed/generate against a public deploy
+// (APP_URL), not localhost. Returns null if no public base is configured.
+export function characterImageUrl(characterId: string): string | null {
+  const base = (process.env.APP_URL || process.env.PUBLIC_IMAGE_BASE || "").trim().replace(/\/$/, "");
+  if (!base || /^https?:\/\/localhost/i.test(base)) return null;
+  return `${base}/api/characters/${characterId}/image`;
+}
+
+const HEADSHOT_NEGATIVE =
+  "anime, cartoon, drawing, big nose, long nose, fat, ugly, big lips, big mouth, face proportion mismatch, unrealistic, monochrome, lowres, bad anatomy, worst quality, low quality, blurry";
+
+// `faceImage` is the character's portrait. Per the flux-headshot API, this is a
+// public image URL; we also accept raw base64 (sent with base64:"yes") as a
+// fallback in case the account supports it.
+async function generateModelsLabHeadshot(faceImage: string, prompt: string): Promise<{ base64: string; mime: string }> {
   const key = process.env.MODELSLAB_API_KEY;
   if (!key) throw new Error("MODELSLAB_API_KEY is not set");
   const url = process.env.MODELSLAB_HEADSHOT_URL || "https://modelslab.com/api/v8/images/flux-headshot";
-  // The field carrying the reference portrait varies by model; override with
-  // MODELSLAB_HEADSHOT_IMAGE_FIELD if the API expects a different name.
   const imageField = process.env.MODELSLAB_HEADSHOT_IMAGE_FIELD || "face_image";
+  const isUrl = /^https?:\/\//i.test(faceImage);
   const payload: Record<string, string> = {
     key,
     model_id: process.env.MODELSLAB_HEADSHOT_MODEL || "flux_headshot",
     prompt,
-    [imageField]: portraitBase64,
+    negative_prompt: HEADSHOT_NEGATIVE,
+    [imageField]: faceImage,
     width: "1024",
     height: "1024",
-    samples: "1",
-    num_inference_steps: process.env.MODELSLAB_HEADSHOT_STEPS || "25",
+    num_inference_steps: process.env.MODELSLAB_HEADSHOT_STEPS || "21",
+    guidance_scale: process.env.MODELSLAB_HEADSHOT_GUIDANCE || "7.5",
     safety_checker: process.env.IMAGE_SAFETY_CHECKER || "yes",
-    base64: "yes",
+    // Only relevant when the face image is base64 (not a URL).
+    ...(isUrl ? {} : { base64: "yes" }),
   };
 
   let lastMsg = "";
@@ -540,11 +556,14 @@ async function generateModelsLabHeadshot(portraitBase64: string, prompt: string)
 export async function generateSceneWithIdentity(
   prompt: string,
   portraitBase64?: string | null,
+  portraitUrl?: string | null,
 ): Promise<{ base64: string; mime: string }> {
   // Preferred: the FLUX headshot model bakes the real face into a fresh image.
-  if (portraitBase64 && fluxHeadshotEnabled()) {
+  // It wants a public image URL; fall back to base64 if no URL is available.
+  const face = portraitUrl || portraitBase64;
+  if (face && fluxHeadshotEnabled()) {
     try {
-      return await generateModelsLabHeadshot(portraitBase64, prompt);
+      return await generateModelsLabHeadshot(face, prompt);
     } catch (e) {
       console.error("[image] flux-headshot failed, using plain scene:", e instanceof Error ? e.message : e);
     }
@@ -586,8 +605,9 @@ export async function generateMomentImage(
   def: { name?: string; gender?: string; look?: string; style?: string },
   sceneText: string,
   portraitBase64?: string | null,
+  portraitUrl?: string | null,
 ): Promise<{ base64: string; mime: string }> {
-  const scene = await generateSceneWithIdentity(buildMomentPrompt(def, sceneText), portraitBase64);
+  const scene = await generateSceneWithIdentity(buildMomentPrompt(def, sceneText), portraitBase64, portraitUrl);
   return withFaceSwap(scene, portraitBase64);
 }
 
@@ -612,11 +632,12 @@ export function buildCharacterScenePrompt(def: { name?: string; gender?: string;
 export async function generateCharacterScene(
   def: { name?: string; gender?: string; look?: string; backstory?: string; tags?: string[]; style?: string },
   portraitBase64?: string | null,
+  portraitUrl?: string | null,
 ): Promise<{ base64: string; mime: string }> {
-  // Identity-conditioned when SCENE_IDENTITY is on (the same person, via
-  // IP-Adapter); plain text2img otherwise. FACE_SWAP, if separately enabled,
-  // pastes the portrait face on top as an extra pass. Both default off.
-  const scene = await generateSceneWithIdentity(buildCharacterScenePrompt(def), portraitBase64);
+  // Identity: flux-headshot (from the portrait URL) if enabled, else IP-Adapter,
+  // else plain text2img. FACE_SWAP, if separately enabled, pastes the portrait
+  // face on top as an extra pass. All default off.
+  const scene = await generateSceneWithIdentity(buildCharacterScenePrompt(def), portraitBase64, portraitUrl);
   return withFaceSwap(scene, portraitBase64);
 }
 
@@ -640,8 +661,9 @@ export async function generateChapterScene(
   def: { name?: string; gender?: string; look?: string; style?: string },
   chapterText: string,
   portraitBase64?: string | null,
+  portraitUrl?: string | null,
 ): Promise<{ base64: string; mime: string }> {
-  const scene = await generateSceneWithIdentity(buildChapterScenePrompt(def, chapterText), portraitBase64);
+  const scene = await generateSceneWithIdentity(buildChapterScenePrompt(def, chapterText), portraitBase64, portraitUrl);
   return withFaceSwap(scene, portraitBase64);
 }
 
