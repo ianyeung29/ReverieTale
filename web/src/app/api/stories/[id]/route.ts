@@ -59,7 +59,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   // missing column never breaks reading the story.
   let hasBackground = false;
   try {
-    const [bg] = await db.select({ h: sql<boolean>`(${stories.image} is not null)` }).from(stories).where(eq(stories.id, id)).limit(1);
+    const [bg] = await db.select({ h: sql<boolean>`(${stories.imageKey} is not null)` }).from(stories).where(eq(stories.id, id)).limit(1);
     hasBackground = Boolean(bg?.h);
   } catch {
     /* image column not migrated yet */

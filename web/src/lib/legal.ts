@@ -8,10 +8,7 @@ export const SUPPORT_EMAIL = "asmrforall1999@gmail.com";
 export const GOVERNING_LAW = "the State of New York, United States";
 export const LAST_REVISED = "July 8, 2026";
 
-// Minimum age to USE Reverie (App Store review, age gate, legal docs). This is
-// deliberately separate from the minimum age a fictional COMPANION must be
-// (always 18, enforced in the character schema/moderation prompts) - those
-// are two different rules and changing this one must never touch that one.
-// Bump back to 18 here (one line) if this ever becomes a distribution
-// distinct from the App Store build.
-export const MIN_AGE = 17;
+// Reverie-Tale is a 13+ fictional-story platform. Character age still belongs
+// in each character definition, but the experience must stay age-appropriate
+// regardless of whether a character is a teen or an adult.
+export const MIN_AGE = 13;

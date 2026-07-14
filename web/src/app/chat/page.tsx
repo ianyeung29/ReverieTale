@@ -5,6 +5,7 @@ import { CharacterAvatar } from "@/components/CharacterAvatar";
 import { EntryGate } from "@/components/EntryGate";
 import { pickExpression } from "@/lib/expression";
 import { pickStatusLine } from "@/lib/status";
+import { speakReply, stopSpeaking } from "@/lib/speech";
 
 type Msg = { role: "user" | "character" | "system"; content: string; id?: string; hasImage?: boolean };
 type Char = { id: string; name: string; tagline: string; greeting?: string; tags?: string[] };
@@ -37,6 +38,7 @@ export default function ChatPage() {
   const [visualizing, setVisualizing] = useState<Set<string>>(new Set());
   const [saved, setSaved] = useState<Set<string>>(new Set());
   const [lightbox, setLightbox] = useState<string | null>(null);
+  const [speaking, setSpeaking] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
   function loadConvos() {
@@ -86,6 +88,7 @@ export default function ChatPage() {
   }, [authEmail]);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, busy]);
+  useEffect(() => () => stopSpeaking(), []);
 
   async function signOut() {
     await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
@@ -147,6 +150,15 @@ export default function ChatPage() {
     } catch {
       /* saving is best-effort */
     }
+  }
+
+  function listen(id: string, content: string) {
+    if (speaking === id) {
+      stopSpeaking();
+      setSpeaking(null);
+      return;
+    }
+    if (speakReply(content, () => setSpeaking((current) => (current === id ? null : current)))) setSpeaking(id);
   }
 
   async function send() {
@@ -288,6 +300,9 @@ export default function ChatPage() {
               <div style={{ ...S.bubble, ...(m.role === "user" ? S.user : S.bot) }}>{m.content}</div>
               {m.role === "character" && m.id ? (
                 <div style={S.actions}>
+                  <button style={S.actionBtn} onClick={() => listen(m.id!, m.content)}>
+                    {speaking === m.id ? "Stop" : "Listen"}
+                  </button>
                   {m.hasImage ? (
                     <button style={S.actionBtn} onClick={() => setLightbox(`/api/messages/${m.id}/image`)}>🖼 View</button>
                   ) : (

@@ -1,4 +1,4 @@
-import { chat, type Tier } from "./model";
+import { chat } from "./model";
 
 /**
  * Story generation - the free front-door. Produces a short "first chapter"
@@ -15,26 +15,14 @@ export type StoryElements = {
   length?: "short" | "medium";
 };
 
-export async function generateStory(def: Record<string, string>, elements: StoryElements = {}, tier: Tier = "standard") {
-  const words = elements.length === "medium" ? "1000-1600 words" : "550-1000 words";
-  const maxTokens = elements.length === "medium" ? 2200 : 1400;
+export async function generateStory(def: Record<string, string>, elements: StoryElements = {}) {
+  const words = elements.length === "medium" ? "800-1200 words" : "350-650 words";
+  const maxTokens = elements.length === "medium" ? 1800 : 950;
 
-  // Standard (non-explicit) system prompt - the only one authored here. This is
-  // the always-on lane (not age-gated), so it leans flirtatious and charged but
-  // stays suggestive rather than graphic. Truly explicit content lives behind
-  // the operator-supplied explicit prompt + age verification (see below).
-  const standardSystem =
-    `You are a skilled fiction writer specializing in flirtatious, romantically-charged fiction. Write an immersive 'first chapter' - a short story (${words}) that ` +
-    "pulls the reader into a scene with the character that crackles with chemistry: charged glances, teasing banter, playful push-and-pull, " +
-    "and a slow, deliberate build of attraction and physical awareness. Write in second person, present tense ('you'), so the reader feels the " +
-    "tension firsthand. Lean into flirtation, longing, and a sensual atmosphere - keep it heated and suggestive, but tasteful: imply and " +
-    "smoulder rather than depict, and fade to black before anything sexually explicit.";
-
-  // Explicit tier uses an OPERATOR-SUPPLIED prompt from env (never authored here).
-  // Falls back to the standard, non-explicit prompt if not provided.
-  const explicitSystem = process.env.EXPLICIT_SYSTEM_PROMPT_STORY || "";
-  const useExplicit = tier === "explicit" && explicitSystem.length > 0;
-  const baseSystem = useExplicit ? explicitSystem : standardSystem;
+  const baseSystem =
+    `You are a skilled writer for a 13+ interactive-fiction app. Write a vivid opening scene (${words}) that introduces the reader to a fictional character and their world. ` +
+    "Use second person, present tense ('you'). Make the setting specific, the character memorable, and the ending feel like a natural moment for the reader to reply in chat. " +
+    "Prioritize wonder, friendship, adventure, mystery, gentle humor, and age-appropriate emotional connection. A small, school-safe crush is fine, but do not write sexual content, sensual framing, adult relationship dynamics, nudity, graphic violence, drugs, or mature themes.";
 
   // The reader's own instructions (how they meet, the setting, and any specific
   // idea they typed) are REQUIREMENTS, not suggestions - the story must be built
@@ -51,7 +39,7 @@ export async function generateStory(def: Record<string, string>, elements: Story
     elements.relationship ? `Your relationship: ${elements.relationship}.` : "",
     elements.scenario ? `How you meet (this must happen as written): ${elements.scenario}.` : "",
     elements.setting ? `Setting (place the story here): ${elements.setting}.` : "",
-    elements.tone ? `Mood: ${elements.tone}.` : "Mood: flirtatious and charged with romantic tension.",
+    elements.tone ? `Mood: ${elements.tone}.` : "Mood: curious, cinematic, and welcoming.",
     // The freeform "idea" field is the reader's strongest steer - make it central.
     elements.details ? `The reader specifically wants this in the story (make it central, not a passing mention): ${elements.details}.` : "",
   ]
@@ -63,7 +51,7 @@ export async function generateStory(def: Record<string, string>, elements: Story
       { role: "system", content: system },
       { role: "user", content: user },
     ],
-    { temperature: 0.95, maxTokens, tier: useExplicit ? "explicit" : "standard" },
+    { temperature: 0.9, maxTokens },
   );
 
   const text = res.text.trim();
@@ -80,25 +68,20 @@ export async function generateNextChapter(
   def: Record<string, string>,
   storySoFar: string,
   direction: ChapterDirection = {},
-  tier: Tier = "standard",
 ) {
   const standardSystem =
-    "You are a skilled fiction writer continuing a flirtatious, romantically-charged story. Write the NEXT chapter (550-1000 words). " +
+    "You are a skilled writer continuing a 13+ interactive story. Write the NEXT chapter (450-750 words). " +
     "CRUCIAL: when the reader tells you what happens next, that request is the required spine of the chapter - make those exact events " +
     "actually happen on the page, as the central thread of the chapter. Never ignore, water down, postpone to 'later', or merely hint at " +
-    "them; if the reader's request would resolve quickly, build the whole chapter around leading into it and playing it out. Within that, " +
-    "move the scene forward and deepen the attraction between the reader and the character - more tension, teasing, and heat than before. " +
-    "Do not repeat what already happened. Second person, present tense. Lean into flirtation, longing, and a sensual atmosphere - keep it " +
-    "heated and suggestive but tasteful: imply and smoulder rather than depict, and fade to black before anything sexually explicit.";
+    "them; if the reader's request would resolve quickly, build the whole chapter around leading into it and playing it out. Move the scene forward, preserve the character's voice, and keep everything age-appropriate. " +
+    "Do not include sexual content, sensual framing, adult relationship dynamics, nudity, graphic violence, drugs, or mature themes. Do not repeat what already happened. Second person, present tense.";
 
-  const explicitSystem = process.env.EXPLICIT_SYSTEM_PROMPT_STORY || "";
-  const useExplicit = tier === "explicit" && explicitSystem.length > 0;
-  const system = `${useExplicit ? explicitSystem : standardSystem}\nDo NOT include a title; write only the prose.`;
+  const system = `${standardSystem}\nDo NOT include a title; write only the prose.`;
 
   const dir = [
     direction.whatHappens ? `- What the reader wants to happen (MUST occur in this chapter): ${direction.whatHappens}` : "",
     direction.twist ? `- Work in this beat: ${direction.twist}` : "",
-    direction.mood ? `- Mood: ${direction.mood}` : "- Mood: flirtatious and charged with romantic tension",
+    direction.mood ? `- Mood: ${direction.mood}` : "- Mood: curious and cinematic",
     direction.setting ? `- Move the scene to: ${direction.setting}` : "",
   ]
     .filter(Boolean)
@@ -117,7 +100,7 @@ export async function generateNextChapter(
       { role: "system", content: system },
       { role: "user", content: user },
     ],
-    { temperature: 0.95, maxTokens: 1400, tier: useExplicit ? "explicit" : "standard" },
+    { temperature: 0.9, maxTokens: 1200 },
   );
   return res.text.trim();
 }
@@ -140,7 +123,7 @@ export async function describeChapterForImage(chapterText: string, name?: string
       { role: "system", content: system },
       { role: "user", content: user },
     ],
-    { temperature: 0.7, maxTokens: 120, tier: "standard" },
+    { temperature: 0.7, maxTokens: 120 },
   );
   return res.text.trim().replace(/^["']|["']$/g, "").replace(/\s+/g, " ").slice(0, 320);
 }

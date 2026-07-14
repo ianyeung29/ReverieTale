@@ -6,6 +6,7 @@ import { buildChapterScenePrompt, generateChapterScene, characterImageUrl } from
 import { screenImagePrompt } from "@/lib/moderation";
 import { getCurrentUserId } from "@/lib/session";
 import { isAdmin } from "@/lib/admin";
+import { imageResponse, mediaStorageConfigured, readImageBase64, storeImage } from "@/lib/media";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -20,22 +21,18 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const chapter = Number(new URL(req.url).searchParams.get("chapter") ?? "0");
   if (!Number.isInteger(chapter) || chapter < 0) return new Response("bad request", { status: 400 });
 
-  let row: { image: string; mime: string | null } | undefined;
+  let row: { imageKey: string; mime: string | null } | undefined;
   try {
     [row] = await db
-      .select({ image: chapterScenes.image, mime: chapterScenes.imageMime })
+      .select({ imageKey: chapterScenes.imageKey, mime: chapterScenes.imageMime })
       .from(chapterScenes)
       .where(and(eq(chapterScenes.storyId, id), eq(chapterScenes.chapterIndex, chapter)))
       .limit(1);
   } catch {
     return new Response("not found", { status: 404 });
   }
-  if (!row?.image) return new Response("not found", { status: 404 });
-
-  const buf = Buffer.from(row.image, "base64");
-  return new Response(buf, {
-    headers: { "Content-Type": row.mime || "image/jpeg", "Cache-Control": "public, max-age=300" },
-  });
+  if (!row?.imageKey) return new Response("not found", { status: 404 });
+  return imageResponse(row.imageKey, row.mime, "public, max-age=300");
 }
 
 // POST /api/stories/:id/chapter-image { chapter: N } -> (re)generate the scene
@@ -49,9 +46,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const body = (await req.json().catch(() => ({}))) as { chapter?: unknown };
   const chapter = Number(body.chapter);
   if (!Number.isInteger(chapter) || chapter < 0) return NextResponse.json({ error: "chapter (index) required" }, { status: 400 });
+  if (!mediaStorageConfigured()) return NextResponse.json({ error: "Cloudflare R2 storage is not configured" }, { status: 503 });
 
   const [row] = await db
-    .select({ ownerId: stories.userId, content: stories.content, characterId: stories.characterId, definition: characters.definition, portrait: characters.image })
+    .select({ ownerId: stories.userId, content: stories.content, characterId: stories.characterId, definition: characters.definition, portraitKey: characters.imageKey })
     .from(stories)
     .innerJoin(characters, eq(stories.characterId, characters.id))
     .where(eq(stories.id, id))
@@ -71,9 +69,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   try {
-    const gen = await generateChapterScene(sceneDef, chapters[chapter], row.portrait, characterImageUrl(row.characterId));
+    const portraitBase64 = await readImageBase64(row.portraitKey);
+    const gen = await generateChapterScene(sceneDef, chapters[chapter], portraitBase64, portraitBase64 ? characterImageUrl(row.characterId) : null);
+    const imageKey = await storeImage({ scope: "chapters", ownerId: `${id}/${chapter}`, base64: gen.base64, mime: gen.mime });
     await db.delete(chapterScenes).where(and(eq(chapterScenes.storyId, id), eq(chapterScenes.chapterIndex, chapter)));
-    await db.insert(chapterScenes).values({ storyId: id, chapterIndex: chapter, image: gen.base64, imageMime: gen.mime });
+    await db.insert(chapterScenes).values({ storyId: id, chapterIndex: chapter, imageKey, imageMime: gen.mime });
     return NextResponse.json({ ok: true, chapter });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "generation failed" }, { status: 500 });

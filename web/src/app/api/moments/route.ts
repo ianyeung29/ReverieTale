@@ -26,7 +26,7 @@ export async function POST(req: Request) {
     .select({
       role: messages.role,
       content: messages.content,
-      image: messages.imageBase64,
+      imageKey: messages.imageKey,
       imageMime: messages.imageMime,
       threadId: messages.threadId,
       ownerId: threads.userId,
@@ -50,7 +50,7 @@ export async function POST(req: Request) {
       messageId: body.messageId,
       dialogue: row.content,
       setting: row.storyContext ? row.storyContext.slice(0, 200) : null,
-      image: row.image,
+      imageKey: row.imageKey,
       imageMime: row.imageMime,
     })
     .returning({ id: moments.id });
@@ -70,7 +70,7 @@ export async function GET() {
       name: sql<string>`${characters.definition}->>'name'`,
       dialogue: moments.dialogue,
       setting: moments.setting,
-      hasImage: sql<boolean>`(${moments.image} is not null)`,
+      hasImage: sql<boolean>`(${moments.imageKey} is not null)`,
       createdAt: moments.createdAt,
     })
     .from(moments)

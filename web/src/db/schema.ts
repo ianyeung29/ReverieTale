@@ -78,22 +78,21 @@ export const characters = pgTable("characters", {
   status: text("status").notNull().default("draft"), // draft | in_review | published | disabled
   // Latest moderation note (why it was held/rejected), shown in the admin queue.
   reviewNote: text("review_note"),
-  // Optional generated portrait, stored base64 + mime, served via
-  // /api/characters/:id/image. (Object storage is the scale-path later.)
-  image: text("image"),
+  // R2 object keys only. Image bytes never live in Postgres.
+  imageKey: text("image_key"),
   imageMime: text("image_mime"),
   // Optional expression variants (img2img off the canonical portrait above, same
   // face/identity, different expression) - pilot feature, most characters won't
   // have these set. Served via /api/characters/:id/image?variant=warm|flirty.
-  imageWarm: text("image_warm"),
+  imageWarmKey: text("image_warm_key"),
   imageWarmMime: text("image_warm_mime"),
-  imageFlirty: text("image_flirty"),
+  imageFlirtyKey: text("image_flirty_key"),
   imageFlirtyMime: text("image_flirty_mime"),
   // Character-specific SCENE art: the companion in their world (e.g. Sable at
   // the piano in a closed club), a wide establishing image used behind the
   // profile hero. Distinct from the head-and-shoulders portrait above. Served
   // via /api/characters/:id/scene.
-  sceneImage: text("scene_image"),
+  sceneImageKey: text("scene_image_key"),
   sceneImageMime: text("scene_image_mime"),
   // Portrait generations for this character: first is free, regens cost credits.
   portraitGens: integer("portrait_gens").notNull().default(0),
@@ -120,9 +119,8 @@ export const stories = pgTable(
     // creation date, etc). Null/missing/short for older stories written before
     // this was tracked - the reader falls back to createdAt for those.
     chapterDates: jsonb("chapter_dates").$type<string[]>(),
-    // Optional ambient background, generated from the story's setting and stored
-    // base64 + mime, served via /api/stories/:id/background. Sets mood while reading.
-    image: text("image"),
+    // Optional ambient background in R2. Sets mood while reading.
+    imageKey: text("image_key"),
     imageMime: text("image_mime"),
     isPublic: boolean("is_public").notNull().default(true),
     // Read counter (page views by non-owners) - powers the "most read" sort.
@@ -136,8 +134,7 @@ export const stories = pgTable(
 );
 
 // One generated scene image per chapter, placed at a turning point in the
-// reader. Kept in its own table (not on the stories row) so the large base64
-// payloads don't bloat the story record, and each is addressable by chapter.
+// reader. Each R2 object key is addressable by chapter.
 // Served via /api/stories/:id/chapter-image?chapter=N.
 export const chapterScenes = pgTable(
   "chapter_scenes",
@@ -145,7 +142,7 @@ export const chapterScenes = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     storyId: uuid("story_id").notNull().references(() => stories.id),
     chapterIndex: integer("chapter_index").notNull(), // 0-based
-    image: text("image").notNull(),
+    imageKey: text("image_key").notNull(),
     imageMime: text("image_mime"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -270,7 +267,7 @@ export const messages = pgTable(
     // "Visualize this moment" - an on-demand illustration of a character reply,
     // generated once and cached here (never automatic, costs credits). Only
     // ever set on role="character" rows.
-    imageBase64: text("image_base64"),
+    imageKey: text("image_key"),
     imageMime: text("image_mime"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -290,7 +287,7 @@ export const moments = pgTable(
     messageId: uuid("message_id"),
     dialogue: text("dialogue").notNull(),
     setting: text("setting"),
-    image: text("image"),
+    imageKey: text("image_key"),
     imageMime: text("image_mime"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },

@@ -18,8 +18,8 @@ function cap(s: string): string {
 }
 
 const TAG_SUGGESTIONS = [
-  "romance", "flirty", "shy", "confident", "mysterious", "playful", "brooding", "warm", "witty", "protective",
-  "adventurous", "artistic", "sarcastic", "gentle", "dominant", "sweet", "cold-but-caring", "nerdy", "rebellious",
+  "romance", "curious", "shy", "confident", "mysterious", "playful", "brooding", "warm", "witty", "protective",
+  "adventurous", "artistic", "sarcastic", "gentle", "bold", "sweet", "cold-but-caring", "nerdy", "rebellious",
   "royalty", "vampire", "childhood-friend", "rival", "villain", "hero", "fantasy", "sci-fi", "modern", "historical", "supernatural",
 ];
 

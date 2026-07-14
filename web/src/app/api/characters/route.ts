@@ -9,6 +9,7 @@ import { buildPortraitPrompt, generateImage, imageConfigured } from "@/lib/image
 import { moderateContent, screenImagePrompt } from "@/lib/moderation";
 import { ratingAggregates } from "@/lib/ratings";
 import { getCurrentUserId } from "@/lib/session";
+import { mediaStorageConfigured, storeImage } from "@/lib/media";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120; // may auto-generate a default portrait on create
@@ -123,25 +124,31 @@ export async function POST(req: Request) {
       status,
       reviewNote: mod.reason,
       definition,
-      // Only touch image columns when a portrait was actually attached, so the
-      // core create flow works even if migration 0006 hasn't been applied. A
-      // client-supplied image (rare) wins; otherwise it's drawn in the background
-      // below. portraitGens=1 marks the free default used so edit-page regens pay.
-      ...(body.image ? { image: body.image, imageMime: body.imageMime ?? null, portraitGens: 1 } : {}),
+      portraitGens: body.image ? 1 : 0,
     })
     .returning({ id: characters.id });
 
-  // Draw the default portrait in the BACKGROUND so create returns immediately and
+  // A client preview is uploaded first. Generated defaults run in the background
   // the user can proceed. after() keeps the request alive past the response; the
   // row is updated when the image lands (best-effort — the character exists either
   // way, and the user can regenerate from the edit page if it never arrives).
-  if (!body.image && imageConfigured()) {
+  if (body.image && mediaStorageConfigured()) {
+    try {
+      const imageKey = await storeImage({ scope: "characters", ownerId: char.id, base64: body.image, mime: body.imageMime ?? "image/jpeg" });
+      await db.update(characters).set({ imageKey, imageMime: body.imageMime ?? "image/jpeg" }).where(eq(characters.id, char.id));
+    } catch (e) {
+      console.error("[characters] portrait upload failed:", e instanceof Error ? e.message : e);
+    }
+  }
+
+  if (!body.image && imageConfigured() && mediaStorageConfigured()) {
     const prompt = buildPortraitPrompt({ name: body.name, gender: body.gender, age: body.age, look: body.look, persona: body.persona, tags: body.tags, style: body.style });
     if (!screenImagePrompt(prompt).blocked) {
       after(async () => {
         try {
           const gen = await generateImage(prompt);
-          await db.update(characters).set({ image: gen.base64, imageMime: gen.mime, portraitGens: 1 }).where(eq(characters.id, char.id));
+          const imageKey = await storeImage({ scope: "characters", ownerId: char.id, base64: gen.base64, mime: gen.mime });
+          await db.update(characters).set({ imageKey, imageMime: gen.mime, portraitGens: 1 }).where(eq(characters.id, char.id));
         } catch (e) {
           console.error("[characters] background portrait failed:", e instanceof Error ? e.message : e);
         }

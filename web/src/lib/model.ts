@@ -1,27 +1,17 @@
 import OpenAI from "openai";
 
 /**
- * Model gateway with content tiers.
- *
- *  - "standard": the default, non-explicit lane (DeepSeek/Grok via MODEL_PROVIDER).
- *  - "explicit": a SEPARATE, operator-configured lane. OFF by default. The operator
- *    supplies the endpoint (EXPLICIT_MODEL_*) AND the system prompt (loaded from env,
- *    never authored here). It only activates when EXPLICIT_ENABLED=true AND the lane
- *    is fully configured AND the caller has passed the age/compliance gate.
- *
- * IMPORTANT: enabling the explicit lane is NOT sufficient to run explicit content
- * to real users - age verification, the CSAM/illegal-content moderation pipeline,
- * an adult-permitting payment processor + host, and counsel must be in place first.
+ * The single, 13+ model gateway for Reverie-Tale. Content safety belongs in
+ * the prompts and moderation layer; there is intentionally no alternate
+ * mature-content provider or route to accidentally enable.
  */
-export type Tier = "standard" | "explicit";
-
 type Provider = "deepseek" | "grok";
 const PROVIDERS: Record<Provider, { baseURL: string; keyEnv: string; defaultModel: string }> = {
   deepseek: { baseURL: "https://api.deepseek.com", keyEnv: "DEEPSEEK_API_KEY", defaultModel: "deepseek-chat" },
   grok: { baseURL: "https://api.x.ai/v1", keyEnv: "XAI_API_KEY", defaultModel: "grok-2-latest" },
 };
 
-function resolveStandard() {
+function resolveModel() {
   const provider = (process.env.MODEL_PROVIDER || "deepseek") as Provider;
   const cfg = PROVIDERS[provider];
   if (!cfg) throw new Error(`Unknown MODEL_PROVIDER "${provider}" (use "deepseek" or "grok").`);
@@ -30,36 +20,11 @@ function resolveStandard() {
   return { client: new OpenAI({ apiKey, baseURL: cfg.baseURL }), model: process.env.MODEL_NAME || cfg.defaultModel };
 }
 
-/** True only if the explicit lane is switched on AND fully configured by the operator. */
-export function explicitConfigured(): boolean {
-  return (
-    process.env.EXPLICIT_ENABLED === "true" &&
-    Boolean(process.env.EXPLICIT_MODEL_BASE_URL && process.env.EXPLICIT_MODEL_KEY && process.env.EXPLICIT_MODEL_NAME)
-  );
-}
-
-/** Decide the effective tier: explicit only if requested AND configured AND age-gated. */
-export function resolveTier(requested: Tier | undefined, opts: { ageVerified: boolean }): Tier {
-  if (requested === "explicit" && explicitConfigured() && opts.ageVerified) return "explicit";
-  return "standard";
-}
-
-function resolveLane(tier: Tier) {
-  if (tier === "explicit") {
-    const baseURL = process.env.EXPLICIT_MODEL_BASE_URL;
-    const apiKey = process.env.EXPLICIT_MODEL_KEY;
-    const model = process.env.EXPLICIT_MODEL_NAME;
-    if (!baseURL || !apiKey || !model) throw new Error("explicit lane not configured");
-    return { client: new OpenAI({ apiKey, baseURL }), model };
-  }
-  return resolveStandard();
-}
-
 export type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
-type ChatOpts = { temperature?: number; maxTokens?: number; tier?: Tier };
+type ChatOpts = { temperature?: number; maxTokens?: number };
 
 export async function chat(messages: ChatMessage[], opts: ChatOpts = {}) {
-  const { client, model } = resolveLane(opts.tier ?? "standard");
+  const { client, model } = resolveModel();
   const res = await client.chat.completions.create({
     model,
     messages,
@@ -75,7 +40,7 @@ export async function chat(messages: ChatMessage[], opts: ChatOpts = {}) {
 
 /** Streaming variant: yields content deltas as they arrive. */
 export async function* chatStream(messages: ChatMessage[], opts: ChatOpts = {}) {
-  const { client, model } = resolveLane(opts.tier ?? "standard");
+  const { client, model } = resolveModel();
   const stream = await client.chat.completions.create({
     model,
     messages,

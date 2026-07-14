@@ -24,12 +24,12 @@ export type CharacterCardData = {
 export function CharacterCard({ c, actions }: { c: CharacterCardData; actions?: ReactNode }) {
   const hasStats = Boolean(c.reads || c.stories || c.ratingCount);
   return (
-    <div className="rv-card" style={S.card}>
-      <a href={`/c/${c.id}`} style={S.mediaLink}>
-        <div style={S.media}>
+    <div className="rv-card rv-character-card" style={S.card}>
+      <a href={`/c/${c.id}`} className="rv-character-card-media-link" style={S.mediaLink}>
+        <div className="rv-character-card-media" style={S.media}>
           <CharacterAvatar characterId={c.id} name={c.name} shape="rect" />
           <div style={S.scrim} />
-          <div style={S.mediaText}>
+          <div className="rv-character-card-media-text" style={S.mediaText}>
             <div style={S.name}>{c.name}</div>
             {c.tags.length ? (
               <div style={S.tags}>
@@ -41,14 +41,14 @@ export function CharacterCard({ c, actions }: { c: CharacterCardData; actions?: 
           </div>
         </div>
       </a>
-      <div style={S.body}>
+      <div className="rv-character-card-body" style={S.body}>
         {c.greeting?.trim() ? (
-          <p style={S.greeting}>&ldquo;{c.greeting.trim()}&rdquo;</p>
+          <p className="rv-character-card-copy" style={S.greeting}>&ldquo;{c.greeting.trim()}&rdquo;</p>
         ) : c.persona ? (
-          <p style={S.persona}>{c.persona}</p>
+          <p className="rv-character-card-copy" style={S.persona}>{c.persona}</p>
         ) : null}
         {hasStats ? (
-          <div style={S.meta}>
+          <div className="rv-character-card-meta" style={S.meta}>
             {c.reads ? <>{c.reads} read{c.reads === 1 ? "" : "s"}</> : null}
             {c.reads && c.stories ? " · " : null}
             {c.stories ? <>{c.stories} stor{c.stories === 1 ? "y" : "ies"}</> : null}

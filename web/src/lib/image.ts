@@ -7,6 +7,14 @@
  */
 const grokKey = () => process.env.XAI_IMAGE_KEY || process.env.XAI_API_KEY;
 
+// Image providers occasionally keep a connection open without returning either
+// a result or an error. Bound every request so a single stalled generation never
+// freezes catalogue seeding or a reader-facing route indefinitely.
+const IMAGE_REQUEST_TIMEOUT_MS = Number(process.env.IMAGE_REQUEST_TIMEOUT_MS || 90_000);
+function imageFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  return fetch(input, { ...init, signal: AbortSignal.timeout(IMAGE_REQUEST_TIMEOUT_MS) });
+}
+
 // Map a stored gender value to the noun image models respond to best.
 function genderWord(gender?: string): string {
   if (!gender) return "";
@@ -43,9 +51,9 @@ function sceneStyle(style: ArtStyle): { lead: string; tail: string } {
 // line the trailing style tags enforce below.
 function attractivenessPhrase(gender?: string): string {
   const g = genderWord(gender);
-  if (g === "woman") return "stunningly beautiful, gorgeous features, alluring";
-  if (g === "man") return "handsome, striking features, charismatic";
-  return "attractive, striking features";
+  if (g === "woman") return "expressive, approachable features";
+  if (g === "man") return "expressive, approachable features";
+  return "expressive, approachable features";
 }
 
 // Shared portrait-prompt builder so the create route (auto default portrait) and
@@ -62,7 +70,7 @@ export function buildPortraitPrompt(b: {
 }): string {
   const g = genderWord(b.gender);
   const who = b.name ? (g ? `${g} named ${b.name}` : b.name) : g || "person";
-  const subject = b.age ? `${b.age}-year-old adult ${who}` : who;
+  const subject = b.age ? `${b.age}-year-old ${who}` : who;
   const bits = [b.look, b.persona].filter(Boolean).join(". ");
   const outfit = b.outfit ? ` Wearing ${b.outfit}.` : "";
   const tags = b.tags?.length ? ` ${b.tags.join(", ")}.` : "";
@@ -79,7 +87,7 @@ export function buildPortraitPrompt(b: {
 export function buildScenePrompt(e: { setting?: string | null; genre?: string | null; tone?: string | null; scenario?: string | null }): string {
   const place = e.setting?.trim() || e.scenario?.trim() || "a quiet, intimate room at dusk";
   const genre = e.genre?.trim() ? `${e.genre.trim()} atmosphere` : "cinematic atmosphere";
-  const tone = e.tone?.trim() ? `${e.tone.trim()} mood` : "warm, romantic mood";
+  const tone = e.tone?.trim() ? `${e.tone.trim()} mood` : "warm, inviting mood";
   return (
     `Atmospheric establishing shot of ${place}. ${genre}, ${tone}. ` +
     `Empty scenery with no people and no text, soft depth of field, moody cinematic lighting, ` +
@@ -98,13 +106,14 @@ export function imageConfigured(): boolean {
 // Scene-image generation (character scene art + per-chapter scenes) is a real
 // per-image cost with the provider, and generating one behind EVERY chapter
 // adds up fast. Gate it so the operator opts in at the volume they want:
-//   unset / "off"     -> no scene images at all (default; zero extra spend)
-//   "opening" / "on"  -> character scenes + only chapter 1's opening scene
+//   unset               -> character scenes + the opening chapter scene
+//   "off"               -> no scene images (zero extra spend)
+//   "opening" / "on"   -> character scenes + only chapter 1's opening scene
 //   "all"             -> a scene for every chapter (the expensive mode)
 // Portraits and the story ambient background are separate and unaffected.
 export type SceneMode = "off" | "opening" | "all";
 export function sceneImageMode(): SceneMode {
-  const v = (process.env.SCENE_IMAGES || "off").trim().toLowerCase();
+  const v = (process.env.SCENE_IMAGES || "opening").trim().toLowerCase();
   if (v === "all") return "all";
   if (v === "opening" || v === "on" || v === "true" || v === "1") return "opening";
   return "off";
@@ -139,7 +148,7 @@ async function generateGrok(prompt: string): Promise<{ base64: string; mime: str
   const model = process.env.IMAGE_MODEL || "grok-2-image";
   const base = (process.env.XAI_IMAGE_BASE_URL || "https://api.x.ai/v1").replace(/\/$/, "");
 
-  const res = await fetch(`${base}/images/generations`, {
+  const res = await imageFetch(`${base}/images/generations`, {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     // xAI's image endpoint takes model/prompt/n/response_format (no size/quality).
@@ -155,7 +164,7 @@ async function generateGrok(prompt: string): Promise<{ base64: string; mime: str
 }
 
 async function urlToImage(url: string): Promise<{ base64: string; mime: string }> {
-  const bin = await fetch(url);
+  const bin = await imageFetch(url);
   if (!bin.ok) throw new Error(`failed to fetch generated image (${bin.status})`);
   // ModelsLab's base64 mode (img2img / face_swap / ip-adapter) returns a URL to a
   // ".base64" TEXT file whose CONTENTS are the image's base64. Fetch it as text
@@ -264,7 +273,7 @@ async function generateModelsLab(prompt: string, ref?: { image: string }): Promi
   // whole request a few times, polling fetch_result when it returns "processing".
   let lastMsg = "";
   for (let attempt = 0; attempt < 4; attempt++) {
-    const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    const res = await imageFetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     if (!res.ok) throw new Error(`modelslab ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
 
     let data = (await res.json()) as MlResp;
@@ -291,7 +300,7 @@ async function pollModelsLab(fetchUrl: string, key: string): Promise<MlResp> {
   // ~90s total; ModelsLab queue + generation can take a while on first use.
   for (let i = 0; i < 30; i++) {
     await new Promise((r) => setTimeout(r, 3000));
-    const res = await fetch(fetchUrl, {
+    const res = await imageFetch(fetchUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ key }),
@@ -314,7 +323,7 @@ export type Expression = "warm" | "flirty";
 
 const EXPRESSION_PROMPTS: Record<Expression, string> = {
   warm: "same person, warm genuine smile, soft happy expression, gentle eyes, relaxed and affectionate, upper-body portrait, soft cinematic lighting, tasteful, safe for work",
-  flirty: "same person, flirty smirk, playful sultry expression, raised eyebrow, alluring inviting gaze, upper-body portrait, soft cinematic lighting, tasteful, safe for work",
+  flirty: "same person, playful curious expression, raised eyebrow, friendly inviting gaze, upper-body portrait, soft cinematic lighting, tasteful, safe for work",
 };
 
 export function expressionVariantsConfigured(): boolean {
@@ -351,7 +360,7 @@ async function modelsLabImg2Img(initImageBase64: string, prompt: string, opts: {
 
   let lastMsg = "";
   for (let attempt = 0; attempt < 4; attempt++) {
-    const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    const res = await imageFetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     if (!res.ok) throw new Error(`modelslab img2img ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
 
     let data = (await res.json()) as MlResp;
@@ -425,7 +434,7 @@ async function modelsLabFaceSwap(portraitBase64: string, sceneBase64: string): P
 
   let lastMsg = "";
   for (let attempt = 0; attempt < 4; attempt++) {
-    const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    const res = await imageFetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     if (!res.ok) throw new Error(`modelslab face_swap ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
 
     let data = (await res.json()) as MlResp;
@@ -524,7 +533,7 @@ async function generateModelsLabHeadshot(faceImage: string, prompt: string): Pro
 
   let lastMsg = "";
   for (let attempt = 0; attempt < 4; attempt++) {
-    const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    const res = await imageFetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     if (!res.ok) throw new Error(`modelslab headshot ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
 
     let data = (await res.json()) as MlResp;
@@ -685,7 +694,7 @@ async function generateFal(prompt: string): Promise<{ base64: string; mime: stri
   if (!key) throw new Error("FAL_KEY is not set");
   const model = process.env.IMAGE_MODEL || "fal-ai/flux/dev";
 
-  const res = await fetch(`https://fal.run/${model}`, {
+  const res = await imageFetch(`https://fal.run/${model}`, {
     method: "POST",
     headers: { Authorization: `Key ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify({ prompt, image_size: "portrait_4_3", num_images: 1, output_format: "jpeg", enable_safety_checker: (process.env.IMAGE_SAFETY_CHECKER || "yes") !== "no" }),

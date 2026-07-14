@@ -1,9 +1,7 @@
-# Reverie - Phase 0 MVP (web)
+# Reverie-Tale (web)
 
-The application foundation for the AI-companion product. **Content-agnostic**: the
-risky/expensive choices (payment processor, age-verification vendor, and the
-explicit-capable model) sit behind adapters, so this same codebase serves the
-cheap dev build now and the funded adult launch later without a rewrite.
+The application foundation for a 13+ visual interactive-fiction product: meet a
+fictional companion in a short opening scene, then continue the conversation.
 
 Stack (all free/near-free to start):
 - **Next.js** (App Router, TypeScript) - one app, no separate service
@@ -14,11 +12,11 @@ Stack (all free/near-free to start):
 
 ## Milestone status
 - [x] M1 - scaffold, DB schema (characters, per-reader memory, double-entry credit ledger), model/embeddings/redis adapters, health check
-- [ ] M2 - chat endpoint + memory retrieval (rolling summary + pgvector recall)
-- [ ] M3 - credit ledger operations (purchase/drip/spend, balances derived)
-- [ ] M4 - age gate + moderation hooks (bright-line blocks) + event instrumentation
-- [ ] M5 - chat UI
-- [ ] Later (funded) - real payment (Segpay), age-verification vendor, self-hosted explicit model, encryption at rest
+- [x] M2 - chat endpoint + memory retrieval (rolling summary + pgvector recall)
+- [x] M3 - credit ledger operations (purchase/drip/spend, balances derived)
+- [x] M4 - 13+ age gate + moderation hooks (bright-line blocks)
+- [x] M5 - scene-to-chat UI with image moments and browser-native read-aloud
+- [ ] Next - production moderation operations, accessibility QA, and mobile app packaging
 
 ## Setup
 ```bash
@@ -39,6 +37,23 @@ npm run db:push
 - DeepSeek: set `MODEL_PROVIDER=deepseek` + `DEEPSEEK_API_KEY`.
 - Grok/xAI: set `MODEL_PROVIDER=grok` + `XAI_API_KEY`.
 - Embeddings: set `EMBEDDINGS_API_KEY` (default target: OpenAI text-embedding-3-small; swap the base URL for Voyage/Jina/local).
+
+### Image storage: Cloudflare R2
+Reverie stores every portrait, story scene, and private chat visual in R2. The
+database stores only an object key and MIME type - never the image bytes.
+
+1. In Cloudflare, create a bucket such as `reverie-media`.
+2. Create an API token with **Object Read & Write** access scoped to that bucket.
+3. Add `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, and
+   `R2_BUCKET` to `.env.local` and Vercel.
+4. Apply `drizzle/0019_r2_media_keys.sql` after the R2 variables are present.
+   It removes the old Base64 columns. Existing catalogue artwork is intentionally
+   discarded. To replace the existing catalogue entirely, run
+   the following in PowerShell, then regenerate with `npm run db:seed`:
+   ```powershell
+   $env:CONFIRM_CATALOG_RESET = "RESET_REVERIE_CATALOG"
+   npm run db:reset-catalog
+   ```
 
 ### Run
 ```bash
@@ -86,5 +101,5 @@ see without exposing secrets, and confirms the DB is reachable.
 ## Notes / guardrails carried from the specs
 - Credits are a **double-entry ledger** (`exec-3` sec 4): balances are derived from immutable entries, transactions carry an idempotency key, entries sum to zero.
 - Memory is per **(character x reader)** (`exec-3` sec 6); raw chat is meant to be transient, distilled memory durable.
-- Production requires **encryption at rest** for messages/memory and a real **moderation gate** + **age verification** before any launch (`exec-2`, `exec-3` sec 9). Those are stubbed here for the cheap build and must be real before go-live.
-- Hosting: free mainstream hosts are fine for building/non-explicit, but the live **explicit** product needs an **adult-permitting host** and a **GPU** for a self-hosted model.
+- Production requires **encryption at rest** for messages/memory and a real **moderation gate** before broad launch. The current age check is self-attestation and must be reviewed against the markets where Reverie-Tale is available.
+- Scene images use the configured image provider. Leave `SCENE_IMAGES=opening` for a single visual opening scene per story, or use `all` only after confirming the extra image cost.

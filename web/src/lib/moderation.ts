@@ -1,5 +1,7 @@
 /**
- * Minimal safety gate - the categorical bright line only (no minors / CSAM signals).
+ * Minimal safety gate for the 13+ build. It blocks minor exploitation signals
+ * and explicit sexual content before either can enter chat, stories, memory, or
+ * image generation.
  * This is a STUB, not the exec-2 pipeline: it must be replaced by a real classifier
  * before any launch. It deliberately errs toward blocking. Applied to user input,
  * model output, and memory-extraction candidates.
@@ -10,9 +12,20 @@ const MINOR_SIGNALS: RegExp[] = [
   /\b(school\s?girl|schoolgirl|elementary|kindergarten|middle\s?school|grade\s?school)\b/i,
 ];
 
+const EXPLICIT_CONTENT_SIGNALS: RegExp[] = [
+  /\b(nude|nudes|naked|nudity|topless|bottomless|undress(?:ed|ing)?|unclothed)\b/i,
+  /\b(nsfw|porn|porno|pornographic|hardcore|xxx|hentai)\b/i,
+  /\b(genital|genitalia|penis|vagina|vulva|pussy|cock|dick|clit|labia|scrotum|testicles?)\b/i,
+  /\b(cum|cumshot|semen|ejaculat\w*|creampie)\b/i,
+  /\b(sex act|sexual intercourse|penetrat\w*|blowjob|handjob|fellatio|cunnilingus|masturbat\w*|orgasm)\b/i,
+];
+
 export function screen(text: string): { blocked: boolean; reason?: string } {
   for (const re of MINOR_SIGNALS) {
     if (re.test(text)) return { blocked: true, reason: "safety_minor" };
+  }
+  for (const re of EXPLICIT_CONTENT_SIGNALS) {
+    if (re.test(text)) return { blocked: true, reason: "safety_mature" };
   }
   return { blocked: false };
 }
@@ -37,9 +50,11 @@ const EXPLICIT_IMAGE_SIGNALS: RegExp[] = [
 // Returns { blocked, reason } for a would-be image prompt. reason is a short,
 // user-facing string safe to surface in the UI.
 export function screenImagePrompt(text: string): { blocked: boolean; reason?: string } {
-  if (screen(text).blocked) {
+  const result = screen(text);
+  if (result.blocked && result.reason === "safety_minor") {
     return { blocked: true, reason: "Portraits can't depict or imply minors." };
   }
+  if (result.blocked) return { blocked: true, reason: "Keep portraits tasteful - no explicit nudity or sexual content." };
   for (const re of EXPLICIT_IMAGE_SIGNALS) {
     if (re.test(text)) {
       return { blocked: true, reason: "Keep portraits tasteful — no explicit nudity or sexual content." };
@@ -58,11 +73,11 @@ export function screenImagePrompt(text: string): { blocked: boolean; reason?: st
 export type ModDecision = "approve" | "review" | "reject";
 
 const CLASSIFIER_SYSTEM =
-  "You are a content-safety reviewer for an adult (18+) FICTIONAL character platform. " +
+  "You are a content-safety reviewer for a 13+ FICTIONAL character and interactive-story platform. " +
   "You are reviewing a user-submitted character description (name, appearance, personality, backstory). " +
-  "Adult, romantic, or suggestive themes about clearly-adult fictional characters are ALLOWED and should be approved. " +
+  "Friendship, adventure, mystery, fantasy, school-safe romance, and age-appropriate emotional themes are allowed. Explicit sexual content, sexualized characters, and mature sexual framing are not allowed. " +
   "Choose exactly one decision:\n" +
-  '- "reject": the character is or could be a minor, is age-ambiguous, or is sexualized while youthful; OR impersonates a real, identifiable person (celebrity or private individual); OR centers on illegal activity, real-world non-consensual harm, or hateful dehumanization of a protected group.\n' +
+  '- "reject": the character is sexualized or described for explicit sexual roleplay; OR exploits or endangers a minor; OR impersonates a real, identifiable person (celebrity or private individual); OR centers on illegal activity, real-world non-consensual harm, or hateful dehumanization of a protected group.\n' +
   '- "review": anything uncertain or borderline a human should double-check (ambiguous age, a possible real-person reference, edgy-but-unclear content).\n' +
   '- "approve": clearly an adult, fictional, non-violating character.\n' +
   'When in doubt, prefer "review" over "approve". Respond with STRICT JSON only: {"decision":"approve|review|reject","reason":"one short sentence"}.';
@@ -70,7 +85,7 @@ const CLASSIFIER_SYSTEM =
 export async function moderateContent(text: string): Promise<{ decision: ModDecision; reason: string }> {
   // Layer 1: hard bright-line filter.
   if (screen(text).blocked) {
-    return { decision: "reject", reason: "Blocked by the minor-safety filter." };
+    return { decision: "reject", reason: "Blocked by the 13+ safety filter." };
   }
 
   // Layer 2: LLM classifier. Imported lazily to avoid any import-cycle surprises.

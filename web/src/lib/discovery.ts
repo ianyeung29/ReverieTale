@@ -54,7 +54,7 @@ export async function listCharacters(opts?: { creatorId?: string; tag?: string; 
   // column never breaks discovery.
   let imageByChar = new Map<string, boolean>();
   try {
-    const imgRows = await db.select({ id: characters.id, h: sql<boolean>`(${characters.image} is not null)` }).from(characters).where(eq(characters.status, "published"));
+    const imgRows = await db.select({ id: characters.id, h: sql<boolean>`(${characters.imageKey} is not null)` }).from(characters).where(eq(characters.status, "published"));
     imageByChar = new Map(imgRows.map((r) => [r.id, r.h]));
   } catch (e) {
     logUnlessMissingRelation("discovery image column", e);

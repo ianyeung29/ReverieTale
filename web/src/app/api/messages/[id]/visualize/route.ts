@@ -6,6 +6,7 @@ import { generateMomentImage, imageConfigured, characterImageUrl } from "@/lib/i
 import { screenImagePrompt } from "@/lib/moderation";
 import { getCurrentUserId } from "@/lib/session";
 import { ensureDailyDrip, spend, userBalance } from "@/lib/ledger";
+import { mediaStorageConfigured, readImageBase64, storeImage } from "@/lib/media";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -25,7 +26,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     .select({
       role: messages.role,
       content: messages.content,
-      hasImage: messages.imageBase64,
+      hasImage: messages.imageKey,
       threadId: messages.threadId,
       ownerId: threads.userId,
       characterId: threads.characterId,
@@ -40,7 +41,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
 
   if (row.hasImage) return NextResponse.json({ ok: true, balance: await userBalance(userId) });
 
-  if (!imageConfigured()) return NextResponse.json({ error: "image generation not configured" }, { status: 503 });
+  if (!imageConfigured() || !mediaStorageConfigured()) return NextResponse.json({ error: "image generation or R2 storage is not configured" }, { status: 503 });
 
   await ensureDailyDrip(userId, DAILY_DRIP);
   const balance = await userBalance(userId);
@@ -49,12 +50,13 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   }
 
   try {
-    const [char] = await db.select({ definition: characters.definition, portrait: characters.image }).from(characters).where(eq(characters.id, row.characterId)).limit(1);
+    const [char] = await db.select({ definition: characters.definition, portraitKey: characters.imageKey }).from(characters).where(eq(characters.id, row.characterId)).limit(1);
     const def = (char?.definition ?? {}) as Record<string, string>;
 
     if (screenImagePrompt(row.content).blocked) return NextResponse.json({ error: "blocked", reason: "safety_minor" }, { status: 422 });
 
-    const gen = await generateMomentImage(def, row.content, char?.portrait, characterImageUrl(row.characterId));
+    const portraitBase64 = await readImageBase64(char?.portraitKey);
+    const gen = await generateMomentImage(def, row.content, portraitBase64, portraitBase64 ? characterImageUrl(row.characterId) : null);
     // A too-small payload means the provider handed back nothing usable (or a
     // blank). Don't cache it and flip the button to "View" over an empty image.
     if (!gen.base64 || gen.base64.length < 500) {
@@ -62,7 +64,8 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
       return NextResponse.json({ error: "visualize failed" }, { status: 502 });
     }
     console.log("[visualize] generated", { messageId: id, bytes: gen.base64.length, mime: gen.mime });
-    await db.update(messages).set({ imageBase64: gen.base64, imageMime: gen.mime }).where(eq(messages.id, id));
+    const imageKey = await storeImage({ scope: "messages", ownerId: id, base64: gen.base64, mime: gen.mime });
+    await db.update(messages).set({ imageKey, imageMime: gen.mime }).where(eq(messages.id, id));
 
     const charge = await spend(userId, MOMENT_IMAGE_PRICE, { kind: "moment_image", messageId: id });
     if (!charge.ok) return NextResponse.json({ error: "insufficient_credits", price: MOMENT_IMAGE_PRICE, balance: charge.balance }, { status: 402 });

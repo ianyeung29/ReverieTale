@@ -2,13 +2,13 @@ import { NextResponse, after } from "next/server";
 import { z } from "zod";
 import { and, eq, gte } from "drizzle-orm";
 import { db } from "@/db";
-import { characters, chapterScenes, stories, users } from "@/db/schema";
+import { characters, chapterScenes, stories } from "@/db/schema";
 import { generateNextChapter, generateStory, type StoryElements } from "@/lib/story";
-import { resolveTier, type Tier } from "@/lib/model";
 import { screen, screenImagePrompt } from "@/lib/moderation";
 import { buildChapterScenePrompt, generateChapterScene, shouldGenerateChapterScene, characterImageUrl } from "@/lib/image";
 import { getCurrentUserId } from "@/lib/session";
 import { ensureDailyDrip, spend, userBalance } from "@/lib/ledger";
+import { mediaStorageConfigured, readImageBase64, storeImage } from "@/lib/media";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -41,7 +41,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   const [row] = await db
-    .select({ ownerId: stories.userId, content: stories.content, elements: stories.elements, chapterDates: stories.chapterDates, definition: characters.definition, portrait: characters.image, characterId: stories.characterId })
+    .select({ ownerId: stories.userId, content: stories.content, elements: stories.elements, chapterDates: stories.chapterDates, definition: characters.definition, portraitKey: characters.imageKey, characterId: stories.characterId })
     .from(stories)
     .innerJoin(characters, eq(stories.characterId, characters.id))
     .where(eq(stories.id, id))
@@ -57,9 +57,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   try {
-    const [u] = await db.select({ av: users.ageVerified }).from(users).where(eq(users.id, userId)).limit(1);
-    const elements = (row.elements ?? {}) as StoryElements & { tier?: Tier };
-    const tier = resolveTier(elements.tier, { ageVerified: Boolean(u?.av) });
+    const elements = (row.elements ?? {}) as StoryElements;
     const def = (row.definition ?? {}) as Record<string, string>;
 
     const chapters = row.content.split(/\n{2,}·\s·\s·\n{2,}/).map((s) => s.trim()).filter(Boolean);
@@ -67,11 +65,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
     let newChapter: string;
     if (body.chapterIndex === 0) {
-      const { content } = await generateStory(def, elements, tier); // keep original title; swap the opening prose
+      const { content } = await generateStory(def, elements); // keep original title; swap the opening prose
       newChapter = content;
     } else {
       const soFar = chapters.slice(0, body.chapterIndex).join(SEP);
-      newChapter = await generateNextChapter(def, soFar, dir, tier);
+      newChapter = await generateNextChapter(def, soFar, dir);
     }
     if (screen(newChapter).blocked) return NextResponse.json({ error: "blocked", reason: "safety_minor" }, { status: 422 });
 
@@ -93,13 +91,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
     // Regenerate a scene for the rewritten chapter, in the background - only
     // when scene images are enabled for this chapter index.
-    if (shouldGenerateChapterScene(body.chapterIndex)) {
+    if (shouldGenerateChapterScene(body.chapterIndex) && mediaStorageConfigured()) {
       const prompt = buildChapterScenePrompt({ name: def.name, gender: def.gender, look: def.look, style: def.style }, newChapter);
       if (!screenImagePrompt(prompt).blocked) {
         after(async () => {
           try {
-            const gen = await generateChapterScene({ name: def.name, gender: def.gender, look: def.look, style: def.style }, newChapter, row.portrait, characterImageUrl(row.characterId));
-            await db.insert(chapterScenes).values({ storyId: id, chapterIndex: body.chapterIndex, image: gen.base64, imageMime: gen.mime }).onConflictDoNothing();
+            const portraitBase64 = await readImageBase64(row.portraitKey);
+            const gen = await generateChapterScene({ name: def.name, gender: def.gender, look: def.look, style: def.style }, newChapter, portraitBase64, portraitBase64 ? characterImageUrl(row.characterId) : null);
+            const imageKey = await storeImage({ scope: "chapters", ownerId: `${id}/${body.chapterIndex}`, base64: gen.base64, mime: gen.mime });
+            await db.insert(chapterScenes).values({ storyId: id, chapterIndex: body.chapterIndex, imageKey, imageMime: gen.mime }).onConflictDoNothing();
           } catch (err) {
             console.error("[rewrite] chapter scene generation failed:", err instanceof Error ? err.message : err);
           }
