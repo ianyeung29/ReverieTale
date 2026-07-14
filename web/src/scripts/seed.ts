@@ -4811,6 +4811,16 @@ async function main() {
   if (!u) [u] = await db.insert(users).values({ email, ageVerified: true }).returning();
 
   const idByName = new Map<string, string>();
+  const requestedCharacter = (process.env.SEED_CHARACTER || "").trim();
+  const charactersToSeed = requestedCharacter
+    ? PUBLISHED_CHARACTERS.filter((character) => character.name.toLowerCase() === requestedCharacter.toLowerCase())
+    : PUBLISHED_CHARACTERS;
+  if (requestedCharacter && charactersToSeed.length === 0) {
+    throw new Error(`No published seed character named "${requestedCharacter}".`);
+  }
+  if (requestedCharacter) {
+    console.log(`(single-character mode: ${charactersToSeed[0].name})\n`);
+  }
   // Portrait base64 is loaded from R2 only while generating an identity-conditioned
   // (IP-Adapter) on the same face as the portrait.
   const portraitByName = new Map<string, string | null>();
@@ -4822,7 +4832,7 @@ async function main() {
       .where(sql`${characters.definition}->>'name' = ${def.name}`);
   }
 
-  for (const def of PUBLISHED_CHARACTERS) {
+  for (const def of charactersToSeed) {
     const [existing] = await db
       .select({ id: characters.id, imageKey: characters.imageKey, warmKey: characters.imageWarmKey, flirtyKey: characters.imageFlirtyKey, sceneKey: characters.sceneImageKey })
       .from(characters)
