@@ -437,6 +437,15 @@ export default function StoryReadPage() {
         <span style={S.chatBridgeArrow}>→</span>
       </a>
 
+      {idx > 0 ? (
+        <button
+          style={S.toTop}
+          onClick={() => { setShowForm(false); setIdx(0); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+        >
+          ↑ Back to the beginning
+        </button>
+      ) : null}
+
       {showBackup && backupText ? (
         <div style={S.overlay} onClick={() => setShowBackup(false)}>
           <div style={S.overlayCard} onClick={(e) => e.stopPropagation()}>
@@ -589,6 +598,7 @@ const S: Record<string, React.CSSProperties> = {
   ratingRow: { marginTop: 26, paddingTop: 22, borderTop: "1px solid #241a2b", display: "flex", flexDirection: "column", gap: 10 },
   ratingLabel: { fontSize: 12, letterSpacing: ".14em", textTransform: "uppercase", color: "#8A7A90", fontWeight: 700 },
   chatBridge: { marginTop: 22, display: "flex", alignItems: "center", gap: 14, padding: "16px 18px", textDecoration: "none", color: "#F4EAF0", background: "linear-gradient(100deg, rgba(233,160,107,.12), rgba(212,106,139,.12))", border: "1px solid #4a3a50", borderRadius: 16 },
+  toTop: { display: "block", margin: "22px auto 0", background: "transparent", color: "#AC9CB0", border: "1px solid #3A2E44", borderRadius: 999, padding: "9px 18px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" },
   chatBridgeText: { flex: 1, minWidth: 0 },
   chatBridgeTitle: { fontFamily: "Georgia, serif", fontSize: 17, margin: 0, color: "#F4EAF0" },
   chatBridgeBody: { color: "#C6B7CC", fontSize: 13.5, margin: "3px 0 0" },
