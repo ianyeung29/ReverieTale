@@ -279,8 +279,15 @@ async function generateModelsLab(prompt: string, ref?: { image: string }): Promi
     let data = (await res.json()) as MlResp;
     if (data.output?.[0]) return outputToImage(data.output[0]); // synchronous (e.g. realtime endpoint)
 
-    if (data.status === "processing" && data.fetch_result) {
-      data = await pollModelsLab(data.fetch_result, key);
+    // The v6 text-to-image contract documents result retrieval at
+    // /api/v6/images/fetch/:id. Prefer that stable endpoint over the optional
+    // fetch_result field, while retaining it as a fallback for older responses.
+    const fetchUrl = data.id != null
+      ? `https://modelslab.com/api/v6/images/fetch/${encodeURIComponent(String(data.id))}`
+      : data.fetch_result;
+    if (data.status === "processing" && fetchUrl) {
+      console.log(`[image] ModelsLab job ${data.id ?? "unknown"} queued; polling for its result`);
+      data = await pollModelsLab(fetchUrl, key);
       if (data.output?.[0]) return outputToImage(data.output[0]);
     }
 
