@@ -4873,6 +4873,7 @@ async function main() {
         console.log(`  ! portrait prompt blocked for ${def.name}, skipping`);
       } else {
         try {
+          console.log(`  drawing portrait for ${def.name}...`);
           const gen = await generateImage(prompt);
           const imageKey = await storeImage({ scope: "characters", ownerId: charId, base64: gen.base64, mime: gen.mime });
           await db.update(characters).set({ imageKey, imageMime: gen.mime, portraitGens: 1 }).where(eq(characters.id, charId));
@@ -4905,6 +4906,7 @@ async function main() {
         console.log(`  ! scene prompt blocked for ${def.name}, skipping`);
       } else {
         try {
+          console.log(`  drawing scene for ${def.name}...`);
           const gen = await generateCharacterScene({ name: def.name, gender: def.gender, look: def.look, backstory: def.backstory, tags: def.tags, style: def.style }, canonicalBase64, canonicalBase64 ? characterImageUrl(charId) : null);
           const imageKey = await storeImage({ scope: "characters", ownerId: `${charId}/scene`, base64: gen.base64, mime: gen.mime });
           await db.update(characters).set({ sceneImageKey: imageKey, sceneImageMime: gen.mime }).where(eq(characters.id, charId));

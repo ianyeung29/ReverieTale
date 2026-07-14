@@ -11,8 +11,8 @@ const grokKey = () => process.env.XAI_IMAGE_KEY || process.env.XAI_API_KEY;
 // a result or an error. Bound every request so a single stalled generation never
 // freezes catalogue seeding or a reader-facing route indefinitely.
 const IMAGE_REQUEST_TIMEOUT_MS = Number(process.env.IMAGE_REQUEST_TIMEOUT_MS || 90_000);
-function imageFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-  return fetch(input, { ...init, signal: AbortSignal.timeout(IMAGE_REQUEST_TIMEOUT_MS) });
+function imageFetch(input: RequestInfo | URL, init?: RequestInit, timeoutMs = IMAGE_REQUEST_TIMEOUT_MS): Promise<Response> {
+  return fetch(input, { ...init, signal: AbortSignal.timeout(timeoutMs) });
 }
 
 // Map a stored gender value to the noun image models respond to best.
@@ -297,18 +297,26 @@ async function generateModelsLab(prompt: string, ref?: { image: string }): Promi
 
 async function pollModelsLab(fetchUrl: string, key: string): Promise<MlResp> {
   let last: MlResp = { status: "processing" };
-  // ~90s total; ModelsLab queue + generation can take a while on first use.
+  // Keep the overall job wait near 90 seconds, but don't let a single polling
+  // request consume the full image timeout and make catalogue seeding stall.
   for (let i = 0; i < 30; i++) {
     await new Promise((r) => setTimeout(r, 3000));
-    const res = await imageFetch(fetchUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key }),
-    });
+    let res: Response;
+    try {
+      res = await imageFetch(fetchUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key }),
+      }, 12_000);
+    } catch {
+      if ((i + 1) % 5 === 0) console.log(`[image] ModelsLab poll ${i + 1}/30 is still timing out`);
+      continue;
+    }
     if (!res.ok) continue;
     last = (await res.json()) as MlResp;
     if (last.output?.[0]) return last; // ready (regardless of exact status string)
     if (last.status === "error" || last.status === "failed") return last;
+    if ((i + 1) % 5 === 0) console.log(`[image] ModelsLab job is still processing (${i + 1}/30)`);
   }
   return last; // still processing; caller throws with context
 }
