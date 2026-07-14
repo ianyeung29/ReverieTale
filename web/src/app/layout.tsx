@@ -174,6 +174,25 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   .rv-character-card-copy, .rv-character-card-meta { display: none !important; }
 }
 
+/* Home discovery: compact mobile hierarchy. The primary action stays easy to
+   reach without becoming a full-width banner, while the spotlight becomes one
+   focused character moment instead of a squeezed desktop layout. */
+@media (max-width: 560px) {
+  .rv-home { padding: 30px 16px 26px !important; }
+  .rv-home-hero h1 { font-size: 40px !important; line-height: 1.04 !important; margin: 10px 0 12px !important; }
+  .rv-home-hero > p:not(:first-child) { font-size: 16px !important; line-height: 1.5 !important; }
+  .rv-home-hero-cta { gap: 12px !important; margin-top: 20px !important; }
+  .rv-home-hero-cta .rv-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; }
+  .rv-home-spotlight { margin-top: 28px !important; padding: 12px !important; gap: 16px !important; flex-direction: column !important; border-radius: 14px !important; }
+  .rv-home-spotlight-portrait { width: 100% !important; }
+  .rv-home-spotlight-portrait > div { border-radius: 10px !important; }
+  .rv-home-spotlight-body { gap: 7px !important; padding: 2px 4px 6px !important; }
+  .rv-home-spotlight-body h2 { font-size: 30px !important; }
+  .rv-home-spotlight-body > p { font-size: 14px !important; }
+  .rv-home-spotlight-body .rv-btn { padding: 11px 15px !important; border-radius: 9px !important; font-size: 13.5px !important; }
+  .rv-home-moods > div:first-child { margin-top: 28px !important; }
+}
+
 /* Mobile bottom navigation: the primary nav on small screens (desktop keeps
    the top bar). Hidden by default, shown only under the mobile breakpoint.
    Create is a raised central action. */

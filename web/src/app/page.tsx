@@ -98,12 +98,6 @@ function dailyPick<T>(list: T[], seed: string): T | null {
   return list[h % list.length];
 }
 
-const STEPS = [
-  { n: "01", title: "Meet a companion", body: "Find someone whose story draws you in." },
-  { n: "02", title: "Shape the story", body: "Begin with a scene and steer what follows." },
-  { n: "03", title: "Keep talking", body: "Continue with someone who remembers." },
-];
-
 export default async function Home() {
   const viewerId = await getCurrentUserId();
   const [feed, allChars, continueWith] = await Promise.all([
@@ -114,15 +108,13 @@ export default async function Home() {
   const trending = [...allChars].sort((a, b) => trendingScore(b.reads, b.createdAt) - trendingScore(a.reads, a.createdAt)).slice(0, 6);
   const empty = trending.length === 0 && feed.length === 0;
 
-  // Spotlight: a companion with a real portrait, rotated once a day. Personalized
-  // when signed in - prefer someone the reader hasn't met yet (a discovery nudge;
-  // the "Continue" row already covers who they already know), falling back to the
-  // full catalog once they've tried everyone. A per-viewer seed means different
-  // readers can get a different pick on the same day, not just one global choice.
+  // Spotlight: rotate one companion per day. Real portraits take priority, but
+  // a rich fallback panel keeps discovery alive while a new portrait is pending.
   const withImage = allChars.filter((c) => c.hasImage);
   const knownIds = new Set(continueWith.map((c) => c.characterId));
-  const undiscovered = withImage.filter((c) => !knownIds.has(c.id));
-  const spotlightPool = undiscovered.length > 0 ? undiscovered : withImage;
+  const spotlightCandidates = withImage.length > 0 ? withImage : allChars;
+  const undiscovered = spotlightCandidates.filter((c) => !knownIds.has(c.id));
+  const spotlightPool = undiscovered.length > 0 ? undiscovered : spotlightCandidates;
   const spotlight = dailyPick(spotlightPool, viewerId ?? "anon");
   const spotlightStoryId = spotlight ? await topStoryFor(spotlight.id) : null;
 
@@ -139,30 +131,28 @@ export default async function Home() {
   const moods = [...moodCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([t]) => t);
 
   return (
-    <main style={S.wrap}>
-      <div style={S.auroraA} />
-      <div style={S.auroraB} />
+    <main style={S.wrap} className="rv-home">
 
       <section style={S.hero} className="rv-reveal rv-home-hero">
-        <p style={S.eyebrow}>companions who remember you</p>
-        <h1 style={S.h1}>Find a story that starts with someone.</h1>
-        <p style={S.heroCopy}>Step into one vivid scene, then keep the conversation going in your own words.</p>
-        <div style={S.cta}>
-          <a href="/story" className="rv-btn rv-btn-primary" style={btn(true)}>Begin a story →</a>
+        <p style={S.eyebrow}>interactive stories</p>
+        <h1 style={S.h1}>Choose a scene. Make it yours.</h1>
+        <p style={S.heroCopy}>Meet a character at the moment something changes, then decide what happens next.</p>
+        <div style={S.cta} className="rv-home-hero-cta">
+          <a href="/story" className="rv-btn rv-btn-primary" style={btn(true)}>Start exploring →</a>
           <a href="/browse" style={S.heroTextLink}>Browse companions →</a>
         </div>
       </section>
 
       {spotlight ? (
-        <section style={S.spot} className="rv-reveal rv-d1">
+        <section style={S.spot} className="rv-reveal rv-d1 rv-home-spotlight">
           <div aria-hidden style={S.spotBgLayer}>
-            <div style={{ ...S.spotBgImage, backgroundImage: `url(/api/characters/${spotlight.id}/image)` }} />
+            {spotlight.hasImage ? <div style={{ ...S.spotBgImage, backgroundImage: `url(/api/characters/${spotlight.id}/image)` }} /> : <div style={S.spotFallbackBg} />}
             <div style={S.spotScrim} />
           </div>
-          <div style={S.spotPortrait}>
+          <div style={S.spotPortrait} className="rv-home-spotlight-portrait">
             <CharacterAvatar characterId={spotlight.id} name={spotlight.name} shape="rect" />
           </div>
-          <div style={S.spotBody}>
+          <div style={S.spotBody} className="rv-home-spotlight-body">
             <p style={S.spotEyebrow}>Tonight&apos;s spotlight</p>
             <h2 style={S.spotName}>{spotlight.name}</h2>
             {spotlight.tagline ? <p style={S.spotHook}>{spotlight.tagline}</p> : null}
@@ -200,12 +190,15 @@ export default async function Home() {
       ) : null}
 
       {moods.length ? (
-        <div style={S.tabStrip} className="rv-reveal rv-d1">
+        <section className="rv-reveal rv-d1 rv-home-moods">
+          <div style={{ ...S.sectionRow, margin: "30px 0 10px" }}><p style={{ ...S.section, margin: 0 }}>Pick a vibe</p></div>
+          <div style={S.tabStrip}>
           <a href="/browse" className="rv-chip" style={{ ...S.tab, ...S.tabLead }}>All companions</a>
           {moods.map((t) => (
             <a key={t} href={`/tag/${encodeURIComponent(t)}`} className="rv-chip" style={S.tab}>{t}</a>
           ))}
-        </div>
+          </div>
+        </section>
       ) : null}
 
       {worlds.length > 0 ? (
@@ -248,21 +241,6 @@ export default async function Home() {
         </section>
       ) : null}
 
-      <section className="rv-reveal">
-        <p style={S.section}>How Reverie unfolds</p>
-        <div style={S.steps}>
-          {STEPS.map((s) => (
-            <div key={s.n} style={S.step}>
-              <span style={S.stepNum}>{s.n}</span>
-              <div>
-                <div style={S.stepTitle}>{s.title}</div>
-                <p style={S.stepBody}>{s.body}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {empty ? (
         <div style={S.emptyPanel} className="rv-reveal rv-d1">
           <p style={S.emptyTitle}>The library is waiting for its first story.</p>
@@ -297,8 +275,6 @@ function btn(primary: boolean): React.CSSProperties {
 
 const S: Record<string, React.CSSProperties> = {
   wrap: { maxWidth: 940, margin: "0 auto", padding: "68px 24px 40px", lineHeight: 1.6, position: "relative", overflow: "hidden" },
-  auroraA: { position: "absolute", top: -180, left: "18%", width: 520, height: 420, background: "radial-gradient(closest-side, rgba(233,160,107,.18), transparent)", pointerEvents: "none", zIndex: 0, filter: "blur(6px)" },
-  auroraB: { position: "absolute", top: -120, right: "10%", width: 480, height: 400, background: "radial-gradient(closest-side, rgba(212,106,139,.20), transparent)", pointerEvents: "none", zIndex: 0, filter: "blur(6px)" },
   hero: { position: "relative", zIndex: 1, padding: 4, borderRadius: 24, overflow: "hidden" },
   eyebrow: { position: "relative", letterSpacing: ".22em", textTransform: "uppercase", fontSize: 12, color: "#E9A06B", fontWeight: 700, margin: 0 },
   h1: { position: "relative", fontFamily: "Georgia, serif", fontSize: 66, margin: "14px 0 16px", letterSpacing: "-.015em", lineHeight: 1 },
@@ -308,6 +284,7 @@ const S: Record<string, React.CSSProperties> = {
   spot: { position: "relative", zIndex: 1, marginTop: 40, borderRadius: 24, overflow: "hidden", border: "1px solid #3A2E44", display: "flex", flexWrap: "wrap", gap: 28, padding: 28 },
   spotBgLayer: { position: "absolute", inset: 0, zIndex: 0, overflow: "hidden", pointerEvents: "none" },
   spotBgImage: { position: "absolute", inset: -30, backgroundSize: "cover", backgroundPosition: "center 20%", filter: "blur(16px) brightness(.4) saturate(1.15)", transform: "scale(1.12)" },
+  spotFallbackBg: { position: "absolute", inset: 0, background: "#211827" },
   spotScrim: { position: "absolute", inset: 0, background: "linear-gradient(100deg, rgba(21,15,26,.72), rgba(21,15,26,.5))" },
   spotPortrait: { position: "relative", zIndex: 1, width: 260, maxWidth: "100%", flexShrink: 0 },
   spotBody: { position: "relative", zIndex: 1, flex: "1 1 320px", minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: 8 },
@@ -326,11 +303,6 @@ const S: Record<string, React.CSSProperties> = {
   tabStrip: { display: "flex", gap: 9, alignItems: "center", margin: "26px 0 0", position: "relative", zIndex: 1, overflowX: "auto", paddingBottom: 4 },
   tab: { fontSize: 13, color: "#CBBBD0", background: "#241B2D", border: "1px solid #3A2E44", borderRadius: 999, padding: "8px 15px", textDecoration: "none", textTransform: "capitalize", whiteSpace: "nowrap", flexShrink: 0 },
   tabLead: { color: "#1A1220", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", border: "1px solid transparent", fontWeight: 650 },
-  steps: { display: "flex", flexDirection: "column", position: "relative", zIndex: 1 },
-  step: { display: "flex", gap: 16, alignItems: "baseline", padding: "16px 2px", borderTop: "1px solid #241a2b" },
-  stepNum: { fontFamily: "Georgia, serif", fontSize: 18, color: "#5a4560", fontWeight: 700, minWidth: 26, flexShrink: 0 },
-  stepTitle: { fontFamily: "Georgia, serif", fontSize: 17, margin: 0, color: "#F4EAF0" },
-  stepBody: { color: "#AC9CB0", fontSize: 14, margin: "3px 0 0", lineHeight: 1.5 },
   sectionRow: { display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, margin: "52px 0 16px" },
   section: { fontSize: 12, letterSpacing: ".14em", textTransform: "uppercase", color: "#9A8AA0", fontWeight: 700, margin: "52px 0 16px" },
   seeAll: { color: "#E9A06B", textDecoration: "none", fontSize: 13, fontWeight: 600, whiteSpace: "nowrap" },
