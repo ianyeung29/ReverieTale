@@ -11,6 +11,8 @@ const grokKey = () => process.env.XAI_IMAGE_KEY || process.env.XAI_API_KEY;
 // a result or an error. Bound every request so a single stalled generation never
 // freezes catalogue seeding or a reader-facing route indefinitely.
 const IMAGE_REQUEST_TIMEOUT_MS = Number(process.env.IMAGE_REQUEST_TIMEOUT_MS || 90_000);
+const MODELSLAB_POLL_INTERVAL_MS = Number(process.env.MODELSLAB_POLL_INTERVAL_MS || 4_000);
+const MODELSLAB_POLL_MAX_MS = Number(process.env.MODELSLAB_POLL_MAX_MS || 240_000);
 function imageFetch(input: RequestInfo | URL, init?: RequestInit, timeoutMs = IMAGE_REQUEST_TIMEOUT_MS): Promise<Response> {
   return fetch(input, { ...init, signal: AbortSignal.timeout(timeoutMs) });
 }
@@ -286,9 +288,12 @@ async function generateModelsLab(prompt: string, ref?: { image: string }): Promi
       ? `https://modelslab.com/api/v6/images/fetch/${encodeURIComponent(String(data.id))}`
       : data.fetch_result;
     if (data.status === "processing" && fetchUrl) {
-      console.log(`[image] ModelsLab job ${data.id ?? "unknown"} queued; polling for its result`);
+      const jobId = data.id ?? "unknown";
+      console.log(`[image] ModelsLab job ${jobId} queued; polling for its result`);
       data = await pollModelsLab(fetchUrl, key);
       if (data.output?.[0]) return outputToImage(data.output[0]);
+      const message = String(data.message || data.messege || data.status || "no result").trim();
+      throw new Error(`modelslab job ${jobId} did not complete: ${message}`);
     }
 
     lastMsg = String(data.message || data.messege || data.status || "").trim();
@@ -304,10 +309,12 @@ async function generateModelsLab(prompt: string, ref?: { image: string }): Promi
 
 async function pollModelsLab(fetchUrl: string, key: string): Promise<MlResp> {
   let last: MlResp = { status: "processing" };
-  // Keep the overall job wait near 90 seconds, but don't let a single polling
-  // request consume the full image timeout and make catalogue seeding stall.
-  for (let i = 0; i < 30; i++) {
-    await new Promise((r) => setTimeout(r, 3000));
+  // A queued job can briefly return "Try Again" while it continues on the
+  // provider. Keep polling the same job instead of submitting duplicates.
+  const interval = Math.max(1_000, MODELSLAB_POLL_INTERVAL_MS);
+  const attempts = Math.max(1, Math.ceil(MODELSLAB_POLL_MAX_MS / interval));
+  for (let i = 0; i < attempts; i++) {
+    await new Promise((r) => setTimeout(r, interval));
     let res: Response;
     try {
       res = await imageFetch(fetchUrl, {
@@ -316,22 +323,19 @@ async function pollModelsLab(fetchUrl: string, key: string): Promise<MlResp> {
         body: JSON.stringify({ key }),
       }, 12_000);
     } catch {
-      if ((i + 1) % 5 === 0) console.log(`[image] ModelsLab poll ${i + 1}/30 is still timing out`);
+      if ((i + 1) % 5 === 0) console.log(`[image] ModelsLab poll ${i + 1}/${attempts} is still timing out`);
       continue;
     }
     if (!res.ok) continue;
     last = (await res.json()) as MlResp;
     if (last.output?.[0]) return last; // ready (regardless of exact status string)
     if (last.status === "error" || last.status === "failed") return last;
-    // The fetch endpoint uses "Try Again" when the provider cannot currently
-    // progress the queued job. Return immediately so the caller can make its
-    // bounded retry instead of waiting through the whole polling window.
     const message = String(last.message || last.messege || "").trim();
     if (/try again|rate limit|queue.*full/i.test(message)) {
-      console.log("[image] ModelsLab asked to retry; ending this poll early");
-      return last;
+      if ((i + 1) % 5 === 0) console.log(`[image] ModelsLab job is still queued (${i + 1}/${attempts})`);
+      continue;
     }
-    if ((i + 1) % 5 === 0) console.log(`[image] ModelsLab job is still processing (${i + 1}/30)`);
+    if ((i + 1) % 5 === 0) console.log(`[image] ModelsLab job is still processing (${i + 1}/${attempts})`);
   }
   return last; // still processing; caller throws with context
 }
@@ -567,8 +571,12 @@ async function generateModelsLabHeadshot(faceImage: string, prompt: string): Pro
     };
     if (data.output?.[0]) return take(data.output[0]);
     if (data.status === "processing" && data.fetch_result) {
+      const jobId = data.id ?? "unknown";
+      console.log(`[image] ModelsLab headshot job ${jobId} queued; polling for its result`);
       data = await pollModelsLab(data.fetch_result, key);
       if (data.output?.[0]) return take(data.output[0]);
+      const message = String(data.message || data.messege || data.status || "no result").trim();
+      throw new Error(`modelslab headshot job ${jobId} did not complete: ${message}`);
     }
 
     lastMsg = String(data.message || data.messege || data.status || "").trim();
