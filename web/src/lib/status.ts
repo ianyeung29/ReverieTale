@@ -17,7 +17,7 @@ const TAG_IDLE: Record<string, string> = {
 export function pickStatusLine(opts: { tags?: string[]; expr: ExpressionPick; isReturning: boolean }): string {
   const { tags = [], expr, isReturning } = opts;
   if (isReturning) return "Remembers your last conversation";
-  if (expr === "flirty") return "Watching you closely";
+  if (expr === "flirty") return "Curious what you think";
   if (expr === "warm") return "Relaxed, glad you're here";
   for (const t of tags) if (TAG_IDLE[t]) return TAG_IDLE[t];
   return "Present, listening";

@@ -8,7 +8,7 @@
  */
 export type ExpressionPick = "neutral" | "warm" | "flirty";
 
-const FLIRTY = /\b(flirt\w*|smirk\w*|wink\w*|teas\w*|darling|sultry|seduc\w*|kiss\w*|alluring|sexy|spicy|desire\w*|breathless)\b/i;
+const FLIRTY = /\b(smirk\w*|wink\w*|teas\w*|grin\w*|mischiev\w*|curious|playful)\b/i;
 const WARM = /\b(smil\w*|laugh\w*|warm\w*|gentle|sweet|happy|comfort\w*|cozy|tender|soft(ly)?|affection\w*)\b/i;
 
 export function pickExpression(text: string | null | undefined): ExpressionPick {

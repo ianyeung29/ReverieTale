@@ -9,8 +9,9 @@ import { cookies } from "next/headers";
  * or take over an account using an email they don't control. Google Sign-In
  * (lib/google.ts, /api/auth/google) is offered as an added convenience login
  * on top of this - same account model, same ageVerified stub - since OAuth
- * vendors can suspend client credentials for apps in adult/mature categories
- * and email + password has no such dependency.
+ * vendors can suspend client credentials when an app's experience conflicts
+ * with its published audience or content policies, while email/password has
+ * no such dependency.
  */
 export const SESSION_COOKIE = "rv_session";
 

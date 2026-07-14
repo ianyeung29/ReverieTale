@@ -88,7 +88,7 @@ async function loadProfile(id: string): Promise<Profile | null> {
     }
 
     const rows = await db
-      .select({ id: stories.id, title: stories.title, content: stories.content, reads: stories.reads, hasCover: sql<boolean>`(${stories.image} is not null)` })
+      .select({ id: stories.id, title: stories.title, content: stories.content, reads: stories.reads, hasCover: sql<boolean>`(${stories.imageKey} is not null)` })
       .from(stories)
       .where(and(eq(stories.characterId, id), eq(stories.isPublic, true)))
       .orderBy(desc(stories.createdAt))
@@ -98,7 +98,7 @@ async function loadProfile(id: string): Promise<Profile | null> {
     // missing column never breaks the profile.
     let hasScene = false;
     try {
-      const [sc] = await db.select({ h: sql<boolean>`(${characters.sceneImage} is not null)` }).from(characters).where(eq(characters.id, id)).limit(1);
+      const [sc] = await db.select({ h: sql<boolean>`(${characters.sceneImageKey} is not null)` }).from(characters).where(eq(characters.id, id)).limit(1);
       hasScene = Boolean(sc?.h);
     } catch {
       /* scene_image column not migrated yet */

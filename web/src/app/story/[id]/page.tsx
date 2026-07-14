@@ -24,7 +24,7 @@ function formatChapterDate(story: Story, chapterIdx: number): string {
   return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 }
 
-const MOODS = ["sweet", "playful", "flirty", "tender", "tense", "mysterious", "dramatic"];
+const MOODS = ["sweet", "playful", "curious", "tender", "tense", "mysterious", "dramatic"];
 const TWISTS = ["a confession", "an interruption", "a secret revealed", "they almost kiss", "a misunderstanding", "a bold move", "someone arrives"];
 const WHAT_HAPPENS = ["she says how she really feels", "the moment nearly breaks", "you're left alone together", "a memory resurfaces", "the tension finally snaps", "an unexpected visitor arrives"];
 

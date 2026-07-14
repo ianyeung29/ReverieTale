@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { CharacterAvatar } from "./CharacterAvatar";
 import { pickExpression } from "@/lib/expression";
 import { pickStatusLine } from "@/lib/status";
+import { speakReply, stopSpeaking } from "@/lib/speech";
 
 type Msg = { role: "user" | "character" | "system"; content: string; id?: string; hasImage?: boolean };
 
@@ -44,9 +45,11 @@ export function ChatDock({
   const [visualizing, setVisualizing] = useState<Set<string>>(new Set());
   const [saved, setSaved] = useState<Set<string>>(new Set());
   const [lightbox, setLightbox] = useState<string | null>(null);
+  const [speaking, setSpeaking] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, busy, open]);
+  useEffect(() => () => stopSpeaking(), []);
 
   // Check sign-in status as soon as the panel opens, so an anonymous visitor
   // sees the "sign in to talk" prompt right away instead of only after typing
@@ -145,6 +148,15 @@ export function ChatDock({
     }
   }
 
+  function listen(id: string, content: string) {
+    if (speaking === id) {
+      stopSpeaking();
+      setSpeaking(null);
+      return;
+    }
+    if (speakReply(content, () => setSpeaking((current) => (current === id ? null : current)))) setSpeaking(id);
+  }
+
   const lastReply = [...messages].reverse().find((m) => m.role === "character");
   const expr = pickExpression(lastReply?.content);
   const status = pickStatusLine({ tags: characterTags, expr, isReturning: resumedHistory && messages.length > 0 });
@@ -180,6 +192,9 @@ export function ChatDock({
               <div style={{ ...D.bubble, ...(m.role === "user" ? D.user : D.bot) }}>{m.content}</div>
               {m.role === "character" && m.id ? (
                 <div style={D.actions}>
+                  <button style={D.actionBtn} onClick={() => listen(m.id!, m.content)}>
+                    {speaking === m.id ? "Stop" : "Listen"}
+                  </button>
                   {m.hasImage ? (
                     <button style={D.actionBtn} onClick={() => setLightbox(`/api/messages/${m.id}/image`)}>🖼 View</button>
                   ) : (

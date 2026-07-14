@@ -102,7 +102,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .rv-profile-portrait { width: 148px; }
 @media (max-width: 560px) {
   .rv-profile-head { flex-direction: column; }
-  .rv-profile-portrait { width: 200px; max-width: 60vw; }
+  .rv-profile-portrait { width: min(280px, 78vw); max-width: 100%; align-self: center; }
 }
 
 /* Edit-mode collapsible sections: a chevron that rotates on [open] - state
@@ -156,6 +156,23 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .rv-tile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 @media (min-width: 620px) { .rv-tile-grid { grid-template-columns: repeat(3, 1fr); gap: 14px; } }
 @media (min-width: 900px) { .rv-tile-grid { grid-template-columns: repeat(4, 1fr); gap: 16px; } }
+
+/* Companion discovery uses the same image-forward density as story moments:
+   enough portrait presence to create curiosity without turning mobile into an
+   endless column of desktop cards. */
+.rv-companion-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (min-width: 620px) { .rv-companion-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; } }
+@media (min-width: 920px) { .rv-companion-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; } }
+@media (max-width: 560px) {
+  .rv-home-hero .rv-btn { padding: 11px 16px !important; border-radius: 10px !important; }
+  .rv-character-card { border-radius: 12px !important; }
+  .rv-character-card-media > div { border-radius: 11px !important; }
+  .rv-character-card-media-text { padding: 10px !important; gap: 4px !important; }
+  .rv-character-card-media-text > div:first-child { font-size: 17px !important; }
+  .rv-character-card-media-text span { font-size: 10px !important; padding: 2px 7px !important; }
+  .rv-character-card-body { padding: 10px !important; min-height: 0 !important; }
+  .rv-character-card-copy, .rv-character-card-meta { display: none !important; }
+}
 
 /* Mobile bottom navigation: the primary nav on small screens (desktop keeps
    the top bar). Hidden by default, shown only under the mobile breakpoint.

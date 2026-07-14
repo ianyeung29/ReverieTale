@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { characters } from "@/db/schema";
+import { imageResponse } from "@/lib/media";
 
 export const dynamic = "force-dynamic";
 
@@ -11,15 +12,15 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const { id } = await params;
   const variant = new URL(req.url).searchParams.get("variant");
 
-  let row: { image: string | null; mime: string | null; warm: string | null; warmMime: string | null; flirty: string | null; flirtyMime: string | null } | undefined;
+  let row: { imageKey: string | null; mime: string | null; warmKey: string | null; warmMime: string | null; flirtyKey: string | null; flirtyMime: string | null } | undefined;
   try {
     [row] = await db
       .select({
-        image: characters.image,
+        imageKey: characters.imageKey,
         mime: characters.imageMime,
-        warm: characters.imageWarm,
+        warmKey: characters.imageWarmKey,
         warmMime: characters.imageWarmMime,
-        flirty: characters.imageFlirty,
+        flirtyKey: characters.imageFlirtyKey,
         flirtyMime: characters.imageFlirtyMime,
       })
       .from(characters)
@@ -30,18 +31,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   }
   if (!row) return new Response("not found", { status: 404 });
 
-  let image = row.image;
+  let imageKey = row.imageKey;
   let mime = row.mime;
-  if (variant === "warm" && row.warm) { image = row.warm; mime = row.warmMime; }
-  else if (variant === "flirty" && row.flirty) { image = row.flirty; mime = row.flirtyMime; }
+  if (variant === "warm" && row.warmKey) { imageKey = row.warmKey; mime = row.warmMime; }
+  else if (variant === "flirty" && row.flirtyKey) { imageKey = row.flirtyKey; mime = row.flirtyMime; }
 
-  if (!image) return new Response("not found", { status: 404 });
-
-  const buf = Buffer.from(image, "base64");
-  return new Response(buf, {
-    headers: {
-      "Content-Type": mime || "image/jpeg",
-      "Cache-Control": "public, max-age=300",
-    },
-  });
+  if (!imageKey) return new Response("not found", { status: 404 });
+  return imageResponse(imageKey, mime, "public, max-age=300");
 }

@@ -1,17 +1,15 @@
 import { NextResponse } from "next/server";
-import { explicitConfigured } from "@/lib/model";
 import { imageConfigured } from "@/lib/image";
 import { googleConfigured } from "@/lib/google";
 import { REWARD_RATE } from "@/lib/ledger";
+import { mediaStorageConfigured } from "@/lib/media";
 
 export const dynamic = "force-dynamic";
 
-// Public feature flags + pricing for the client. Only exposes whether the explicit
-// tier is on - never any keys, endpoints, or prompts.
+// Public feature flags and pricing for the 13+ experience.
 export async function GET() {
   return NextResponse.json({
-    explicitEnabled: explicitConfigured(),
-    imageEnabled: imageConfigured(),
+    imageEnabled: imageConfigured() && mediaStorageConfigured(),
     googleEnabled: googleConfigured(),
     pricing: {
       chat: Number(process.env.CHAT_PRICE || 1),

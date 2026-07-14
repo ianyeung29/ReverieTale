@@ -39,8 +39,8 @@ const ALIASES: Record<Target, string[]> = {
   greeting: ["greeting", "opening_line", "opener", "first_message", "hello"],
 };
 
-// POST /api/characters/generate -> AI suggestions for character fields. Tasteful,
-// non-explicit; the on-save moderation gate still applies when they publish.
+// POST /api/characters/generate -> AI suggestions for character fields. The
+// generator follows the same 13+ safety standard as the published experience.
 export async function POST(req: Request) {
   const userId = await getCurrentUserId();
   if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -64,9 +64,9 @@ export async function POST(req: Request) {
 
   const wanted = body.targets.map((t) => SPEC[t]).join("\n");
   const system =
-    "You design fictional adult (18+) companion characters for a romantic storytelling app. " +
+    "You design fictional, age-appropriate companion characters for a 13+ interactive-fiction app. " +
     "Given the details so far, write ONLY the requested fields, staying consistent with what's provided. " +
-    "Keep everything vivid but tasteful and strictly NON-EXPLICIT - no sexual or graphic content. " +
+    "Focus on voice, interests, a memorable setting, and a safe opening scene. No sexual, graphic, or mature content. " +
     "Return STRICT JSON containing only the requested keys, each a plain string. No markdown, no labels.\n" +
     `Use exactly these JSON keys: ${body.targets.join(", ")}.\n` +
     `Requested fields:\n${wanted}`;

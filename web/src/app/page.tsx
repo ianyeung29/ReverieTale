@@ -143,8 +143,10 @@ export default async function Home() {
       <div style={S.auroraA} />
       <div style={S.auroraB} />
 
-      <section style={S.hero} className="rv-reveal">
+      <section style={S.hero} className="rv-reveal rv-home-hero">
         <p style={S.eyebrow}>companions who remember you</p>
+        <h1 style={S.h1}>Find a story that starts with someone.</h1>
+        <p style={S.heroCopy}>Step into one vivid scene, then keep the conversation going in your own words.</p>
         <div style={S.cta}>
           <a href="/story" className="rv-btn rv-btn-primary" style={btn(true)}>Begin a story →</a>
           <a href="/browse" style={S.heroTextLink}>Browse companions →</a>
@@ -220,7 +222,7 @@ export default async function Home() {
       {trending.length > 0 ? (
         <section className="rv-reveal rv-d2">
           <div style={S.sectionRow}><p style={{ ...S.section, margin: 0 }}>✦ Trending companions</p><a href="/browse" style={S.seeAll}>See all →</a></div>
-          <div style={S.grid}>
+          <div className="rv-companion-grid">
             {trending.map((c) => (
               <CharacterCard key={c.id} c={c} />
             ))}
@@ -300,6 +302,7 @@ const S: Record<string, React.CSSProperties> = {
   hero: { position: "relative", zIndex: 1, padding: 4, borderRadius: 24, overflow: "hidden" },
   eyebrow: { position: "relative", letterSpacing: ".22em", textTransform: "uppercase", fontSize: 12, color: "#E9A06B", fontWeight: 700, margin: 0 },
   h1: { position: "relative", fontFamily: "Georgia, serif", fontSize: 66, margin: "14px 0 16px", letterSpacing: "-.015em", lineHeight: 1 },
+  heroCopy: { position: "relative", color: "#CBBBD0", fontSize: 18, lineHeight: 1.55, maxWidth: 560, margin: 0 },
   cta: { position: "relative", display: "flex", gap: "14px 20px", marginTop: 24, flexWrap: "wrap", alignItems: "center" },
   heroTextLink: { color: "#E9A06B", textDecoration: "none", fontWeight: 600, fontSize: 15 },
   spot: { position: "relative", zIndex: 1, marginTop: 40, borderRadius: 24, overflow: "hidden", border: "1px solid #3A2E44", display: "flex", flexWrap: "wrap", gap: 28, padding: 28 },

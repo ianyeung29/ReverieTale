@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { moments } from "@/db/schema";
 import { getCurrentUserId } from "@/lib/session";
+import { imageResponse } from "@/lib/media";
 
 export const dynamic = "force-dynamic";
 
@@ -11,11 +12,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const userId = await getCurrentUserId();
   if (!userId) return new Response("unauthorized", { status: 401 });
 
-  const [row] = await db.select({ image: moments.image, mime: moments.imageMime, userId: moments.userId }).from(moments).where(eq(moments.id, id)).limit(1);
-  if (!row || row.userId !== userId || !row.image) return new Response("not found", { status: 404 });
-
-  const buf = Buffer.from(row.image, "base64");
-  return new Response(buf, {
-    headers: { "Content-Type": row.mime || "image/jpeg", "Cache-Control": "private, max-age=300" },
-  });
+  const [row] = await db.select({ imageKey: moments.imageKey, mime: moments.imageMime, userId: moments.userId }).from(moments).where(eq(moments.id, id)).limit(1);
+  if (!row || row.userId !== userId || !row.imageKey) return new Response("not found", { status: 404 });
+  return imageResponse(row.imageKey, row.mime, "private, max-age=300");
 }

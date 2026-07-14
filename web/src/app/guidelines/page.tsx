@@ -11,11 +11,11 @@ export default function GuidelinesPage() {
       <p style={S.sub}>Reverie is a {MIN_AGE}+ fiction platform. Everyone here — readers and creators — is expected to follow these rules.</p>
 
       <Section title="Who this is for">
-        <p style={S.p}>You must be {MIN_AGE} or older to use Reverie. Every account confirms this when signing up. This is currently a self-attestation, not an independent age-verification check — real verification is planned before any wider or explicit-content launch.</p>
+        <p style={S.p}>You must be {MIN_AGE} or older to use Reverie. Every account confirms this when signing up. This is currently a self-attestation, not an independent age-verification check.</p>
       </Section>
 
       <Section title="What's allowed">
-        <p style={S.p}>Adult, romantic, or suggestive stories and companions are welcome, as long as every character is clearly a fictional, clearly-adult creation. Tasteful is the default; explicit content is a separate, currently-disabled tier pending further safeguards.</p>
+        <p style={S.p}>Fictional stories about friendship, adventure, mystery, fantasy, and gentle romance are welcome. Keep every character and scene age-appropriate, respectful, and clearly fictional.</p>
       </Section>
 
       <Section title="What's never allowed">
@@ -46,7 +46,7 @@ export default function GuidelinesPage() {
       </Section>
 
       <Section title="For creators">
-        <p style={S.p}>Give your companions a real age (18+) and keep their description clearly fictional and clearly adult — that's what keeps a character in the auto-approve lane instead of the review queue. Characters that repeatedly draw reports or violate these rules can be unpublished or removed.</p>
+        <p style={S.p}>Give your companions a clear age, keep their description fictional and age-appropriate, and focus on a memorable voice, world, and opening scene. Characters that repeatedly draw reports or violate these rules can be unpublished or removed.</p>
       </Section>
     </main>
   );

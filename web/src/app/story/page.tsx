@@ -26,8 +26,8 @@ const POOLS: Record<"relationship" | "genre" | "scenario" | "mood" | "setting", 
     creative: ["a wrong-number text at 3am", "both reaching for the last book", "sharing one umbrella in a downpour", "you catch them talking to your cat", "assigned as reluctant partners", "you find their lost diary", "meeting again in a dream you keep sharing", "snowed in at a remote inn", "they're the barista who misspells your name daily"],
   },
   mood: {
-    common: ["sweet", "playful", "flirty", "mysterious", "cozy", "adventurous", "bittersweet", "tense"],
-    creative: ["electric", "wistful", "mischievous", "smoldering", "tender", "dizzying", "haunting", "giddy", "aching", "dreamy"],
+    common: ["sweet", "playful", "curious", "mysterious", "cozy", "adventurous", "bittersweet", "tense"],
+    creative: ["electric", "wistful", "mischievous", "tender", "dizzying", "haunting", "giddy", "hopeful", "aching", "dreamy"],
   },
   setting: {
     common: ["a rainy rooftop at midnight", "a cozy bookshop at closing time", "a neon-lit arcade", "a quiet night train", "a beach bonfire", "a jazz bar after hours", "a snowed-in cabin"],
@@ -74,8 +74,6 @@ export default function StoryPage() {
   const [tone, setTone] = useState("");
   const [setting, setSetting] = useState("");
   const [details, setDetails] = useState("");
-  const [tier, setTier] = useState<"standard" | "explicit">("explicit");
-  const [explicitEnabled, setExplicitEnabled] = useState(false);
   const [chapterPrice, setChapterPrice] = useState(10);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -109,7 +107,7 @@ export default function StoryPage() {
       // Arrived for a specific companion -> collapse the list to just them.
       if (cameFromCharacter) setShowAllChars(false);
     }).catch(() => {});
-    fetch("/api/config").then((r) => r.json()).then((d) => { setExplicitEnabled(!!d.explicitEnabled); if (d.pricing?.chapter) setChapterPrice(d.pricing.chapter); }).catch(() => {});
+    fetch("/api/config").then((r) => r.json()).then((d) => { if (d.pricing?.chapter) setChapterPrice(d.pricing.chapter); }).catch(() => {});
     roll(); // fresh blend of suggestions + a random combination each visit
   }, []);
 
@@ -128,7 +126,6 @@ export default function StoryPage() {
           tone: tone || undefined,
           setting: setting.trim() || undefined,
           details: details.trim() || undefined,
-          tier,
         }),
       });
       const d = await res.json();
@@ -150,9 +147,9 @@ export default function StoryPage() {
 
   return (
     <main style={S.wrap}>
-      <p style={S.eyebrow}>Begin a story</p>
+      <p style={S.eyebrow}>Enter a scene</p>
       <h1 style={S.h1}>Meet someone new</h1>
-      <p style={S.sub}>Pick who you meet, then shape the moment - use a suggestion or write your own for any of it.</p>
+      <p style={S.sub}>Choose a character and shape one vivid opening moment. When the scene ends, the conversation is yours to continue.</p>
       <button style={S.shuffle} onClick={roll} type="button">🎲 Shuffle suggestions</button>
 
       <div style={S.sectionRow}>
@@ -190,19 +187,8 @@ export default function StoryPage() {
       <p style={S.section}>Anything else? (optional)</p>
       <textarea value={details} onChange={(e) => setDetails(e.target.value)} placeholder="a detail or idea to weave in - e.g. 'she just got back from a trip', 'we're hiding from the rain'…" style={S.textarea} maxLength={400} />
 
-      {explicitEnabled ? (
-        <>
-          <p style={S.section}>Intensity</p>
-          <div style={S.chips}>
-            {(["standard", "explicit"] as const).map((t) => (
-              <button key={t} className="rv-chip" style={{ ...S.chip, ...(t === tier ? S.chipOn : {}) }} onClick={() => setTier(t)}>{t === "standard" ? "sweet" : "spicy"}</button>
-            ))}
-          </div>
-        </>
-      ) : null}
-
       <button style={{ ...S.cta, opacity: busy ? 0.6 : 1 }} onClick={generate} disabled={busy || !charId}>
-        {busy ? "Writing…" : `Write my first chapter with ${active?.name ?? "…"}`}
+        {busy ? "Creating your scene…" : `Create an opening scene with ${active?.name ?? "…"}`}
       </button>
       <p style={S.cost}>Costs {chapterPrice} credits · reading is always free</p>
       {error ? <p style={S.err}>{error}{paywall ? <> <a href="/credits" style={S.errLink}>Get credits →</a></> : null}</p> : null}

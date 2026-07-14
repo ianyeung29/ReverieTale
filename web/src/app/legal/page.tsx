@@ -10,7 +10,6 @@ const DOCS = [
   { href: "/legal/content-removal", title: "Content Removal Policy", desc: "If AI content resembles a real person." },
   { href: "/legal/dmca", title: "DMCA Policy", desc: "Reporting copyright infringement." },
   { href: "/legal/complaints", title: "Complaint Policy", desc: "How to file a complaint and what happens next." },
-  { href: "/legal/2257-exemption", title: "18 U.S.C. § 2257 Exemption", desc: "Why record-keeping law doesn't apply here." },
 ];
 
 export default function LegalHubPage() {

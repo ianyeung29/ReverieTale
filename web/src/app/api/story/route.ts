@@ -2,13 +2,13 @@ import { NextResponse, after } from "next/server";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { characters, chapterScenes, stories, users } from "@/db/schema";
+import { characters, chapterScenes, stories } from "@/db/schema";
 import { generateStory } from "@/lib/story";
-import { resolveTier } from "@/lib/model";
 import { screen, screenImagePrompt } from "@/lib/moderation";
 import { buildScenePrompt, buildChapterScenePrompt, generateChapterScene, generateImage, imageConfigured, shouldGenerateChapterScene, characterImageUrl } from "@/lib/image";
 import { getCurrentUserId } from "@/lib/session";
 import { ensureDailyDrip, spend, userBalance } from "@/lib/ledger";
+import { mediaStorageConfigured, readImageBase64, storeImage } from "@/lib/media";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -25,7 +25,6 @@ const Body = z.object({
   genre: z.string().max(60).optional(),
   details: z.string().max(400).optional(),
   length: z.enum(["short", "medium"]).optional(),
-  tier: z.enum(["standard", "explicit"]).optional(),
 });
 
 export async function POST(req: Request) {
@@ -53,12 +52,6 @@ export async function POST(req: Request) {
   }
 
   try {
-    // Content tier is gated: explicit only if requested AND the operator has enabled
-    // + configured the explicit lane AND the user is age-verified. Anonymous or
-    // unverified -> standard, regardless of what's requested.
-    const [u] = await db.select({ av: users.ageVerified }).from(users).where(eq(users.id, userId)).limit(1);
-    const tier = resolveTier(body.tier, { ageVerified: Boolean(u?.av) });
-
     const [char] = await db.select().from(characters).where(eq(characters.id, body.characterId)).limit(1);
     if (!char) return NextResponse.json({ error: "character not found" }, { status: 404 });
 
@@ -71,7 +64,7 @@ export async function POST(req: Request) {
       genre: body.genre,
       details: body.details,
       length: body.length,
-    }, tier);
+    });
 
     // Output safety gate.
     if (screen(`${title} ${content}`).blocked) {
@@ -94,7 +87,7 @@ export async function POST(req: Request) {
           genre: body.genre ?? null,
           details: body.details ?? null,
           length: body.length ?? null,
-          tier,
+          tier: "standard",
         },
       })
       .returning({ id: stories.id });
@@ -108,13 +101,14 @@ export async function POST(req: Request) {
     // reads fine without it, and the image gate keeps disallowed scenes out. Only
     // when the writer actually gave a setting, so we don't spend credits on a
     // generic scene nobody asked for.
-    if (body.setting?.trim() && imageConfigured()) {
+    if (body.setting?.trim() && imageConfigured() && mediaStorageConfigured()) {
       const scenePrompt = buildScenePrompt({ setting: body.setting, genre: body.genre, tone: body.tone, scenario: body.scenario });
       if (!screenImagePrompt(scenePrompt).blocked) {
         after(async () => {
           try {
             const gen = await generateImage(scenePrompt);
-            await db.update(stories).set({ image: gen.base64, imageMime: gen.mime }).where(eq(stories.id, story.id));
+            const imageKey = await storeImage({ scope: "stories", ownerId: story.id, base64: gen.base64, mime: gen.mime });
+            await db.update(stories).set({ imageKey, imageMime: gen.mime }).where(eq(stories.id, story.id));
           } catch (err) {
             console.error("[story] background generation failed:", err instanceof Error ? err.message : err);
           }
@@ -124,13 +118,15 @@ export async function POST(req: Request) {
 
     // A scene image for the opening chapter (chapter 0), in the background -
     // only when scene images are enabled (SCENE_IMAGES=opening|all).
-    if (shouldGenerateChapterScene(0)) {
+    if (shouldGenerateChapterScene(0) && mediaStorageConfigured()) {
       const chapterPrompt = buildChapterScenePrompt({ name: def.name, gender: def.gender, look: def.look, style: def.style }, content);
       if (!screenImagePrompt(chapterPrompt).blocked) {
         after(async () => {
           try {
-            const gen = await generateChapterScene({ name: def.name, gender: def.gender, look: def.look, style: def.style }, content, char.image, characterImageUrl(body.characterId));
-            await db.insert(chapterScenes).values({ storyId: story.id, chapterIndex: 0, image: gen.base64, imageMime: gen.mime }).onConflictDoNothing();
+            const portraitBase64 = await readImageBase64(char.imageKey);
+            const gen = await generateChapterScene({ name: def.name, gender: def.gender, look: def.look, style: def.style }, content, portraitBase64, portraitBase64 ? characterImageUrl(body.characterId) : null);
+            const imageKey = await storeImage({ scope: "chapters", ownerId: `${story.id}/0`, base64: gen.base64, mime: gen.mime });
+            await db.insert(chapterScenes).values({ storyId: story.id, chapterIndex: 0, imageKey, imageMime: gen.mime }).onConflictDoNothing();
           } catch (err) {
             console.error("[story] chapter scene generation failed:", err instanceof Error ? err.message : err);
           }

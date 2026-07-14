@@ -2,13 +2,13 @@ import { NextResponse, after } from "next/server";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { characters, chapterScenes, stories, users } from "@/db/schema";
+import { characters, chapterScenes, stories } from "@/db/schema";
 import { generateNextChapter } from "@/lib/story";
-import { resolveTier, type Tier } from "@/lib/model";
 import { screen, screenImagePrompt } from "@/lib/moderation";
 import { buildChapterScenePrompt, generateChapterScene, shouldGenerateChapterScene, characterImageUrl } from "@/lib/image";
 import { getCurrentUserId } from "@/lib/session";
 import { ensureDailyDrip, spend, userBalance } from "@/lib/ledger";
+import { mediaStorageConfigured, readImageBase64, storeImage } from "@/lib/media";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -44,7 +44,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   const [row] = await db
-    .select({ ownerId: stories.userId, content: stories.content, elements: stories.elements, chapterDates: stories.chapterDates, definition: characters.definition, portrait: characters.image, characterId: stories.characterId })
+    .select({ ownerId: stories.userId, content: stories.content, elements: stories.elements, chapterDates: stories.chapterDates, definition: characters.definition, portraitKey: characters.imageKey, characterId: stories.characterId })
     .from(stories)
     .innerJoin(characters, eq(stories.characterId, characters.id))
     .where(eq(stories.id, id))
@@ -60,14 +60,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   try {
-    // Match the story's tier, but still gated: explicit only if configured AND caller age-verified.
-    const [u] = await db.select({ av: users.ageVerified }).from(users).where(eq(users.id, userId)).limit(1);
-    const ageVerified = Boolean(u?.av);
-    const storedTier = ((row.elements ?? {}) as { tier?: Tier }).tier;
-    const tier = resolveTier(storedTier, { ageVerified });
-
     const def = (row.definition ?? {}) as Record<string, string>;
-    const chapter = await generateNextChapter(def, row.content, dir, tier);
+    const chapter = await generateNextChapter(def, row.content, dir);
     if (screen(chapter).blocked) return NextResponse.json({ error: "blocked", reason: "safety_minor" }, { status: 422 });
 
     const newIndex = row.content.split(/\n{2,}·\s·\s·\n{2,}/).map((c) => c.trim()).filter(Boolean).length;
@@ -81,13 +75,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
     // A scene image for the new chapter, in the background - only when scene
     // images are enabled for this chapter (SCENE_IMAGES=all covers later chapters).
-    if (shouldGenerateChapterScene(newIndex)) {
+    if (shouldGenerateChapterScene(newIndex) && mediaStorageConfigured()) {
       const prompt = buildChapterScenePrompt({ name: def.name, gender: def.gender, look: def.look, style: def.style }, chapter);
       if (!screenImagePrompt(prompt).blocked) {
         after(async () => {
           try {
-            const gen = await generateChapterScene({ name: def.name, gender: def.gender, look: def.look, style: def.style }, chapter, row.portrait, characterImageUrl(row.characterId));
-            await db.insert(chapterScenes).values({ storyId: id, chapterIndex: newIndex, image: gen.base64, imageMime: gen.mime }).onConflictDoNothing();
+            const portraitBase64 = await readImageBase64(row.portraitKey);
+            const gen = await generateChapterScene({ name: def.name, gender: def.gender, look: def.look, style: def.style }, chapter, portraitBase64, portraitBase64 ? characterImageUrl(row.characterId) : null);
+            const imageKey = await storeImage({ scope: "chapters", ownerId: `${id}/${newIndex}`, base64: gen.base64, mime: gen.mime });
+            await db.insert(chapterScenes).values({ storyId: id, chapterIndex: newIndex, imageKey, imageMime: gen.mime }).onConflictDoNothing();
           } catch (err) {
             console.error("[continue] chapter scene generation failed:", err instanceof Error ? err.message : err);
           }

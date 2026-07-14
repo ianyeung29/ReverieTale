@@ -6,6 +6,7 @@ import { characters, moments, stories, threads } from "@/db/schema";
 import { moderateContent } from "@/lib/moderation";
 import { logUnlessMissingRelation } from "@/lib/db-errors";
 import { getCurrentUserId } from "@/lib/session";
+import { storeImage } from "@/lib/media";
 
 export const dynamic = "force-dynamic";
 
@@ -26,11 +27,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   if (!row) return NextResponse.json({ error: "not found" }, { status: 404 });
   if (row.creatorId !== userId) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
-  // Image columns are optional (migration 0006). Check separately so a missing
-  // column never breaks loading the character for editing.
+  // Image keys are optional while a new portrait is still generating.
   let hasImage = false;
   try {
-    const [img] = await db.select({ h: sql<boolean>`(${characters.image} is not null)` }).from(characters).where(eq(characters.id, id)).limit(1);
+    const [img] = await db.select({ h: sql<boolean>`(${characters.imageKey} is not null)` }).from(characters).where(eq(characters.id, id)).limit(1);
     hasImage = Boolean(img?.h);
   } catch {
     /* image column not migrated yet */
@@ -93,7 +93,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (row.creatorId !== userId) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
   const editsDefinition = FIELDS.some((k) => body[k] !== undefined) || body.age !== undefined;
-  const image = body.image !== undefined ? { image: body.image, imageMime: body.imageMime ?? null } : {};
+  const image = body.image !== undefined
+    ? { imageKey: await storeImage({ scope: "characters", ownerId: id, base64: body.image, mime: body.imageMime ?? "image/jpeg" }), imageMime: body.imageMime ?? "image/jpeg" }
+    : {};
 
   // Unpublish is the one status change a creator can make directly and freely.
   if (!editsDefinition && body.status === "disabled") {
