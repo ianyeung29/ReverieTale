@@ -663,7 +663,19 @@ export async function generateChapterScene(
   portraitBase64?: string | null,
   portraitUrl?: string | null,
 ): Promise<{ base64: string; mime: string }> {
-  const scene = await generateSceneWithIdentity(buildChapterScenePrompt(def, chapterText), portraitBase64, portraitUrl);
+  // Distill the chapter into a distinct visual description so each chapter's
+  // image differs, instead of every image being built from the same generic
+  // opening lines. Falls back to the raw chapter text if the model is
+  // unavailable (buildChapterScenePrompt still trims it).
+  let sceneText = chapterText;
+  try {
+    const { describeChapterForImage } = await import("./story");
+    const desc = await describeChapterForImage(chapterText, def.name);
+    if (desc) sceneText = desc;
+  } catch (e) {
+    console.error("[image] chapter scene description failed, using raw text:", e instanceof Error ? e.message : e);
+  }
+  const scene = await generateSceneWithIdentity(buildChapterScenePrompt(def, sceneText), portraitBase64, portraitUrl);
   return withFaceSwap(scene, portraitBase64);
 }
 
