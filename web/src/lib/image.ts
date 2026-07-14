@@ -157,9 +157,33 @@ async function generateGrok(prompt: string): Promise<{ base64: string; mime: str
 async function urlToImage(url: string): Promise<{ base64: string; mime: string }> {
   const bin = await fetch(url);
   if (!bin.ok) throw new Error(`failed to fetch generated image (${bin.status})`);
+  // ModelsLab's base64 mode (img2img / face_swap / ip-adapter) returns a URL to a
+  // ".base64" TEXT file whose CONTENTS are the image's base64. Fetch it as text
+  // and use that directly - re-encoding its bytes would double-encode into
+  // garbage (a broken image).
+  if (/\.base64($|\?)/i.test(url)) {
+    const txt = (await bin.text()).trim();
+    const m = txt.match(/^data:([^;]+);base64,(.+)$/s);
+    const b64 = m ? m[2] : txt;
+    return { base64: b64, mime: m && /^image\//.test(m[1]) ? m[1] : mimeFromBase64(b64) };
+  }
   const buf = Buffer.from(await bin.arrayBuffer());
   const mime = /\.jpe?g($|\?)/i.test(url) ? "image/jpeg" : "image/png";
   return { base64: buf.toString("base64"), mime };
+}
+
+// Detect an image mime from the first decoded bytes of a base64 payload.
+function mimeFromBase64(base64: string): string {
+  try {
+    const b = Buffer.from(base64, "base64");
+    if (b[0] === 0xff && b[1] === 0xd8) return "image/jpeg";
+    if (b[0] === 0x89 && b[1] === 0x50) return "image/png";
+    if (b.toString("ascii", 0, 4) === "RIFF" && b.toString("ascii", 8, 12) === "WEBP") return "image/webp";
+    if (b.toString("ascii", 0, 3) === "GIF") return "image/gif";
+  } catch {
+    /* fall through */
+  }
+  return "image/png";
 }
 
 // ModelsLab's `output` entries are normally URLs, but img2img with base64:"yes"
