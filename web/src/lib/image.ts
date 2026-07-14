@@ -492,7 +492,7 @@ async function generateModelsLabHeadshot(portraitBase64: string, prompt: string)
   const url = process.env.MODELSLAB_HEADSHOT_URL || "https://modelslab.com/api/v8/images/flux-headshot";
   // The field carrying the reference portrait varies by model; override with
   // MODELSLAB_HEADSHOT_IMAGE_FIELD if the API expects a different name.
-  const imageField = process.env.MODELSLAB_HEADSHOT_IMAGE_FIELD || "init_image";
+  const imageField = process.env.MODELSLAB_HEADSHOT_IMAGE_FIELD || "face_image";
   const payload: Record<string, string> = {
     key,
     model_id: process.env.MODELSLAB_HEADSHOT_MODEL || "flux_headshot",
