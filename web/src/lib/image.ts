@@ -165,10 +165,30 @@ async function urlToImage(url: string): Promise<{ base64: string; mime: string }
 // ModelsLab's `output` entries are normally URLs, but img2img with base64:"yes"
 // can hand back a data URI or a bare base64 string instead - handle both.
 async function outputToImage(value: string): Promise<{ base64: string; mime: string }> {
-  const dataUri = value.match(/^data:(image\/\w+);base64,(.+)$/s);
-  if (dataUri) return { base64: dataUri[2], mime: dataUri[1] };
+  // Strip any base64 data-URI prefix (not just image/* ones) so we always store
+  // raw base64, never "data:...;base64,..." which decodes to garbage.
+  const dataUri = value.match(/^data:([^;]+);base64,(.+)$/s);
+  if (dataUri) return { base64: dataUri[2], mime: /^image\//.test(dataUri[1]) ? dataUri[1] : "image/png" };
   if (/^https?:\/\//i.test(value)) return urlToImage(value);
   return { base64: value, mime: "image/png" };
+}
+
+// Sanity-check that a base64 payload actually decodes to a real image (magic
+// bytes), so a provider handing back an error page / JSON / empty body where we
+// expected an image never gets stored as a broken picture.
+function looksLikeImage(base64: string): boolean {
+  try {
+    const b = Buffer.from(base64, "base64");
+    if (b.length < 100) return false;
+    return (
+      (b[0] === 0xff && b[1] === 0xd8) || // JPEG
+      (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) || // PNG
+      (b.toString("ascii", 0, 4) === "RIFF" && b.toString("ascii", 8, 12) === "WEBP") || // WEBP
+      b.toString("ascii", 0, 3) === "GIF" // GIF
+    );
+  } catch {
+    return false;
+  }
 }
 
 // ---- ModelsLab (FLUX) --------------------------------------------------------
@@ -364,17 +384,29 @@ async function modelsLabFaceSwap(portraitBase64: string, sceneBase64: string): P
     base64: "yes",
   };
 
+  // Resolve an output entry to an image, but only if it's really image bytes.
+  // If the endpoint hands back something else (URL to an error, JSON, empty),
+  // throw with a snippet so withFaceSwap logs what actually came back and falls
+  // back to the plain scene instead of storing a broken picture.
+  const faceSwapResult = async (value: string) => {
+    const img = await outputToImage(value);
+    if (!looksLikeImage(img.base64)) {
+      throw new Error(`face_swap returned non-image output: ${String(value).slice(0, 160)}`);
+    }
+    return img;
+  };
+
   let lastMsg = "";
   for (let attempt = 0; attempt < 4; attempt++) {
     const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     if (!res.ok) throw new Error(`modelslab face_swap ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
 
     let data = (await res.json()) as MlResp;
-    if (data.output?.[0]) return outputToImage(data.output[0]);
+    if (data.output?.[0]) return faceSwapResult(data.output[0]);
 
     if (data.status === "processing" && data.fetch_result) {
       data = await pollModelsLab(data.fetch_result, key);
-      if (data.output?.[0]) return outputToImage(data.output[0]);
+      if (data.output?.[0]) return faceSwapResult(data.output[0]);
     }
 
     lastMsg = String(data.message || data.messege || data.status || "").trim();
