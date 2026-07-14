@@ -316,6 +316,14 @@ async function pollModelsLab(fetchUrl: string, key: string): Promise<MlResp> {
     last = (await res.json()) as MlResp;
     if (last.output?.[0]) return last; // ready (regardless of exact status string)
     if (last.status === "error" || last.status === "failed") return last;
+    // The fetch endpoint uses "Try Again" when the provider cannot currently
+    // progress the queued job. Return immediately so the caller can make its
+    // bounded retry instead of waiting through the whole polling window.
+    const message = String(last.message || last.messege || "").trim();
+    if (/try again|rate limit|queue.*full/i.test(message)) {
+      console.log("[image] ModelsLab asked to retry; ending this poll early");
+      return last;
+    }
     if ((i + 1) % 5 === 0) console.log(`[image] ModelsLab job is still processing (${i + 1}/30)`);
   }
   return last; // still processing; caller throws with context
