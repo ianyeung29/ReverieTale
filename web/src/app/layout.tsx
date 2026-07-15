@@ -1,33 +1,37 @@
 import type { Metadata } from "next";
 import { Nav } from "@/components/Nav";
 import { MobileNav } from "@/components/MobileNav";
+import { JsonLd } from "@/components/JsonLd";
+import { SITE_URL } from "@/lib/site";
 
-const SITE_URL = (process.env.APP_URL || "https://reverie-brown.vercel.app").replace(/\/$/, "");
 const SITE_DESC =
-  "Begin an interactive story, meet a character, then stay and talk to an AI companion who remembers every word. Romance, slice-of-life, and more.";
+  "Explore 13+ interactive stories, meet original characters, and continue the conversation after the scene ends.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "ReverieTale — AI companions who remember you",
+    default: "ReverieTale — Interactive stories and AI characters",
     template: "%s · ReverieTale",
   },
   description: SITE_DESC,
   applicationName: "ReverieTale",
-  keywords: ["AI companion", "AI chat", "interactive fiction", "interactive story", "romance stories", "AI characters", "roleplay chat"],
+  category: "Interactive fiction",
+  keywords: ["interactive fiction", "interactive stories", "AI characters", "character chat", "story games", "original characters", "teen fiction"],
+  alternates: { canonical: "/" },
   openGraph: {
     type: "website",
     siteName: "ReverieTale",
-    title: "ReverieTale — AI companions who remember you",
+    title: "ReverieTale — Interactive stories and AI characters",
     description: SITE_DESC,
     url: SITE_URL,
   },
   twitter: {
     card: "summary_large_image",
-    title: "ReverieTale — AI companions who remember you",
+    title: "ReverieTale — Interactive stories and AI characters",
     description: SITE_DESC,
   },
   robots: { index: true, follow: true },
+  referrer: "origin-when-cross-origin",
   // Google Search Console ownership verification (this token is public - it's
   // meant to be embedded in the page). Override via GOOGLE_SITE_VERIFICATION.
   verification: { google: process.env.GOOGLE_SITE_VERIFICATION || "Oh45qBmntmTRq3ahKHL7KaEJ4wKedwEdUyEJ_nragbc" },
@@ -276,6 +280,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <head>
         <style dangerouslySetInnerHTML={{ __html: GLOBAL_CSS }} />
+        <JsonLd
+          data={{
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            name: "ReverieTale",
+            url: SITE_URL,
+            description: SITE_DESC,
+            inLanguage: "en",
+            audience: { "@type": "PeopleAudience", suggestedMinAge: 13 },
+          }}
+        />
       </head>
       <body
         style={{

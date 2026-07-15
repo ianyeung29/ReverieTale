@@ -11,6 +11,8 @@ import { isCharacterBlocked } from "@/lib/blocks";
 import { logUnlessMissingRelation } from "@/lib/db-errors";
 import { ratingAggregates, userRating } from "@/lib/ratings";
 import { getCurrentUserId } from "@/lib/session";
+import { JsonLd } from "@/components/JsonLd";
+import { absoluteUrl } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +28,8 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     return {
       title: name,
       description: desc,
-      openGraph: { title: `${name} · ReverieTale`, description: desc, type: "profile", images: [img] },
+      alternates: { canonical: `/c/${id}` },
+      openGraph: { title: `${name} · ReverieTale`, description: desc, type: "profile", url: `/c/${id}`, images: [img] },
       twitter: { card: "summary_large_image", title: `${name} · ReverieTale`, description: desc, images: [img] },
     };
   } catch {
@@ -174,7 +177,22 @@ export default async function CharacterProfile({ params }: { params: Promise<{ i
   }
 
   return (
-    <main style={S.wrap}>
+    <>
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "ProfilePage",
+          url: absoluteUrl(`/c/${p.id}`),
+          mainEntity: {
+            "@type": "Person",
+            name: p.name,
+            description: p.persona || p.backstory,
+            image: absoluteUrl(`/api/characters/${p.id}/image`),
+            knowsAbout: p.tags,
+          },
+        }}
+      />
+      <main style={S.wrap}>
       <a href="/browse" style={S.back}>← Companions</a>
 
       <section style={S.hero} className="rv-reveal">
@@ -230,7 +248,8 @@ export default async function CharacterProfile({ params }: { params: Promise<{ i
       ) : (
         <EpisodeShelf items={p.stories} />
       )}
-    </main>
+      </main>
+    </>
   );
 }
 

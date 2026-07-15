@@ -1,6 +1,5 @@
 import type { MetadataRoute } from "next";
-
-const SITE_URL = (process.env.APP_URL || "https://reverie-brown.vercel.app").replace(/\/$/, "");
+import { SITE_URL } from "@/lib/site";
 
 // Let crawlers index the public discovery surface (home, companions, stories,
 // tags, legal) but keep private/authed and API routes out of the index.
