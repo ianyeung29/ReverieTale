@@ -2,10 +2,13 @@ import type { Metadata } from "next";
 import { Nav } from "@/components/Nav";
 import { MobileNav } from "@/components/MobileNav";
 import { JsonLd } from "@/components/JsonLd";
+import { CookieConsent } from "@/components/CookieConsent";
+import { GoogleAnalytics } from "@/components/GoogleAnalytics";
 import { SITE_URL } from "@/lib/site";
 
 const SITE_DESC =
   "Explore 13+ interactive stories, meet original characters, and continue the conversation after the scene ends.";
+const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -272,6 +275,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   body { padding-bottom: 58px; }
   .rv-chatdock-fab { bottom: 58px; }
   .rv-chatdock-panel { bottom: 66px; }
+  .rv-cookie-consent { bottom: 68px !important; }
 }
 `;
 
@@ -303,6 +307,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Nav />
         {children}
         <MobileNav />
+        {GA_MEASUREMENT_ID ? <><CookieConsent /><GoogleAnalytics measurementId={GA_MEASUREMENT_ID} /></> : null}
       </body>
     </html>
   );

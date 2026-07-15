@@ -16,7 +16,7 @@ export default function PrivacyPage() {
         <p style={S.p}><strong style={S.strong}>Content you create:</strong> companion definitions (name, personality, backstory, tags, portraits), stories, and chat messages. Chat and story content is used to generate responses and is retained so a conversation can continue with memory of what you&apos;ve shared.</p>
         <p style={S.p}><strong style={S.strong}>Interaction data:</strong> ratings you give, stories you bookmark, companions you hide from your own browsing, and reports you file. Reporter identity on a report is visible to moderators only, never to the person reported.</p>
         <p style={S.p}><strong style={S.strong}>Payment data:</strong> if you purchase credits, payment is handled by our payment processor directly — we do not store your full card number. We keep a record of the transaction (amount, credit balance, timestamp) to maintain your account balance and for accounting.</p>
-        <p style={S.p}><strong style={S.strong}>Technical data:</strong> a single session cookie that keeps you signed in. See our <a href="/legal/cookies" style={S.link}>Cookies Notice</a> — we don&apos;t run analytics or ad tracking.</p>
+        <p style={S.p}><strong style={S.strong}>Technical data:</strong> a session cookie keeps you signed in. If you accept the optional analytics cookies, Google Analytics also receives limited public-page usage data such as page path, device/browser information, and approximate location. We do not send chat messages, account details, email addresses, payment information, or URL query strings to Google Analytics. See our <a href="/legal/cookies" style={S.link}>Cookies Notice</a>.</p>
       </Section>
       <Section title="2. How we use it">
         <ul style={S.ul}>
@@ -24,6 +24,7 @@ export default function PrivacyPage() {
           <li>To generate AI responses and portraits (see Section 3 below);</li>
           <li>To run moderation — both automated checks and, where flagged, human review of reported content;</li>
           <li>To maintain your credit balance and process purchases;</li>
+          <li>If you opt in, to understand aggregate use of public discovery pages and improve the service;</li>
           <li>To respond to support requests, reports, and complaints; and</li>
           <li>To keep the service secure and prevent abuse.</li>
         </ul>
@@ -38,7 +39,7 @@ export default function PrivacyPage() {
         </p>
       </Section>
       <Section title="4. Who we share data with">
-        <p style={S.p}>We share data only with the service providers needed to run ReverieTale: hosting/database infrastructure, the AI model and image-generation providers described above, and (once payments are live) a payment processor. We do not sell your data, and we don&apos;t share it with advertisers — we don&apos;t have any.</p>
+        <p style={S.p}>We share data only with the service providers needed to run ReverieTale: hosting/database infrastructure, the AI model and image-generation providers described above, our payment processor, and Google Analytics when you opt into analytics cookies. We do not sell your data, and we do not use analytics for advertising personalization.</p>
         <p style={S.p}>We may disclose information if required by law, to investigate a report of illegal content (including reporting CSAM to NCMEC or law enforcement, see our <a href="/legal/blocked-content" style={S.link}>Blocked Content Policy</a>), or to protect the rights or safety of our users or the public.</p>
       </Section>
       <Section title="5. Retention">
