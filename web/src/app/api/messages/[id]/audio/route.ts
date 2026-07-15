@@ -1,7 +1,8 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { messages, threads } from "@/db/schema";
+import { characters, messages, threads } from "@/db/schema";
 import { getCurrentUserId } from "@/lib/session";
+import { resolveTtsVoice } from "@/lib/tts";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -18,9 +19,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   if (!userId) return new Response("unauthorized", { status: 401 });
 
   const [row] = await db
-    .select({ content: messages.content, role: messages.role, ownerId: threads.userId })
+    .select({ content: messages.content, role: messages.role, ownerId: threads.userId, definition: characters.definition, characterId: characters.id })
     .from(messages)
     .innerJoin(threads, eq(messages.threadId, threads.id))
+    .innerJoin(characters, eq(threads.characterId, characters.id))
     .where(eq(messages.id, id))
     .limit(1);
   if (!row || row.ownerId !== userId) return new Response("not found", { status: 404 });
@@ -31,9 +33,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
   const text = row.content.replace(/\s+/g, " ").trim().slice(0, MAX_TTS_CHARS);
   if (!text) return new Response("empty reply", { status: 400 });
+  const model = resolveTtsVoice((row.definition ?? {}) as Record<string, unknown>, row.characterId);
 
   try {
-    const upstream = await fetch(`https://api.deepgram.com/v1/speak?model=${encodeURIComponent(process.env.DEEPGRAM_TTS_MODEL?.trim() || "aura-2-thalia-en")}`, {
+    const upstream = await fetch(`https://api.deepgram.com/v1/speak?model=${encodeURIComponent(model)}`, {
       method: "POST",
       headers: { Authorization: `Token ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({ text }),

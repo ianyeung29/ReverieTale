@@ -10,6 +10,7 @@ import { moderateContent, screenImagePrompt } from "@/lib/moderation";
 import { ratingAggregates } from "@/lib/ratings";
 import { getCurrentUserId } from "@/lib/session";
 import { mediaStorageConfigured, storeImage } from "@/lib/media";
+import { isTtsVoice } from "@/lib/tts";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120; // may auto-generate a default portrait on create
@@ -77,6 +78,7 @@ const Body = z.object({
   look: z.string().trim().max(400).optional(),
   backstory: z.string().trim().max(600).optional(),
   voice: z.string().trim().max(300).optional(),
+  ttsVoice: z.string().trim().max(80).optional(),
   greeting: z.string().trim().max(300).optional(), // their first line, shown on cards/profile/chat
   tags: z.array(z.string().trim().min(1).max(30)).max(8).optional(),
   style: z.enum(["realistic", "anime"]).optional(), // art style for portrait + all scene images
@@ -94,6 +96,7 @@ export async function POST(req: Request) {
   } catch {
     return NextResponse.json({ error: "invalid request body" }, { status: 400 });
   }
+  if (body.ttsVoice && !isTtsVoice(body.ttsVoice)) return NextResponse.json({ error: "invalid narration voice" }, { status: 400 });
 
   // Hybrid pre-publish gate: hard filter -> classifier -> auto-approve / hold /
   // reject. Creators never publish directly; only auto-approve or an admin does.
@@ -112,6 +115,7 @@ export async function POST(req: Request) {
     look: body.look ?? "",
     backstory: body.backstory ?? "",
     voice: body.voice ?? "",
+    ttsVoice: body.ttsVoice ?? "",
     greeting: body.greeting ?? "",
     tags: body.tags ?? [],
     style: body.style ?? "realistic",
