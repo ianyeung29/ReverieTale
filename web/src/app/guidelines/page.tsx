@@ -15,7 +15,7 @@ export default function GuidelinesPage() {
       </Section>
 
       <Section title="What's allowed">
-        <p style={S.p}>Fictional stories about friendship, adventure, mystery, fantasy, and gentle romance are welcome. Keep every character and scene age-appropriate, respectful, and clearly fictional.</p>
+        <p style={S.p}>Fictional stories about friendship, mystery, fantasy, sci-fi, music, gaming, comedy, and adventure are welcome. Keep every character and scene age-appropriate, respectful, and clearly fictional.</p>
       </Section>
 
       <Section title="What's never allowed">
@@ -46,7 +46,7 @@ export default function GuidelinesPage() {
       </Section>
 
       <Section title="For creators">
-        <p style={S.p}>Give your companions a clear age, keep their description fictional and age-appropriate, and focus on a memorable voice, world, and opening scene. Characters that repeatedly draw reports or violate these rules can be unpublished or removed.</p>
+        <p style={S.p}>Give your companions a clear adult age, keep their description fictional and age-appropriate, and focus on a memorable voice, world, and opening scene. Characters that repeatedly draw reports or violate these rules can be unpublished or removed.</p>
       </Section>
     </main>
   );

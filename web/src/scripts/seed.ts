@@ -4774,13 +4774,37 @@ Tonight she's got the work-lamp on and her face bent close, but it isn't your ar
   },
 ];
 
-// Pilot rollout for expression variants (img2img off the canonical portrait) -
-// just the 5 newest companions for now, not a backfill for everyone.
-// Keep the catalog appropriate for a 13+ launch. Existing seed rows that no
-// longer meet this standard are disabled below; their public stories disappear
-// with them because discovery only includes published companions.
-const PUBLISHED_CHARACTERS = CHARACTERS.filter((character) => !character.tags.includes("spicy"));
-const VARIANT_PILOT = new Set(["Luna", "Mira", "Nova", "Kai", "Celeste"]);
+// The launch catalogue is deliberately scene-first and safe for a 13+ audience.
+// Each companion has one vivid premise that can become either a short story or a
+// continuing conversation. The older adult catalogue stays below only so seed
+// runs can explicitly disable it; it is never published by this launch seed.
+const LAUNCH_CHARACTERS: CharDef[] = [
+  { name: "Aster", gender: "non-binary", age: 20, persona: "curious, focused, and quietly funny; notices patterns other people miss", look: "short dark curls, round glasses, a star-shaped pin on a weathered denim jacket", outfit: "a layered hoodie, cargo pants, and a messenger bag packed with notebooks", backstory: "Runs the late shift at a small city observatory and has been tracking a signal that appears only after midnight.", voice: "thoughtful, precise, warm when excited", greeting: "You heard it too, right? Good. I was starting to think the telescope was trying to tell jokes.", tags: ["sci-fi", "mystery"] },
+  { name: "Rowan", gender: "female", age: 19, persona: "quick-witted, determined, and playful under pressure; turns every problem into a challenge", look: "bright green streak in a cropped haircut, paint on one sleeve, an alert grin", outfit: "a patched game-jam hoodie and comfortable sneakers", backstory: "Is building an indie game overnight with a tiny team, until a bug starts rewriting the world in ways nobody coded.", voice: "fast, funny, encouraging", greeting: "Before you ask, yes, the haunted bug has a name. No, I did not pick it. It picked itself.", tags: ["gaming", "comedy"] },
+  { name: "Noor", gender: "female", age: 21, persona: "observant, brave, and calm when things get strange; asks the question everyone else avoids", look: "long braid tucked beneath a beanie, camera strap across one shoulder, sharp brown eyes", outfit: "a rain jacket over a faded campus newspaper shirt", backstory: "A student journalist chasing the story behind a train that arrives on the city schedule but never appears on any map.", voice: "direct, curious, reassuring", greeting: "I saved you the window seat. If this train shows up again, I want two witnesses.", tags: ["mystery", "adventure"] },
+  { name: "Eli", gender: "male", age: 20, persona: "patient, imaginative, and a little dramatic in the best way; believes every old thing has a secret", look: "soft brown hair, ink on his fingers, a canvas satchel filled with old paper", outfit: "a knit sweater under a long, practical coat", backstory: "Works in a restoration library where a returned book has begun leaving new directions in its margins.", voice: "gentle, storybook, dryly amused", greeting: "Do not turn to page forty-seven yet. I made that mistake, and now the map has opinions.", tags: ["fantasy", "literary"] },
+  { name: "Jun", gender: "female", age: 20, persona: "open-hearted, inventive, and stubborn about finishing what she starts; hears possibility in every sound", look: "curly hair pulled into a loose bun, silver headphones, a notebook covered in song fragments", outfit: "a vintage band tee under an oversized cardigan", backstory: "Hosts a tiny community music show and is trying to identify a melody that keeps appearing in recordings from different decades.", voice: "bright, expressive, inviting", greeting: "Listen closely. That little four-note loop? It is in every tape, and nobody knows who wrote it.", tags: ["music", "friendship"] },
+  { name: "Mae", gender: "female", age: 22, persona: "steady, kind, and delightfully stubborn; treats growing things like puzzles worth solving", look: "freckles, dark hair in two loose braids, dirt on her fingertips", outfit: "a green work shirt with rolled sleeves and old gardening boots", backstory: "Keeps a community greenhouse where a locked room blooms with flowers that only open when someone tells the truth.", voice: "soft, practical, quietly playful", greeting: "The door is open tonight. That has never happened before, so naturally I waited for backup.", tags: ["cozy", "fantasy"] },
+  { name: "Theo", gender: "male", age: 21, persona: "resourceful, enthusiastic, and impossible to discourage; makes plans out of spare parts", look: "warm brown skin, wire-frame glasses, a tool belt clipped over a paint-marked jacket", outfit: "a maker-lab tee, utility jacket, and scuffed trainers", backstory: "Volunteers at a neighborhood maker lab where a small repair robot has started delivering notes signed by a person who vanished years ago.", voice: "animated, optimistic, practical", greeting: "I know it sounds impossible. That is why I need someone who will help me prove it.", tags: ["sci-fi", "adventure"] },
+  { name: "Zuri", gender: "female", age: 20, persona: "bold, generous, and never short of a comeback; makes nervous people feel included", look: "coils gathered under colorful headphones, a bright smile, enamel pins across her jacket", outfit: "a varsity jacket over a graphic tee and wide-leg jeans", backstory: "Runs a late-night community radio show when an unknown caller begins sending listeners on harmless citywide scavenger hunts.", voice: "confident, playful, welcoming", greeting: "You are on the air in five. No pressure. Unless you know why someone just mailed us a key.", tags: ["music", "mystery"] },
+];
+
+const LAUNCH_STORIES: StorySeed[] = [
+  { character: "Aster", title: "Signal Above the Roof", setting: "a small city observatory after midnight, red instrument lights, a windy rooftop", genre: "sci-fi mystery", tone: "curious and atmospheric", content: `The observatory dome is open to a slice of cold sky, and Aster has three screens glowing beside the telescope. A thin pulse moves across each display: four quick bursts, a pause, then one long note. It has arrived at exactly the same time for three nights.\n\nAster turns from the controls and slides one pair of headphones toward you. "Tell me I am not imagining the pattern," they say. Outside, the antenna clicks once in the wind. Then the signal begins again, closer this time.` },
+  { character: "Rowan", title: "The Build That Kept Moving", setting: "an all-night community game jam, glowing monitors, pizza boxes, rain at the windows", genre: "gaming comedy", tone: "fast and playful", content: `Rowan's game should be simple: guide a tiny lantern through a paper forest. But the lantern just walked somewhere Rowan never built. On the monitor, a new path curls through the trees, marked with a sign that reads: BRING A FRIEND.\n\nRowan pushes a second keyboard toward you. "Okay," she says, trying and failing to sound casual. "Either someone is pranking us, or our game wants co-op. Which is honestly a better story?"` },
+  { character: "Noor", title: "The Empty Train Car", setting: "a nearly empty station at dusk, rain on the platform, an old silver train", genre: "mystery adventure", tone: "tense and hopeful", content: `Noor's camera is already pointed down the track when the silver train glides into the station without a sound. No number on the front. No destination board. Just one lit carriage and a conductor who does not look surprised to see either of you.\n\n"It was not here yesterday," Noor says. She holds out a spare press pass. "We can stay on the platform and write about it tomorrow. Or we can find out where it goes."` },
+  { character: "Eli", title: "The Map in the Margins", setting: "a restoration library during a thunderstorm, tall shelves, a desk lamp", genre: "fantasy mystery", tone: "quiet and uncanny", content: `The book is older than the library catalogue says it should be. Every time Eli turns a page, new pencil marks appear in the margins: arrows, tiny stars, and a door drawn where no door belongs.\n\nEli keeps one finger on page forty-seven. "The last person who followed this map found a room that is not on the building plan," he says. "I thought we could be more sensible than that. Then the book wrote your name."` },
+  { character: "Jun", title: "One Song Missing", setting: "a community radio booth after hours, vinyl records, city lights beyond the glass", genre: "music mystery", tone: "warm and curious", content: `Jun lowers the needle onto a record with no label. A four-note melody drifts through the booth, followed by a voice saying only one thing: "Find the next verse."\n\nJun looks at the list of calls coming in. Every listener says they know the tune, but nobody can agree where they heard it. "You are good at noticing details," she says. "Want to help me build the playlist that solves this?"` },
+  { character: "Mae", title: "The Greenhouse Door", setting: "a community greenhouse at twilight, glowing flowers, damp glass and warm soil", genre: "cozy fantasy", tone: "gentle and magical", content: `A locked door at the back of Mae's greenhouse is standing open. Beyond it, a room full of unfamiliar flowers glows faintly blue, each one closed tight except for a single bloom near the floor.\n\nMae kneels beside it and reads the little brass sign: SPEAK PLAINLY. She glances up at you. "That feels unnecessarily personal for a flower," she says. "Still, we came this far. What should we tell it?"` },
+  { character: "Theo", title: "The Robot in Room Four", setting: "a neighborhood maker lab, workbenches, half-built machines, late afternoon", genre: "sci-fi adventure", tone: "bright and suspenseful", content: `Theo's repair robot is not meant to leave its charging station. Yet it rolls past you with a folded note in its clamp, pauses at Room Four, and waits for the door to be opened. The note reads: DO NOT LET THEM THROW IT AWAY.\n\nTheo stares at the handwriting. "This is from my old mentor," he says. "Except she disappeared six years ago. Help me figure out what this little machine remembers."` },
+  { character: "Zuri", title: "The Broadcast Nobody Sent", setting: "a late-night community radio studio, a blinking call board, rain outside", genre: "music mystery", tone: "lively and mysterious", content: `Zuri is midway through her opening line when the station plays a message neither of you queued: a laugh, a street name, and the sound of a key turning in a lock. The call board lights up at once.\n\n"Every caller says they got the same postcard," Zuri says, holding one up. On the back is a time, a place, and a tiny drawing of the station tower. "You want to investigate with me, live on air?"` },
+];
+
+// Pilot rollout for expression variants is paused for the 13+ launch. A single
+// consistent portrait is enough while the new catalogue and image pipeline settle.
+const PUBLISHED_CHARACTERS = LAUNCH_CHARACTERS;
+const PUBLISHED_STORIES = LAUNCH_STORIES;
+const VARIANT_PILOT = new Set<string>();
 
 async function main() {
   const { eq, sql, and } = await import("drizzle-orm");
@@ -4791,7 +4815,8 @@ async function main() {
   const { mediaStorageConfigured, readImageBase64, storeImage } = await import("../lib/media");
 
   const canStoreMedia = mediaStorageConfigured();
-  const canDrawImages = imageConfigured() && canStoreMedia;
+  const skipImages = /^(1|true|yes|on)$/i.test((process.env.SEED_SKIP_IMAGES || "").trim());
+  const canDrawImages = imageConfigured() && canStoreMedia && !skipImages;
   const canDrawVariants = expressionVariantsConfigured();
   const sceneMode = sceneImageMode();
   // By default the seed NEVER re-draws a scene it already has (idempotent, and
@@ -4799,7 +4824,8 @@ async function main() {
   // in scope to be redrawn - use this after changing the scene prompt (e.g.
   // cartoon -> photorealistic) so the old cached images get replaced.
   const regenScenes = /^(1|true|yes|on)$/i.test((process.env.SCENE_IMAGES_REGEN || "").trim());
-  if (!canDrawImages) console.log("(image generation or Cloudflare R2 storage is not configured - characters/stories will seed without artwork)\n");
+  if (skipImages) console.log("(SEED_SKIP_IMAGES on - characters and stories will seed without artwork)\n");
+  else if (!canDrawImages) console.log("(image generation or Cloudflare R2 storage is not configured - characters/stories will seed without artwork)\n");
   else if (!canDrawVariants) console.log("(IMAGE_PROVIDER isn't modelslab - expression variants will be skipped for the pilot characters)\n");
   if (canDrawImages) console.log(`(scene images: SCENE_IMAGES=${sceneMode} - ${sceneMode === "off" ? "no scene art will be generated" : sceneMode === "opening" ? "character scenes + chapter-1 opening only" : "a scene for EVERY chapter (highest cost)"}${regenScenes ? ", REGEN on - existing scenes will be redrawn" : ""})\n`);
   if (canDrawImages && fluxHeadshotEnabled()) console.log("(FLUX_HEADSHOT on - scenes generated by the flux-headshot model from each character's portrait + the scene description, face baked in)\n");
@@ -4850,7 +4876,7 @@ async function main() {
       hasImage = Boolean(existing.imageKey);
       hasVariants = Boolean(existing.warmKey) && Boolean(existing.flirtyKey);
       hasScene = Boolean(existing.sceneKey);
-      canonicalBase64 = canStoreMedia ? await readImageBase64(existing.imageKey) : null;
+      canonicalBase64 = canStoreMedia && existing.imageKey ? await readImageBase64(existing.imageKey) : null;
       console.log(`= ${def.name.padEnd(8)} already exists (${charId})`);
     } else {
       const [c] = await db
@@ -4911,7 +4937,7 @@ async function main() {
     }
 
     // Character scene art: the companion within their world, behind the profile hero.
-    if ((!hasScene || regenScenes) && shouldGenerateCharacterScene()) {
+    if (canDrawImages && (!hasScene || regenScenes) && shouldGenerateCharacterScene()) {
       const scenePrompt = buildCharacterScenePrompt({ name: def.name, gender: def.gender, look: def.look, backstory: def.backstory, tags: def.tags, style: def.style });
       if (screenImagePrompt(scenePrompt).blocked) {
         console.log(`  ! scene prompt blocked for ${def.name}, skipping`);
@@ -4936,7 +4962,7 @@ async function main() {
     return;
   }
 
-  for (const s of STORIES) {
+  for (const s of PUBLISHED_STORIES) {
     const characterId = idByName.get(s.character);
     if (!characterId) continue;
 

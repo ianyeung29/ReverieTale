@@ -14,24 +14,24 @@ type Pool = { common: string[]; creative: string[] };
 
 const POOLS: Record<"relationship" | "genre" | "scenario" | "mood" | "setting", Pool> = {
   relationship: {
-    common: ["strangers", "old friends", "reconnecting", "quietly in love", "it's complicated", "exes", "coworkers", "childhood friends", "new neighbors", "friends with a secret"],
-    creative: ["rivals who can't quit each other", "pen pals who've never met", "two people sharing the same dream", "a ghost and the one who sees them", "bounty hunter and their mark", "strangers in an arranged marriage", "a time traveler and a local", "a knight and the monarch they can't confess to", "sworn enemies on the same side now", "the one who got away, returned"],
+    common: ["new teammates", "old friends", "neighbors", "club partners", "fellow travelers", "research partners", "friendly rivals", "pen pals", "a sibling's friend", "friends with a secret"],
+    creative: ["two people sharing the same dream", "a ghost and the one who sees them", "a time traveler and a local", "a knight and a mapmaker", "sworn rivals on the same side", "a detective and an eyewitness", "a musician and their newest fan", "two strangers with the same clue", "a crew with one empty seat", "the person who knows your secret hobby"],
   },
   genre: {
-    common: ["romance", "slice-of-life", "fantasy", "sci-fi", "mystery", "drama", "adventure", "comedy"],
-    creative: ["cyberpunk noir", "cozy cottagecore", "gothic romance", "space-western", "dark academia", "magical realism", "post-apocalyptic", "steampunk", "supernatural thriller", "fairy-tale retelling"],
+    common: ["mystery", "fantasy", "sci-fi", "adventure", "comedy", "cozy", "music", "gaming"],
+    creative: ["cyberpunk mystery", "cozy fantasy", "space adventure", "dark academia", "magical realism", "post-apocalyptic hope", "steampunk", "supernatural mystery", "fairy-tale retelling", "found-family adventure"],
   },
   scenario: {
-    common: ["a chance encounter", "reuniting after years apart", "your first date", "they're your new neighbor", "stranded together", "a late-night confession", "set up by a mutual friend"],
-    creative: ["a wrong-number text at 3am", "both reaching for the last book", "sharing one umbrella in a downpour", "you catch them talking to your cat", "assigned as reluctant partners", "you find their lost diary", "meeting again in a dream you keep sharing", "snowed in at a remote inn", "they're the barista who misspells your name daily"],
+    common: ["a chance encounter", "a missing item", "an unexpected invitation", "assigned as partners", "a citywide scavenger hunt", "a rumor nobody can verify", "a project that goes wrong"],
+    creative: ["a wrong-number text with a clue", "both reaching for the same hidden book", "sharing one umbrella in a downpour", "you catch them talking to a stray robot", "a map appears in your notebook", "you find a message from the future", "the elevator stops on a floor that should not exist", "a radio call meant for someone else", "a game level starts changing on its own"],
   },
   mood: {
     common: ["sweet", "playful", "curious", "mysterious", "cozy", "adventurous", "bittersweet", "tense"],
     creative: ["electric", "wistful", "mischievous", "tender", "dizzying", "haunting", "giddy", "hopeful", "aching", "dreamy"],
   },
   setting: {
-    common: ["a rainy rooftop at midnight", "a cozy bookshop at closing time", "a neon-lit arcade", "a quiet night train", "a beach bonfire", "a jazz bar after hours", "a snowed-in cabin"],
-    creative: ["a lighthouse during a storm", "an all-night diner off the highway", "a greenhouse full of glowing flowers", "a ferris wheel stuck at the top", "a masquerade ball", "a mountain bathhouse in the snow", "a record shop that smells of rain", "a tiny boat under a meteor shower", "a rooftop garden above a sleepless city"],
+    common: ["a rainy rooftop", "a cozy bookshop", "a neon-lit arcade", "a quiet train station", "a community greenhouse", "a campus observatory", "a maker lab"],
+    creative: ["a lighthouse during a storm", "a greenhouse full of glowing flowers", "a ferris wheel stuck at the top", "a museum after a power cut", "a record shop that smells of rain", "a tiny boat under a meteor shower", "a rooftop garden above a sleepless city", "a library with a hidden room", "a community radio booth"],
   },
 };
 
@@ -169,7 +169,7 @@ export default function StoryPage() {
         <button style={S.otherChar} onClick={() => setShowAllChars(true)} type="button">Choose a different companion →</button>
       ) : null}
 
-      <p style={S.section}>Your relationship</p>
+      <p style={S.section}>Your connection</p>
       <Picker options={opts.relationship} value={relationship} onChange={setRelationship} placeholder="describe your own relationship" />
 
       <p style={S.section}>Genre</p>
