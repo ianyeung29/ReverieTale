@@ -42,7 +42,7 @@ export function Nav() {
 
   return (
     <nav style={S.nav}>
-      <a href="/" className="rv-title" style={S.brand}>Reverie</a>
+      <a href="/" className="rv-title" style={S.brand}>ReverieTale</a>
 
       <button type="button" className="rv-nav-toggle" style={S.toggle} onClick={() => setOpen((v) => !v)} aria-label={open ? "Close menu" : "Open menu"} aria-expanded={open}>
         {open ? "✕" : "☰"}

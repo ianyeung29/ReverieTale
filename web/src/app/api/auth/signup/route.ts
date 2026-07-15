@@ -10,7 +10,7 @@ import { escapeHtml, sendEmail } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
-const Body = z.object({ email: z.string().email(), password: z.string().min(8).max(200), over18: z.boolean().optional() });
+const Body = z.object({ email: z.string().email(), password: z.string().min(8).max(200), ageConfirmed: z.boolean() });
 
 // POST /api/auth/signup { email, password } -> starts account creation. Nothing
 // is granted and no session is issued yet: the password is held (hashed) against
@@ -27,6 +27,10 @@ export async function POST(req: Request) {
   }
   const email = body.email.toLowerCase().trim();
 
+  if (!body.ageConfirmed) {
+    return NextResponse.json({ error: "You must confirm that you meet the minimum age to create an account." }, { status: 403 });
+  }
+
   const allowed = await rateLimit(`signup:${email}`, 5, 60 * 60);
   if (!allowed) return NextResponse.json({ error: "Too many attempts. Try again later." }, { status: 429 });
 
@@ -37,7 +41,7 @@ export async function POST(req: Request) {
 
   let userId = existing?.id;
   if (!userId) {
-    const [u] = await db.insert(users).values({ email, ageVerified: true }).returning({ id: users.id });
+    const [u] = await db.insert(users).values({ email, ageVerified: body.ageConfirmed }).returning({ id: users.id });
     userId = u.id;
   }
 
@@ -54,8 +58,8 @@ export async function POST(req: Request) {
   const link = `${appUrl}/verify-email?token=${raw}`;
   const result = await sendEmail({
     to: [email],
-    subject: "Confirm your Reverie account",
-    html: `<p>Welcome to Reverie - confirm your email to finish creating your account:</p><p><a href="${escapeHtml(link)}">${escapeHtml(link)}</a></p><p>This link expires in an hour. If you didn't request this, you can ignore it.</p>`,
+    subject: "Confirm your ReverieTale account",
+    html: `<p>Welcome to ReverieTale - confirm your email to finish creating your account:</p><p><a href="${escapeHtml(link)}">${escapeHtml(link)}</a></p><p>This link expires in an hour. If you didn't request this, you can ignore it.</p>`,
   });
 
   // Without RESEND_API_KEY configured (e.g. local dev), sending is a no-op - hand

@@ -8,7 +8,7 @@ export default function ComplaintPolicyPage() {
     <LegalLayout
       eyebrow="Legal"
       title="Complaint Policy"
-      intro="This policy explains how to file a complaint about anything you encounter on Reverie, and what happens after you do."
+      intro="This policy explains how to file a complaint about anything you encounter on ReverieTale, and what happens after you do."
     >
       <Section title="1. Submitting a complaint">
         <p style={S.p}>

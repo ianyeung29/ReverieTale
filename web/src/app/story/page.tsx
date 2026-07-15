@@ -14,24 +14,24 @@ type Pool = { common: string[]; creative: string[] };
 
 const POOLS: Record<"relationship" | "genre" | "scenario" | "mood" | "setting", Pool> = {
   relationship: {
-    common: ["strangers", "old friends", "reconnecting", "quietly in love", "it's complicated", "exes", "coworkers", "childhood friends", "new neighbors", "friends with a secret"],
-    creative: ["rivals who can't quit each other", "pen pals who've never met", "two people sharing the same dream", "a ghost and the one who sees them", "bounty hunter and their mark", "strangers in an arranged marriage", "a time traveler and a local", "a knight and the monarch they can't confess to", "sworn enemies on the same side now", "the one who got away, returned"],
+    common: ["new teammates", "old friends", "neighbors", "club partners", "fellow travelers", "research partners", "friendly rivals", "pen pals", "a sibling's friend", "friends with a secret"],
+    creative: ["two people sharing the same dream", "a ghost and the one who sees them", "a time traveler and a local", "a knight and a mapmaker", "sworn rivals on the same side", "a detective and an eyewitness", "a musician and their newest fan", "two strangers with the same clue", "a crew with one empty seat", "the person who knows your secret hobby"],
   },
   genre: {
-    common: ["romance", "slice-of-life", "fantasy", "sci-fi", "mystery", "drama", "adventure", "comedy"],
-    creative: ["cyberpunk noir", "cozy cottagecore", "gothic romance", "space-western", "dark academia", "magical realism", "post-apocalyptic", "steampunk", "supernatural thriller", "fairy-tale retelling"],
+    common: ["mystery", "fantasy", "sci-fi", "adventure", "comedy", "cozy", "music", "gaming"],
+    creative: ["cyberpunk mystery", "cozy fantasy", "space adventure", "dark academia", "magical realism", "post-apocalyptic hope", "steampunk", "supernatural mystery", "fairy-tale retelling", "found-family adventure"],
   },
   scenario: {
-    common: ["a chance encounter", "reuniting after years apart", "your first date", "they're your new neighbor", "stranded together", "a late-night confession", "set up by a mutual friend"],
-    creative: ["a wrong-number text at 3am", "both reaching for the last book", "sharing one umbrella in a downpour", "you catch them talking to your cat", "assigned as reluctant partners", "you find their lost diary", "meeting again in a dream you keep sharing", "snowed in at a remote inn", "they're the barista who misspells your name daily"],
+    common: ["a chance encounter", "a missing item", "an unexpected invitation", "assigned as partners", "a citywide scavenger hunt", "a rumor nobody can verify", "a project that goes wrong"],
+    creative: ["a wrong-number text with a clue", "both reaching for the same hidden book", "sharing one umbrella in a downpour", "you catch them talking to a stray robot", "a map appears in your notebook", "you find a message from the future", "the elevator stops on a floor that should not exist", "a radio call meant for someone else", "a game level starts changing on its own"],
   },
   mood: {
     common: ["sweet", "playful", "curious", "mysterious", "cozy", "adventurous", "bittersweet", "tense"],
     creative: ["electric", "wistful", "mischievous", "tender", "dizzying", "haunting", "giddy", "hopeful", "aching", "dreamy"],
   },
   setting: {
-    common: ["a rainy rooftop at midnight", "a cozy bookshop at closing time", "a neon-lit arcade", "a quiet night train", "a beach bonfire", "a jazz bar after hours", "a snowed-in cabin"],
-    creative: ["a lighthouse during a storm", "an all-night diner off the highway", "a greenhouse full of glowing flowers", "a ferris wheel stuck at the top", "a masquerade ball", "a mountain bathhouse in the snow", "a record shop that smells of rain", "a tiny boat under a meteor shower", "a rooftop garden above a sleepless city"],
+    common: ["a rainy rooftop", "a cozy bookshop", "a neon-lit arcade", "a quiet train station", "a community greenhouse", "a campus observatory", "a maker lab"],
+    creative: ["a lighthouse during a storm", "a greenhouse full of glowing flowers", "a ferris wheel stuck at the top", "a museum after a power cut", "a record shop that smells of rain", "a tiny boat under a meteor shower", "a rooftop garden above a sleepless city", "a library with a hidden room", "a community radio booth"],
   },
 };
 
@@ -146,17 +146,17 @@ export default function StoryPage() {
   const active = chars.find((c) => c.id === charId);
 
   return (
-    <main style={S.wrap}>
-      <p style={S.eyebrow}>Enter a scene</p>
-      <h1 style={S.h1}>Meet someone new</h1>
-      <p style={S.sub}>Choose a character and shape one vivid opening moment. When the scene ends, the conversation is yours to continue.</p>
+    <main style={S.wrap} className="rv-story-start">
+      <p style={S.eyebrow} className="rv-story-start-eyebrow">Enter a scene</p>
+      <h1 style={S.h1} className="rv-story-start-title">Meet someone new</h1>
+      <p style={S.sub} className="rv-story-start-sub">Choose a character and shape one vivid opening moment. When the scene ends, the conversation is yours to continue.</p>
       <button style={S.shuffle} onClick={roll} type="button">🎲 Shuffle suggestions</button>
 
-      <div style={S.sectionRow}>
+      <div style={S.sectionRow} className="rv-story-start-character-section">
         <p style={S.section}>Who you meet</p>
         <a href="/create" style={S.createLink}>＋ Create your own</a>
       </div>
-      <div style={S.cards}>
+      <div style={S.cards} className="rv-story-start-cards">
         {(showAllChars ? chars : chars.filter((c) => c.id === charId)).map((c) => (
           <button key={c.id} style={{ ...S.card, ...(c.id === charId ? S.cardOn : {}) }} onClick={() => setCharId(c.id)}>
             <div style={S.cardHead}><CharacterAvatar characterId={c.id} name={c.name} size={38} /><div style={S.cardName}>{c.name}</div></div>
@@ -169,7 +169,7 @@ export default function StoryPage() {
         <button style={S.otherChar} onClick={() => setShowAllChars(true)} type="button">Choose a different companion →</button>
       ) : null}
 
-      <p style={S.section}>Your relationship</p>
+      <p style={S.section}>Your connection</p>
       <Picker options={opts.relationship} value={relationship} onChange={setRelationship} placeholder="describe your own relationship" />
 
       <p style={S.section}>Genre</p>
@@ -216,17 +216,17 @@ function Picker({ options, value, onChange, placeholder }: { options: string[]; 
 }
 
 const S: Record<string, React.CSSProperties> = {
-  wrap: { maxWidth: 720, margin: "0 auto", padding: "52px 24px 80px", lineHeight: 1.6 },
+  wrap: { maxWidth: 680, margin: "0 auto", padding: "28px 24px 64px", lineHeight: 1.55 },
   eyebrow: { letterSpacing: ".2em", textTransform: "uppercase", fontSize: 12, color: "#E9A06B", fontWeight: 700, margin: 0 },
-  h1: { fontFamily: "Georgia, serif", fontSize: 44, margin: "10px 0 12px" },
-  sub: { color: "#AC9CB0", margin: "0 0 16px" },
-  shuffle: { background: "#231A2B", color: "#E9A06B", border: "1px solid #4a3a50", borderRadius: 999, padding: "9px 16px", cursor: "pointer", fontSize: 14, fontWeight: 600 },
-  section: { fontSize: 12, letterSpacing: ".14em", textTransform: "uppercase", color: "#8A7A90", fontWeight: 700, margin: "26px 0 12px" },
+  h1: { fontFamily: "Georgia, serif", fontSize: 34, margin: "6px 0 8px", lineHeight: 1.12 },
+  sub: { color: "#AC9CB0", margin: "0 0 10px", fontSize: 15 },
+  shuffle: { background: "#231A2B", color: "#E9A06B", border: "1px solid #4a3a50", borderRadius: 999, padding: "8px 13px", cursor: "pointer", fontSize: 13, fontWeight: 600 },
+  section: { fontSize: 11.5, letterSpacing: ".14em", textTransform: "uppercase", color: "#8A7A90", fontWeight: 700, margin: "18px 0 8px" },
   sectionRow: { display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 },
   createLink: { color: "#E9A06B", textDecoration: "none", fontSize: 13.5, fontWeight: 600, whiteSpace: "nowrap" },
-  cards: { display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))", gap: 12 },
+  cards: { display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))", gap: 10 },
   otherChar: { marginTop: 12, background: "#231A2B", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 11, padding: "10px 16px", fontSize: 14, fontWeight: 600, cursor: "pointer" },
-  card: { textAlign: "left", background: "#241B2D", border: "1px solid #3A2E44", borderRadius: 14, padding: "14px 16px", cursor: "pointer", color: "#F4EAF0", display: "flex", flexDirection: "column", gap: 8 },
+  card: { textAlign: "left", background: "#241B2D", border: "1px solid #3A2E44", borderRadius: 12, padding: "12px 14px", cursor: "pointer", color: "#F4EAF0", display: "flex", flexDirection: "column", gap: 6 },
   cardOn: { border: "1px solid #E9A06B", background: "#241726", boxShadow: "0 0 0 1px #E9A06B inset" },
   cardHead: { display: "flex", alignItems: "center", gap: 10 },
   cardName: { fontFamily: "Georgia, serif", fontSize: 20 },

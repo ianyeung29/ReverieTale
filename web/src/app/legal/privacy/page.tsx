@@ -38,7 +38,7 @@ export default function PrivacyPage() {
         </p>
       </Section>
       <Section title="4. Who we share data with">
-        <p style={S.p}>We share data only with the service providers needed to run Reverie: hosting/database infrastructure, the AI model and image-generation providers described above, and (once payments are live) a payment processor. We do not sell your data, and we don&apos;t share it with advertisers — we don&apos;t have any.</p>
+        <p style={S.p}>We share data only with the service providers needed to run ReverieTale: hosting/database infrastructure, the AI model and image-generation providers described above, and (once payments are live) a payment processor. We do not sell your data, and we don&apos;t share it with advertisers — we don&apos;t have any.</p>
         <p style={S.p}>We may disclose information if required by law, to investigate a report of illegal content (including reporting CSAM to NCMEC or law enforcement, see our <a href="/legal/blocked-content" style={S.link}>Blocked Content Policy</a>), or to protect the rights or safety of our users or the public.</p>
       </Section>
       <Section title="5. Retention">
@@ -59,13 +59,13 @@ export default function PrivacyPage() {
         </p>
       </Section>
       <Section title="7. Children">
-        <p style={S.p}>Reverie is rated {MIN_AGE}+. We don&apos;t knowingly collect data from anyone under {MIN_AGE}. See our <a href="/legal/underage" style={S.link}>Underage Policy</a>.</p>
+        <p style={S.p}>ReverieTale is rated {MIN_AGE}+. We don&apos;t knowingly collect data from anyone under {MIN_AGE}. See our <a href="/legal/underage" style={S.link}>Underage Policy</a>.</p>
       </Section>
       <Section title="8. Security">
         <p style={S.p}>Passwords are stored as salted hashes, not plain text. No online service can guarantee perfect security, but we take reasonable measures to protect your data against unauthorized access.</p>
       </Section>
       <Section title="9. International users">
-        <p style={S.p}>Reverie is operated from the United States and data is processed there. If you access the service from elsewhere, you understand your data will be transferred to and processed in the United States.</p>
+        <p style={S.p}>ReverieTale is operated from the United States and data is processed there. If you access the service from elsewhere, you understand your data will be transferred to and processed in the United States.</p>
       </Section>
       <Section title="10. Changes to this notice">
         <p style={S.p}>We may update this notice as the service changes. We&apos;ll update the revision date above when we do; significant changes will be called out on the site.</p>

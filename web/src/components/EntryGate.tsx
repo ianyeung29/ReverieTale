@@ -13,15 +13,19 @@ export function EntryGate({ onDone, subtitle = `Sign in or create an account. ${
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [over18, setOver18] = useState(false);
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [googleEnabled, setGoogleEnabled] = useState(false);
+  const [welcomeCredits, setWelcomeCredits] = useState<number | null>(null);
   const [checkEmail, setCheckEmail] = useState<string | null>(null);
   const [devUrl, setDevUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/config").then((r) => r.json()).then((d) => setGoogleEnabled(!!d.googleEnabled)).catch(() => {});
+    fetch("/api/config").then((r) => r.json()).then((d) => {
+      setGoogleEnabled(!!d.googleEnabled);
+      setWelcomeCredits(Number.isFinite(d.welcomeCredits) ? d.welcomeCredits : null);
+    }).catch(() => {});
     if (new URLSearchParams(window.location.search).get("authError") === "google") {
       setErr("Google sign-in didn't go through — try again, or use email below.");
       const clean = new URL(window.location.href);
@@ -31,14 +35,14 @@ export function EntryGate({ onDone, subtitle = `Sign in or create an account. ${
   }, []);
 
   async function submit() {
-    if (mode === "signup" && !over18) return setErr(`You must be ${MIN_AGE} or older to enter.`);
+    if (mode === "signup" && !ageConfirmed) return setErr(`You must be ${MIN_AGE} or older to enter.`);
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return setErr("Enter a valid email.");
     if (mode === "signup" && password.length < 8) return setErr("Password must be at least 8 characters.");
     if (mode === "login" && !password) return setErr("Enter your password.");
     setBusy(true); setErr("");
     try {
       const url = mode === "signup" ? "/api/auth/signup" : "/api/auth/login";
-      const body = mode === "signup" ? { email, password, over18 } : { email, password };
+      const body = mode === "signup" ? { email, password, ageConfirmed } : { email, password };
       const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const d = await res.json();
       if (!res.ok) return setErr(d.error || "Something went wrong.");
@@ -48,8 +52,13 @@ export function EntryGate({ onDone, subtitle = `Sign in or create an account. ${
   }
 
   function continueWithGoogle() {
+    if (mode === "signup" && !ageConfirmed) {
+      setErr(`Confirm that you are ${MIN_AGE} or older to create an account.`);
+      return;
+    }
     const returnTo = window.location.pathname + window.location.search;
-    window.location.href = `/api/auth/google?returnTo=${encodeURIComponent(returnTo)}`;
+    const signup = mode === "signup" ? "&signup=1&ageConfirmed=1" : "";
+    window.location.href = `/api/auth/google?returnTo=${encodeURIComponent(returnTo)}${signup}`;
   }
 
   if (checkEmail) {
@@ -73,22 +82,30 @@ export function EntryGate({ onDone, subtitle = `Sign in or create an account. ${
     <div style={G.center}>
       <div style={G.gate}>
         <p style={G.mk}>{MIN_AGE}+ only</p>
-        <h2 style={G.h}>Enter Reverie</h2>
+        <h2 style={G.h}>Enter ReverieTale</h2>
         <p style={G.sub}>{subtitle}</p>
-
-        {googleEnabled ? (
-          <>
-            <button type="button" style={G.google} onClick={continueWithGoogle}>
-              <GoogleIcon /> Continue with Google
-            </button>
-            <div style={G.divider}><span style={G.dividerLine} /><span style={G.dividerText}>or</span><span style={G.dividerLine} /></div>
-          </>
-        ) : null}
 
         <div style={G.tabs}>
           <button type="button" style={{ ...G.tab, ...(mode === "login" ? G.tabOn : {}) }} onClick={() => { setMode("login"); setErr(""); }}>Log in</button>
           <button type="button" style={{ ...G.tab, ...(mode === "signup" ? G.tabOn : {}) }} onClick={() => { setMode("signup"); setErr(""); }}>Sign up</button>
         </div>
+
+        {mode === "signup" && welcomeCredits !== null ? (
+          <div style={G.bonus}>
+            <span style={G.bonusLabel}>Welcome gift</span>
+            <strong style={G.bonusValue}>◈ {welcomeCredits} credits</strong>
+            <span style={G.bonusNote}>Added after you confirm your email.</span>
+          </div>
+        ) : null}
+
+        {googleEnabled ? (
+          <>
+            <button type="button" style={G.google} onClick={continueWithGoogle}>
+              <GoogleIcon /> {mode === "signup" ? "Sign up with Google" : "Continue with Google"}
+            </button>
+            <div style={G.divider}><span style={G.dividerLine} /><span style={G.dividerText}>or</span><span style={G.dividerLine} /></div>
+          </>
+        ) : null}
 
         <input style={G.input} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@email.com" autoComplete="email" onKeyDown={(e) => { if (e.key === "Enter") submit(); }} />
         <input
@@ -101,13 +118,13 @@ export function EntryGate({ onDone, subtitle = `Sign in or create an account. ${
           onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
         />
         {mode === "signup" ? (
-          <label style={G.chk}><input type="checkbox" checked={over18} onChange={(e) => setOver18(e.target.checked)} /> I am {MIN_AGE} or older</label>
+          <label style={G.chk}><input type="checkbox" checked={ageConfirmed} onChange={(e) => setAgeConfirmed(e.target.checked)} /> I am {MIN_AGE} or older</label>
         ) : (
           <a href="/forgot-password" style={G.forgot}>Forgot password?</a>
         )}
         {err ? <p style={G.err}>{err}</p> : null}
         <button style={{ ...G.btn, opacity: busy ? 0.6 : 1 }} onClick={submit} disabled={busy}>
-          {busy ? "…" : mode === "signup" ? "Create account" : "Log in"}
+          {busy ? "…" : mode === "signup" && welcomeCredits !== null ? `Create account and get ${welcomeCredits} credits` : mode === "signup" ? "Create account" : "Log in"}
         </button>
       </div>
     </div>
@@ -131,6 +148,10 @@ const G: Record<string, React.CSSProperties> = {
   mk: { fontSize: 12, letterSpacing: ".2em", textTransform: "uppercase", color: "#E9A06B", fontWeight: 700, margin: 0 },
   h: { fontFamily: "Georgia, serif", fontSize: 26, margin: 0, color: "#F4EAF0" },
   sub: { color: "#AC9CB0", margin: "0 0 6px", fontSize: 14 },
+  bonus: { display: "grid", gap: 2, padding: "11px 13px", background: "#1A121F", border: "1px solid #4A3A50", borderRadius: 10, textAlign: "left" },
+  bonusLabel: { color: "#E9A06B", fontSize: 11, fontWeight: 700, letterSpacing: ".12em", textTransform: "uppercase" },
+  bonusValue: { color: "#F4EAF0", fontSize: 18, lineHeight: 1.2 },
+  bonusNote: { color: "#8A7A90", fontSize: 12.5 },
   chk: { display: "flex", alignItems: "center", gap: 8, color: "#AC9CB0", fontSize: 14, justifyContent: "center" },
   err: { color: "#E88", fontSize: 13, margin: 0 },
   input: { background: "#1A121F", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 12, padding: "13px 15px", fontSize: 15 },

@@ -9,22 +9,22 @@ const SITE_DESC =
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Reverie — AI companions who remember you",
-    template: "%s · Reverie",
+    default: "ReverieTale — AI companions who remember you",
+    template: "%s · ReverieTale",
   },
   description: SITE_DESC,
-  applicationName: "Reverie",
+  applicationName: "ReverieTale",
   keywords: ["AI companion", "AI chat", "interactive fiction", "interactive story", "romance stories", "AI characters", "roleplay chat"],
   openGraph: {
     type: "website",
-    siteName: "Reverie",
-    title: "Reverie — AI companions who remember you",
+    siteName: "ReverieTale",
+    title: "ReverieTale — AI companions who remember you",
     description: SITE_DESC,
     url: SITE_URL,
   },
   twitter: {
     card: "summary_large_image",
-    title: "Reverie — AI companions who remember you",
+    title: "ReverieTale — AI companions who remember you",
     description: SITE_DESC,
   },
   robots: { index: true, follow: true },
@@ -76,7 +76,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .rv-nav-toggle { display: none; }
 .rv-nav-links { display: flex; align-items: center; gap: 16px; margin-left: auto; overflow-x: auto; }
 @media (max-width: 760px) {
-  .rv-nav-toggle { display: inline-flex; align-items: center; justify-content: center; }
+  .rv-nav-toggle { display: inline-flex; align-items: center; justify-content: center; width: 32px !important; height: 32px !important; font-size: 14px !important; }
+  .rv-title { font-size: 16px !important; }
   .rv-nav-links { display: none; }
   .rv-nav-links.rv-nav-open {
     display: flex; flex-direction: column; align-items: stretch; gap: 2px;
@@ -87,6 +88,16 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   .rv-nav-links.rv-nav-open a, .rv-nav-links.rv-nav-open button { width: 100%; box-sizing: border-box; }
   .rv-nav-links.rv-nav-open a { padding: 12px 4px; border-bottom: 1px solid #241a2b !important; }
   .rv-nav-links.rv-nav-open > :last-child { border-bottom: 0; }
+
+  /* The nav collapses at 760px, so the home lead needs to become compact at
+     the same point. This also covers desktop windows used at a larger zoom. */
+  .rv-home { padding: 24px 18px 28px !important; }
+  .rv-home-hero { margin-top: 20px !important; }
+  .rv-home-hero h1 { font-size: 30px !important; line-height: 1.08 !important; margin: 8px 0 10px !important; }
+  .rv-home-hero > p:not(:first-child) { font-size: 15px !important; line-height: 1.48 !important; }
+  .rv-home-hero-cta { gap: 10px !important; margin-top: 16px !important; }
+  .rv-home-hero-cta .rv-btn { padding: 10px 14px !important; border-radius: 10px !important; min-height: 0 !important; font-size: 13.5px !important; }
+  .rv-home-hero-cta a:not(.rv-btn) { font-size: 13.5px !important; }
 }
 
 /* Character-create wizard: stacked on narrow screens, form + sticky live
@@ -164,6 +175,13 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 @media (min-width: 620px) { .rv-companion-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; } }
 @media (min-width: 920px) { .rv-companion-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; } }
 @media (max-width: 560px) {
+  /* Story creation needs a compact lead-in on narrow or zoomed layouts: the
+     character picker should arrive quickly, not below a billboard-sized title. */
+  .rv-story-start { padding: 18px 16px 68px !important; }
+  .rv-story-start-title { font-size: 28px !important; line-height: 1.08 !important; margin: 5px 0 7px !important; }
+  .rv-story-start-sub { font-size: 14px !important; line-height: 1.45 !important; margin-bottom: 8px !important; }
+  .rv-story-start-character-section { margin-top: 14px !important; }
+  .rv-story-start-cards { gap: 10px !important; }
   .rv-home-hero .rv-btn { padding: 11px 16px !important; border-radius: 10px !important; }
   .rv-character-card { border-radius: 12px !important; }
   .rv-character-card-media > div { border-radius: 11px !important; }
@@ -172,6 +190,53 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   .rv-character-card-media-text span { font-size: 10px !important; padding: 2px 7px !important; }
   .rv-character-card-body { padding: 10px !important; min-height: 0 !important; }
   .rv-character-card-copy, .rv-character-card-meta { display: none !important; }
+}
+
+/* Home discovery: compact mobile hierarchy. The primary action stays easy to
+   reach without becoming a full-width banner, while the spotlight becomes one
+   focused character moment instead of a squeezed desktop layout. */
+@media (max-width: 560px) {
+  .rv-home { padding: 24px 16px 24px !important; }
+  .rv-home-hero h1 { font-size: 28px !important; line-height: 1.08 !important; margin: 8px 0 10px !important; }
+  .rv-home-hero > p:not(:first-child) { font-size: 14px !important; line-height: 1.48 !important; }
+  .rv-home-hero-cta { gap: 10px !important; margin-top: 18px !important; }
+  .rv-home-hero-cta .rv-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; }
+  .rv-home-spotlight { margin-top: 24px !important; padding: 10px !important; gap: 12px !important; flex-direction: row !important; flex-wrap: nowrap !important; align-items: stretch !important; border-radius: 14px !important; }
+  .rv-home-spotlight-portrait { width: 108px !important; min-width: 108px !important; align-self: stretch; }
+  .rv-home-spotlight-portrait > div { height: 152px !important; aspect-ratio: auto !important; border-radius: 9px !important; }
+  .rv-home-spotlight-body { gap: 5px !important; padding: 2px 2px 2px 0 !important; justify-content: center !important; }
+  .rv-home-spotlight-body h2 { font-size: 25px !important; }
+  .rv-home-spotlight-body > p { font-size: 13px !important; }
+  .rv-home-spotlight-body .rv-home-spotlight-chat { display: none !important; }
+  .rv-home-spotlight-body .rv-btn { padding: 11px 15px !important; border-radius: 9px !important; font-size: 13.5px !important; }
+  .rv-home-moods > div:first-child { margin-top: 28px !important; }
+}
+
+/* Explore: lead with one full scene, then keep the rest of the catalogue dense
+   and thumb-friendly. Sorting stays available as a horizontal strip instead of
+   expanding into a row of oversized mobile buttons. */
+@media (max-width: 680px) {
+  .rv-explore { padding: 30px 16px 82px !important; }
+  .rv-explore-hero h1 { font-size: 40px !important; }
+  .rv-explore-controls { display: grid !important; grid-template-columns: minmax(0, 1fr); }
+  .rv-explore-controls input { min-width: 0 !important; width: 100%; box-sizing: border-box; }
+  .rv-explore-sort {
+    width: 100%; box-sizing: border-box; overflow-x: auto; scrollbar-width: none;
+  }
+  .rv-explore-sort::-webkit-scrollbar { display: none; }
+  .rv-explore-sort button { flex: 0 0 auto; }
+  .rv-explore-tags { flex-wrap: nowrap !important; overflow-x: auto; padding: 2px 0 6px; scrollbar-width: none; }
+  .rv-explore-tags::-webkit-scrollbar { display: none; }
+  .rv-explore-tags button { flex: 0 0 auto; }
+  .rv-explore-feature { grid-template-columns: minmax(0, 1fr) !important; min-height: 0 !important; margin-bottom: 28px !important; }
+  .rv-explore-feature-media { min-height: 0 !important; }
+  .rv-explore-feature-media > div { height: min(82vw, 330px) !important; aspect-ratio: auto !important; }
+  .rv-explore-feature-body { padding: 24px 20px 26px !important; }
+  .rv-explore-feature-body h2 { font-size: 34px !important; }
+  .rv-explore-feature-body p { max-width: none !important; }
+  .rv-explore-grid { gap: 12px !important; }
+  .rv-explore-grid .rv-character-card-body { padding: 10px !important; }
+  .rv-explore-grid .rv-character-card-body > div:last-child { margin-top: 0 !important; }
 }
 
 /* Mobile bottom navigation: the primary nav on small screens (desktop keeps
@@ -188,9 +253,9 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .rv-mobilenav-center { color: #E9A06B; }
 .rv-mobilenav-center-btn {
   display: flex; align-items: center; justify-content: center;
-  width: 46px; height: 46px; margin-top: -22px; border-radius: 50%;
+  width: 42px; height: 42px; margin-top: -19px; border-radius: 50%;
   background: linear-gradient(135deg,#E9A06B,#D46A8B); color: #1A1220;
-  font-size: 22px; box-shadow: 0 8px 20px rgba(212,106,139,.45);
+  font-size: 20px; box-shadow: 0 8px 20px rgba(212,106,139,.45);
 }
 @media (max-width: 760px) {
   .rv-mobilenav {

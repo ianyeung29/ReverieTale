@@ -106,7 +106,7 @@ export default function LibraryPage() {
 
   return (
     <main style={S.wrap}>
-      <a href="/" style={S.back}>← Reverie</a>
+      <a href="/" style={S.back}>← ReverieTale</a>
       <h1 style={S.h1}>Your library</h1>
       <p style={S.sub}>Everything you've started or saved - pick up any chapter where you left off.</p>
 

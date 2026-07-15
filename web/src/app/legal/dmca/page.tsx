@@ -17,7 +17,7 @@ export default function DmcaPage() {
         </p>
         <ul style={S.ul}>
           <li>A physical or electronic signature of the copyright owner or someone authorized to act on their behalf;</li>
-          <li>A description of the copyrighted work you claim has been infringed, and enough information for us to locate the material on Reverie;</li>
+          <li>A description of the copyrighted work you claim has been infringed, and enough information for us to locate the material on ReverieTale;</li>
           <li>Your address, telephone number, and email address;</li>
           <li>A statement that you have a good-faith belief the use is not authorized by the copyright owner, its agent, or the law; and</li>
           <li>A statement, made under penalty of perjury, that the information above is accurate and that you are the copyright owner or authorized to act on their behalf.</li>

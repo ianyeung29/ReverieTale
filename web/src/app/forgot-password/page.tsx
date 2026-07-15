@@ -39,7 +39,7 @@ export default function ForgotPasswordPage() {
             <button style={{ ...S.btn, opacity: busy ? 0.6 : 1 }} onClick={submit} disabled={busy}>{busy ? "…" : "Send reset link"}</button>
           </>
         )}
-        <a href="/" style={S.back}>← Back to Reverie</a>
+        <a href="/" style={S.back}>← Back to ReverieTale</a>
       </div>
     </div>
   );

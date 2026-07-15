@@ -13,13 +13,16 @@ function safeReturnTo(v: string | null): string {
   return v;
 }
 
-// GET /api/auth/google?returnTo=/path -> redirect to Google's consent screen.
-// Convenience login only - does NOT verify age (see lib/session.ts + lib/google.ts).
+// GET /api/auth/google?returnTo=/path&signup=1&ageConfirmed=1 -> redirect to
+// Google's consent screen. Existing accounts can log in normally; new accounts
+// need the same explicit minimum-age confirmation as email signup.
 export async function GET(req: Request) {
   if (!googleConfigured()) return NextResponse.json({ error: "google sign-in not configured" }, { status: 501 });
 
   const url = new URL(req.url);
   const returnTo = safeReturnTo(url.searchParams.get("returnTo"));
+  const isSignup = url.searchParams.get("signup") === "1";
+  const ageConfirmed = isSignup && url.searchParams.get("ageConfirmed") === "1";
   // Strip any trailing slash so a stray slash in APP_URL doesn't produce a
   // double-slash redirect_uri that fails Google's exact-match check.
   const origin = (process.env.APP_URL || url.origin).replace(/\/$/, "");
@@ -27,7 +30,7 @@ export async function GET(req: Request) {
 
   const state = randomBytes(16).toString("hex");
   const res = NextResponse.redirect(googleAuthUrl(redirectUri, state));
-  res.cookies.set(STATE_COOKIE, JSON.stringify({ state, returnTo }), {
+  res.cookies.set(STATE_COOKIE, JSON.stringify({ state, returnTo, ageConfirmed }), {
     httpOnly: true,
     sameSite: "lax",
     path: "/",

@@ -50,7 +50,7 @@ export async function POST(req: Request) {
   }
 
   const [u] = await db.select({ email: users.email }).from(users).where(eq(users.id, row.userId)).limit(1);
-  const res = NextResponse.json({ email: u?.email });
+  const res = NextResponse.json({ email: u?.email, welcomeCredits: WELCOME_CREDITS });
   res.cookies.set(SESSION_COOKIE, signToken(row.userId), {
     httpOnly: true,
     sameSite: "lax",

@@ -5,17 +5,17 @@ export const metadata = { title: "Community guidelines" };
 export default function GuidelinesPage() {
   return (
     <main style={S.wrap}>
-      <a href="/" style={S.back}>← Reverie</a>
+      <a href="/" style={S.back}>← ReverieTale</a>
       <p style={S.mark}>Trust &amp; safety</p>
       <h1 style={S.h1}>Community guidelines</h1>
-      <p style={S.sub}>Reverie is a {MIN_AGE}+ fiction platform. Everyone here — readers and creators — is expected to follow these rules.</p>
+      <p style={S.sub}>ReverieTale is a {MIN_AGE}+ fiction platform. Everyone here — readers and creators — is expected to follow these rules.</p>
 
       <Section title="Who this is for">
-        <p style={S.p}>You must be {MIN_AGE} or older to use Reverie. Every account confirms this when signing up. This is currently a self-attestation, not an independent age-verification check.</p>
+        <p style={S.p}>You must be {MIN_AGE} or older to use ReverieTale. Every account confirms this when signing up. This is currently a self-attestation, not an independent age-verification check.</p>
       </Section>
 
       <Section title="What's allowed">
-        <p style={S.p}>Fictional stories about friendship, adventure, mystery, fantasy, and gentle romance are welcome. Keep every character and scene age-appropriate, respectful, and clearly fictional.</p>
+        <p style={S.p}>Fictional stories about friendship, mystery, fantasy, sci-fi, music, gaming, comedy, and adventure are welcome. Keep every character and scene age-appropriate, respectful, and clearly fictional.</p>
       </Section>
 
       <Section title="What's never allowed">
@@ -46,7 +46,7 @@ export default function GuidelinesPage() {
       </Section>
 
       <Section title="For creators">
-        <p style={S.p}>Give your companions a clear age, keep their description fictional and age-appropriate, and focus on a memorable voice, world, and opening scene. Characters that repeatedly draw reports or violate these rules can be unpublished or removed.</p>
+        <p style={S.p}>Give your companions a clear adult age, keep their description fictional and age-appropriate, and focus on a memorable voice, world, and opening scene. Characters that repeatedly draw reports or violate these rules can be unpublished or removed.</p>
       </Section>
     </main>
   );

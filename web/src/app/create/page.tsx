@@ -246,7 +246,7 @@ export default function CreateCharacterPage() {
   if (submitted) {
     return (
       <main style={S.wrap}>
-        <a href="/" style={S.back}>← Reverie</a>
+        <a href="/" style={S.back}>← ReverieTale</a>
         <div style={S.head}>
           <Avatar name={submitted} size={54} />
           <div>
@@ -277,7 +277,7 @@ export default function CreateCharacterPage() {
     if (editSaved === "in_review") {
       return (
         <main style={S.wrap}>
-          <a href="/" style={S.back}>← Reverie</a>
+          <a href="/" style={S.back}>← ReverieTale</a>
           <div style={S.head}>
             {portraitSrc ? <img src={portraitSrc} alt={name} style={S.headPortrait} /> : <Avatar name={name || "?"} size={54} />}
             <div>
@@ -296,7 +296,7 @@ export default function CreateCharacterPage() {
     }
     return (
       <main style={S.wrap}>
-        <a href="/" style={S.back}>← Reverie</a>
+        <a href="/" style={S.back}>← ReverieTale</a>
 
         <div style={S.head}>
           {portraitSrc ? <img src={portraitSrc} alt={name} style={S.headPortrait} /> : <Avatar name={name || "?"} size={54} />}
@@ -484,7 +484,7 @@ export default function CreateCharacterPage() {
   // tags/preview all at once.
   return (
     <main style={S.wizardWrap}>
-      <a href="/" style={S.back}>← Reverie</a>
+      <a href="/" style={S.back}>← ReverieTale</a>
       <p style={S.mark}>Create a companion</p>
       <h1 style={S.h1}>{name.trim() || "Your character"}</h1>
       <p style={S.sub}>Build them once. Every story you write and every reader who chats with them earns you credits.</p>

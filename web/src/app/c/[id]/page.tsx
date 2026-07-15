@@ -26,8 +26,8 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     return {
       title: name,
       description: desc,
-      openGraph: { title: `${name} · Reverie`, description: desc, type: "profile", images: [img] },
-      twitter: { card: "summary_large_image", title: `${name} · Reverie`, description: desc, images: [img] },
+      openGraph: { title: `${name} · ReverieTale`, description: desc, type: "profile", images: [img] },
+      twitter: { card: "summary_large_image", title: `${name} · ReverieTale`, description: desc, images: [img] },
     };
   } catch {
     return { title: "Companion" };
@@ -54,7 +54,7 @@ type Profile = {
   greeting: string;
   tags: string[];
   isOwner: boolean;
-  creator: string; // display attribution ("Reverie" for first-party)
+  creator: string; // display attribution ("ReverieTale" for first-party)
   creatorId: string | null; // links to the creator catalog; null = first-party
   rating: number; ratingCount: number; myRating: number | null; canRate: boolean;
   canModerate: boolean; isBlocked: boolean;
@@ -78,10 +78,10 @@ async function loadProfile(id: string): Promise<Profile | null> {
 
     const def = (char.definition ?? {}) as Record<string, unknown>;
 
-    // Attribution: first-party (no creator) shows as Reverie; a creator shows
+    // Attribution: first-party (no creator) shows as ReverieTale; a creator shows
     // their chosen display name, or "Anonymous creator" if they haven't set one.
     // The email is never exposed.
-    let creator = "Reverie";
+    let creator = "ReverieTale";
     if (char.creatorId) {
       const [c] = await db.select({ dn: users.displayName }).from(users).where(eq(users.id, char.creatorId)).limit(1);
       creator = c?.dn?.trim() || "Anonymous creator";

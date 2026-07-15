@@ -6,6 +6,7 @@ export type CharacterCardData = {
   id: string;
   name: string;
   tags: string[];
+  tagline?: string;
   greeting?: string;
   persona?: string;
   reads?: number;
@@ -18,8 +19,8 @@ export type CharacterCardData = {
  * Portrait-forward character card shared by every discovery surface (browse,
  * tag, creator, home). The image fills the top of the card with name/tags
  * overlaid on a gradient scrim, and the character's own greeting - not a form
- * snippet - is the first thing read below it, so a companion reads as someone
- * you're about to meet rather than a spec sheet with an initials icon.
+ * scene premise - is the first thing read below it, so a companion reads as a
+ * doorway into a story instead of a spec sheet with an initials icon.
  */
 export function CharacterCard({ c, actions }: { c: CharacterCardData; actions?: ReactNode }) {
   const hasStats = Boolean(c.reads || c.stories || c.ratingCount);
@@ -42,7 +43,9 @@ export function CharacterCard({ c, actions }: { c: CharacterCardData; actions?: 
         </div>
       </a>
       <div className="rv-character-card-body" style={S.body}>
-        {c.greeting?.trim() ? (
+        {c.tagline?.trim() ? (
+          <p className="rv-character-card-copy" style={S.tagline}>{c.tagline.trim()}</p>
+        ) : c.greeting?.trim() ? (
           <p className="rv-character-card-copy" style={S.greeting}>&ldquo;{c.greeting.trim()}&rdquo;</p>
         ) : c.persona ? (
           <p className="rv-character-card-copy" style={S.persona}>{c.persona}</p>
@@ -76,6 +79,7 @@ const S: Record<string, React.CSSProperties> = {
   tags: { display: "flex", flexWrap: "wrap", gap: 6 },
   tag: { fontSize: 11, color: "#F4EAF0", background: "rgba(20,14,24,.55)", border: "1px solid rgba(244,234,240,.3)", borderRadius: 999, padding: "2px 9px", backdropFilter: "blur(2px)" },
   body: { padding: 16, display: "flex", flexDirection: "column", gap: 10 },
+  tagline: { color: "#D9CBDE", fontSize: 13.5, margin: 0, lineHeight: 1.5, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" },
   greeting: { color: "#EadFe6", fontSize: 13.5, fontStyle: "italic", margin: 0, lineHeight: 1.5, borderLeft: "2px solid #E9A06B", paddingLeft: 10 },
   persona: { color: "#CBBBD0", fontSize: 13.5, margin: 0, lineHeight: 1.5, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" },
   meta: { color: "#8A7A90", fontSize: 12, fontVariantNumeric: "tabular-nums", display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" },

@@ -6,7 +6,7 @@
 export async function sendEmail(opts: { to: string[]; subject: string; html: string }): Promise<{ ok: boolean; skipped?: boolean; error?: string }> {
   const key = process.env.RESEND_API_KEY;
   // Resend's shared sandbox sender works without domain verification for testing.
-  const from = process.env.RESEND_FROM || "Reverie <onboarding@resend.dev>";
+  const from = process.env.RESEND_FROM || "ReverieTale <onboarding@resend.dev>";
   if (!key) return { ok: false, skipped: true };
   if (!opts.to.length) return { ok: false, skipped: true };
 
