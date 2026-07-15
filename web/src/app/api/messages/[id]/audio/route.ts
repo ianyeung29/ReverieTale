@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { characters, messages, threads } from "@/db/schema";
 import { getCurrentUserId } from "@/lib/session";
-import { resolveTtsVoice } from "@/lib/tts";
+import { resolveTtsSpeed, resolveTtsVoice } from "@/lib/tts";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -34,9 +34,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const text = row.content.replace(/\s+/g, " ").trim().slice(0, MAX_TTS_CHARS);
   if (!text) return new Response("empty reply", { status: 400 });
   const model = resolveTtsVoice((row.definition ?? {}) as Record<string, unknown>, row.characterId);
+  const speed = resolveTtsSpeed((row.definition ?? {}) as Record<string, unknown>, row.characterId);
 
   try {
-    const upstream = await fetch(`https://api.deepgram.com/v1/speak?model=${encodeURIComponent(model)}`, {
+    const upstream = await fetch(`https://api.deepgram.com/v1/speak?model=${encodeURIComponent(model)}&speed=${speed}`, {
       method: "POST",
       headers: { Authorization: `Token ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({ text }),

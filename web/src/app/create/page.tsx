@@ -6,7 +6,7 @@ import { EntryGate } from "@/components/EntryGate";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { Section } from "@/components/Section";
 import { MIN_AGE } from "@/lib/legal";
-import { TTS_VOICES } from "@/lib/tts";
+import { TTS_DELIVERIES, TTS_VOICES } from "@/lib/tts";
 
 const GENDER_OPTIONS = [
   { value: "female", label: "Female" },
@@ -38,6 +38,7 @@ export default function CreateCharacterPage() {
   const [backstory, setBackstory] = useState("");
   const [voice, setVoice] = useState("");
   const [ttsVoice, setTtsVoice] = useState("");
+  const [ttsSpeed, setTtsSpeed] = useState("");
   const [greeting, setGreeting] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
@@ -72,7 +73,7 @@ export default function CreateCharacterPage() {
     setEditId(id);
     fetch(`/api/characters/${id}`).then((r) => (r.ok ? r.json() : Promise.reject(r.status))).then((d) => {
       setName(d.name || ""); setLook(d.look || ""); setPersona(d.persona || "");
-      setBackstory(d.backstory || ""); setVoice(d.voice || ""); setTtsVoice(d.ttsVoice || ""); setGreeting(d.greeting || ""); setTags(Array.isArray(d.tags) ? d.tags : []);
+      setBackstory(d.backstory || ""); setVoice(d.voice || ""); setTtsVoice(d.ttsVoice || ""); setTtsSpeed(d.ttsSpeed ? String(d.ttsSpeed) : ""); setGreeting(d.greeting || ""); setTags(Array.isArray(d.tags) ? d.tags : []);
       setAge(d.age ? String(d.age) : ""); setGender(d.gender || ""); setStyle(d.style === "anime" ? "anime" : "realistic");
       setHasImage(!!d.hasImage);
     }).catch(() => setLoadErr(true));
@@ -194,6 +195,7 @@ export default function CreateCharacterPage() {
       backstory: backstory.trim() || undefined,
       voice: voice.trim() || undefined,
       ttsVoice: ttsVoice || undefined,
+      ttsSpeed: ttsSpeed ? Number(ttsSpeed) : null,
       greeting: greeting.trim() || undefined,
       tags: tags.length ? tags : undefined,
       style,
@@ -419,6 +421,13 @@ export default function CreateCharacterPage() {
               </select>
               <p style={S.genHint}>This is the Deepgram voice readers hear. Auto-match gives every companion a stable, different voice.</p>
 
+              <label style={S.label}>Delivery <span style={S.hint}>(pace and presence)</span></label>
+              <select value={ttsSpeed} onChange={(e) => setTtsSpeed(e.target.value)} style={S.input}>
+                <option value="">Auto-match their written tone</option>
+                {TTS_DELIVERIES.map((option) => <option key={option.speed} value={option.speed}>{option.label} — {option.description}</option>)}
+              </select>
+              <p style={S.genHint}>Delivery gives two companions with the same voice a different rhythm.</p>
+
               <FieldLabel label="Greeting" onSuggest={() => suggest(["greeting"])} busy={genBusy === "greeting"} disabled={!!genBusy} />
               <input value={greeting} onChange={(e) => setGreeting(e.target.value)} placeholder="the first thing they'd say to you — e.g. “I wasn't sure you'd actually come back.”" style={S.input} maxLength={300} />
               <p style={S.genHint}>Shown on their card and profile, and said first when someone opens a new chat.</p>
@@ -596,6 +605,13 @@ export default function CreateCharacterPage() {
                 {TTS_VOICES.map((option) => <option key={option.id} value={option.id}>{option.label} — {option.description}</option>)}
               </select>
               <p style={S.genHint}>Choose the Deepgram voice readers hear, or leave auto-match on for a distinct character voice.</p>
+
+              <label style={S.label}>Delivery <span style={S.hint}>(pace and presence)</span></label>
+              <select value={ttsSpeed} onChange={(e) => setTtsSpeed(e.target.value)} style={S.input}>
+                <option value="">Auto-match their written tone</option>
+                {TTS_DELIVERIES.map((option) => <option key={option.speed} value={option.speed}>{option.label} — {option.description}</option>)}
+              </select>
+              <p style={S.genHint}>Delivery gives two companions with the same voice a different rhythm.</p>
 
               <FieldLabel label="Greeting" onSuggest={() => suggest(["greeting"])} busy={genBusy === "greeting"} disabled={!!genBusy} />
               <input value={greeting} onChange={(e) => setGreeting(e.target.value)} placeholder="the first thing they'd say to you — e.g. “I wasn't sure you'd actually come back.”" style={S.input} maxLength={300} />

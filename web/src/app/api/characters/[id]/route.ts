@@ -7,12 +7,12 @@ import { moderateContent } from "@/lib/moderation";
 import { logUnlessMissingRelation } from "@/lib/db-errors";
 import { getCurrentUserId } from "@/lib/session";
 import { storeImage } from "@/lib/media";
-import { isTtsVoice } from "@/lib/tts";
+import { isTtsSpeed, isTtsVoice } from "@/lib/tts";
 
 export const dynamic = "force-dynamic";
 
 // Gender is intentionally NOT here: it's set at creation and immutable thereafter.
-const FIELDS = ["name", "look", "persona", "backstory", "voice", "ttsVoice", "greeting", "tags"] as const;
+const FIELDS = ["name", "look", "persona", "backstory", "voice", "ttsVoice", "ttsSpeed", "greeting", "tags"] as const;
 
 // GET /api/characters/:id -> owner-only detail for editing.
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -49,6 +49,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     backstory: (def.backstory as string) ?? "",
     voice: (def.voice as string) ?? "",
     ttsVoice: (def.ttsVoice as string) ?? "",
+    ttsSpeed: typeof def.ttsSpeed === "number" ? def.ttsSpeed : null,
     greeting: (def.greeting as string) ?? "",
     tags: Array.isArray(def.tags) ? (def.tags as string[]) : [],
     age: typeof def.age === "number" ? def.age : null,
@@ -67,6 +68,7 @@ const Patch = z.object({
   backstory: z.string().trim().max(600).optional(),
   voice: z.string().trim().max(300).optional(),
   ttsVoice: z.string().trim().max(80).optional(),
+  ttsSpeed: z.number().nullable().optional(),
   greeting: z.string().trim().max(300).optional(),
   tags: z.array(z.string().trim().min(1).max(30)).max(8).optional(),
   style: z.enum(["realistic", "anime"]).optional(),
@@ -87,6 +89,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     return NextResponse.json({ error: "invalid request body" }, { status: 400 });
   }
   if (body.ttsVoice && !isTtsVoice(body.ttsVoice)) return NextResponse.json({ error: "invalid narration voice" }, { status: 400 });
+  if (body.ttsSpeed !== undefined && body.ttsSpeed !== null && !isTtsSpeed(body.ttsSpeed)) return NextResponse.json({ error: "invalid narration delivery" }, { status: 400 });
 
   const [row] = await db
     .select({ creatorId: characters.creatorId, definition: characters.definition })
