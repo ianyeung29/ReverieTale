@@ -11,6 +11,7 @@ export async function GET() {
   return NextResponse.json({
     imageEnabled: imageConfigured() && mediaStorageConfigured(),
     googleEnabled: googleConfigured(),
+    welcomeCredits: Number(process.env.WELCOME_CREDITS || 20),
     pricing: {
       chat: Number(process.env.CHAT_PRICE || 1),
       chapter: Number(process.env.CHAPTER_PRICE || 10),

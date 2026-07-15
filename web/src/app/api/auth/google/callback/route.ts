@@ -19,9 +19,8 @@ function fail(origin: string, returnTo: string) {
 }
 
 // GET /api/auth/google/callback -> exchange the code, find/create the user by
-// verified email, set the session cookie. Mirrors /api/auth/login's account
-// model exactly (same ageVerified stub, same welcome grant) - this is a second
-// door into the same account system, not a separate one.
+// verified email, set the session cookie, and require age confirmation before
+// creating a new account. It shares the email signup's welcome grant semantics.
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   // Must match the redirect_uri sent in the auth step exactly (see the auth
@@ -30,7 +29,7 @@ export async function GET(req: NextRequest) {
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
 
-  let expected: { state: string; returnTo: string } | null = null;
+  let expected: { state: string; returnTo: string; ageConfirmed?: boolean } | null = null;
   try {
     const raw = req.cookies.get(STATE_COOKIE)?.value;
     expected = raw ? JSON.parse(raw) : null;
@@ -51,6 +50,7 @@ export async function GET(req: NextRequest) {
 
     let [u] = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
     if (!u) {
+      if (!expected.ageConfirmed) return fail(origin, returnTo);
       [u] = await db.insert(users).values({ email, ageVerified: true }).returning({ id: users.id });
       await grantDrip(u.id, WELCOME_CREDITS, `welcome:${u.id}`);
     }
