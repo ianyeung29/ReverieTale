@@ -157,13 +157,15 @@ export function ChatDock({
     }
   }
 
-  function listen(id: string, content: string) {
+  async function listen(id: string, content: string) {
     if (speaking === id) {
       stopSpeaking();
       setSpeaking(null);
       return;
     }
-    if (speakReply(content, () => setSpeaking((current) => (current === id ? null : current)))) setSpeaking(id);
+    setSpeaking(id);
+    const started = await speakReply(id, content, () => setSpeaking((current) => (current === id ? null : current)));
+    if (!started) setSpeaking((current) => (current === id ? null : current));
   }
 
   const lastReply = [...messages].reverse().find((m) => m.role === "character");
