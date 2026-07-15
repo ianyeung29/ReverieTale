@@ -168,7 +168,7 @@ export default async function Home() {
               ) : (
                 <a href={`/story?characterId=${spotlight.id}`} className="rv-btn rv-btn-primary" style={btn(true)}>Begin their story →</a>
               )}
-              <a href={`/chat?characterId=${spotlight.id}`} className="rv-btn" style={btn(false)}>Chat with {spotlight.name}</a>
+              <a href={`/chat?characterId=${spotlight.id}`} className="rv-btn rv-home-spotlight-chat" style={btn(false)}>Chat with {spotlight.name}</a>
             </div>
           </div>
         </section>
@@ -274,22 +274,22 @@ function btn(primary: boolean): React.CSSProperties {
 }
 
 const S: Record<string, React.CSSProperties> = {
-  wrap: { maxWidth: 940, margin: "0 auto", padding: "68px 24px 40px", lineHeight: 1.6, position: "relative", overflow: "hidden" },
+  wrap: { maxWidth: 940, margin: "0 auto", padding: "54px 24px 40px", lineHeight: 1.6, position: "relative", overflow: "hidden" },
   hero: { position: "relative", zIndex: 1, padding: 4, borderRadius: 24, overflow: "hidden" },
   eyebrow: { position: "relative", letterSpacing: ".22em", textTransform: "uppercase", fontSize: 12, color: "#E9A06B", fontWeight: 700, margin: 0 },
-  h1: { position: "relative", fontFamily: "Georgia, serif", fontSize: 66, margin: "14px 0 16px", letterSpacing: "-.015em", lineHeight: 1 },
-  heroCopy: { position: "relative", color: "#CBBBD0", fontSize: 18, lineHeight: 1.55, maxWidth: 560, margin: 0 },
+  h1: { position: "relative", fontFamily: "Georgia, serif", fontSize: 54, margin: "12px 0 14px", letterSpacing: "-.015em", lineHeight: 1.05 },
+  heroCopy: { position: "relative", color: "#CBBBD0", fontSize: 16.5, lineHeight: 1.55, maxWidth: 560, margin: 0 },
   cta: { position: "relative", display: "flex", gap: "14px 20px", marginTop: 24, flexWrap: "wrap", alignItems: "center" },
   heroTextLink: { color: "#E9A06B", textDecoration: "none", fontWeight: 600, fontSize: 15 },
-  spot: { position: "relative", zIndex: 1, marginTop: 40, borderRadius: 24, overflow: "hidden", border: "1px solid #3A2E44", display: "flex", flexWrap: "wrap", gap: 28, padding: 28 },
+  spot: { position: "relative", zIndex: 1, marginTop: 34, borderRadius: 20, overflow: "hidden", border: "1px solid #3A2E44", display: "flex", flexWrap: "wrap", gap: 22, padding: 22 },
   spotBgLayer: { position: "absolute", inset: 0, zIndex: 0, overflow: "hidden", pointerEvents: "none" },
   spotBgImage: { position: "absolute", inset: -30, backgroundSize: "cover", backgroundPosition: "center 20%", filter: "blur(16px) brightness(.4) saturate(1.15)", transform: "scale(1.12)" },
   spotFallbackBg: { position: "absolute", inset: 0, background: "#211827" },
   spotScrim: { position: "absolute", inset: 0, background: "linear-gradient(100deg, rgba(21,15,26,.72), rgba(21,15,26,.5))" },
-  spotPortrait: { position: "relative", zIndex: 1, width: 310, maxWidth: "100%", flexShrink: 0 },
+  spotPortrait: { position: "relative", zIndex: 1, width: 250, maxWidth: "100%", flexShrink: 0 },
   spotBody: { position: "relative", zIndex: 1, flex: "1 1 320px", minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: 8 },
   spotEyebrow: { letterSpacing: ".18em", textTransform: "uppercase", fontSize: 11.5, color: "#E9A06B", fontWeight: 700, margin: 0 },
-  spotName: { fontFamily: "Georgia, serif", fontSize: 38, margin: "2px 0 0", color: "#F4EAF0" },
+  spotName: { fontFamily: "Georgia, serif", fontSize: 34, margin: "2px 0 0", color: "#F4EAF0" },
   spotHook: { color: "#C6B7CC", fontSize: 15, margin: 0, maxWidth: 480 },
   spotTags: { display: "flex", flexWrap: "wrap", gap: 6, margin: "2px 0" },
   spotTag: { fontSize: 11.5, color: "#F4EAF0", background: "rgba(233,160,107,.16)", border: "1px solid rgba(233,160,107,.4)", borderRadius: 999, padding: "3px 10px", textTransform: "capitalize" },

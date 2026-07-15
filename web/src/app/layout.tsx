@@ -76,7 +76,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .rv-nav-toggle { display: none; }
 .rv-nav-links { display: flex; align-items: center; gap: 16px; margin-left: auto; overflow-x: auto; }
 @media (max-width: 760px) {
-  .rv-nav-toggle { display: inline-flex; align-items: center; justify-content: center; }
+  .rv-nav-toggle { display: inline-flex; align-items: center; justify-content: center; width: 32px !important; height: 32px !important; font-size: 14px !important; }
+  .rv-title { font-size: 16px !important; }
   .rv-nav-links { display: none; }
   .rv-nav-links.rv-nav-open {
     display: flex; flex-direction: column; align-items: stretch; gap: 2px;
@@ -178,17 +179,18 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
    reach without becoming a full-width banner, while the spotlight becomes one
    focused character moment instead of a squeezed desktop layout. */
 @media (max-width: 560px) {
-  .rv-home { padding: 30px 16px 26px !important; }
-  .rv-home-hero h1 { font-size: 40px !important; line-height: 1.04 !important; margin: 10px 0 12px !important; }
-  .rv-home-hero > p:not(:first-child) { font-size: 16px !important; line-height: 1.5 !important; }
-  .rv-home-hero-cta { gap: 12px !important; margin-top: 20px !important; }
+  .rv-home { padding: 24px 16px 24px !important; }
+  .rv-home-hero h1 { font-size: 32px !important; line-height: 1.08 !important; margin: 8px 0 10px !important; }
+  .rv-home-hero > p:not(:first-child) { font-size: 15px !important; line-height: 1.48 !important; }
+  .rv-home-hero-cta { gap: 10px !important; margin-top: 18px !important; }
   .rv-home-hero-cta .rv-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; }
-  .rv-home-spotlight { margin-top: 28px !important; padding: 12px !important; gap: 16px !important; flex-direction: column !important; border-radius: 14px !important; }
-  .rv-home-spotlight-portrait { width: 100% !important; }
-  .rv-home-spotlight-portrait > div { border-radius: 10px !important; }
-  .rv-home-spotlight-body { gap: 7px !important; padding: 2px 4px 6px !important; }
-  .rv-home-spotlight-body h2 { font-size: 30px !important; }
-  .rv-home-spotlight-body > p { font-size: 14px !important; }
+  .rv-home-spotlight { margin-top: 24px !important; padding: 10px !important; gap: 12px !important; flex-direction: row !important; flex-wrap: nowrap !important; align-items: stretch !important; border-radius: 14px !important; }
+  .rv-home-spotlight-portrait { width: 108px !important; min-width: 108px !important; align-self: stretch; }
+  .rv-home-spotlight-portrait > div { height: 152px !important; aspect-ratio: auto !important; border-radius: 9px !important; }
+  .rv-home-spotlight-body { gap: 5px !important; padding: 2px 2px 2px 0 !important; justify-content: center !important; }
+  .rv-home-spotlight-body h2 { font-size: 25px !important; }
+  .rv-home-spotlight-body > p { font-size: 13px !important; }
+  .rv-home-spotlight-body .rv-home-spotlight-chat { display: none !important; }
   .rv-home-spotlight-body .rv-btn { padding: 11px 15px !important; border-radius: 9px !important; font-size: 13.5px !important; }
   .rv-home-moods > div:first-child { margin-top: 28px !important; }
 }
@@ -234,9 +236,9 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .rv-mobilenav-center { color: #E9A06B; }
 .rv-mobilenav-center-btn {
   display: flex; align-items: center; justify-content: center;
-  width: 46px; height: 46px; margin-top: -22px; border-radius: 50%;
+  width: 42px; height: 42px; margin-top: -19px; border-radius: 50%;
   background: linear-gradient(135deg,#E9A06B,#D46A8B); color: #1A1220;
-  font-size: 22px; box-shadow: 0 8px 20px rgba(212,106,139,.45);
+  font-size: 20px; box-shadow: 0 8px 20px rgba(212,106,139,.45);
 }
 @media (max-width: 760px) {
   .rv-mobilenav {

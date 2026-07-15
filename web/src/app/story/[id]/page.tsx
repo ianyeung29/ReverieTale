@@ -376,6 +376,37 @@ export default function StoryReadPage() {
         ))}
       </article>
 
+      {last ? (
+        <section style={S.nextMove} aria-labelledby="next-move-title">
+          <div style={S.nextMoveCopy}>
+            <p style={S.nextMoveEyebrow}>The opening is only the beginning</p>
+            <h2 id="next-move-title" style={S.nextMoveTitle}>Your move</h2>
+            <p style={S.nextMoveBody}>Stay in this moment with {story.characterName}, or choose the first turn in a version of the story that is yours.</p>
+          </div>
+          <div style={S.nextMoveActions}>
+            {story.isOwner ? (
+              <button
+                className="rv-btn rv-btn-primary"
+                style={S.nextMovePrimary}
+                onClick={() => {
+                  setShowForm(true);
+                  window.setTimeout(() => document.getElementById("next-chapter")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+                }}
+              >
+                Shape the next chapter
+              </button>
+            ) : (
+              <a className="rv-btn rv-btn-primary" style={S.nextMovePrimary} href={`/story?characterId=${story.characterId}`}>
+                Start your own path
+              </a>
+            )}
+            <a className="rv-btn" style={S.nextMoveSecondary} href={`/chat?characterId=${story.characterId}&fromStory=${story.id}&chapter=${idx + 1}`}>
+              Talk to {story.characterName}
+            </a>
+          </div>
+        </section>
+      ) : null}
+
       {story.isOwner ? (
         <div style={S.ownerControls}>
           <button style={{ ...S.rewrite, opacity: busy ? 0.6 : 1 }} onClick={rewrite} disabled={busy}>↻ {busy ? "Rewriting…" : `Rewrite this chapter · ${chapterPrice} credits`}</button>
@@ -417,7 +448,7 @@ export default function StoryReadPage() {
       {notice ? <p style={S.notice}>{notice} <a href="/credits" style={S.noticeLink}>Get credits →</a></p> : null}
 
       {last && showForm ? (
-        <div style={S.form}>
+        <div id="next-chapter" style={S.form}>
           <div style={S.formTop}>
             <p style={S.formTitle}>Shape the next chapter</p>
             <button style={S.surprise} onClick={surprise} type="button">🎲 Surprise me</button>
@@ -464,6 +495,7 @@ export default function StoryReadPage() {
         ) : null}
       </div>
 
+      {!last ? (
       <a
         className="rv-card"
         style={S.chatBridge}
@@ -476,6 +508,7 @@ export default function StoryReadPage() {
         </div>
         <span style={S.chatBridgeArrow}>→</span>
       </a>
+      ) : null}
 
       {idx > 0 ? (
         <button
@@ -623,6 +656,14 @@ const S: Record<string, React.CSSProperties> = {
   tocNum: { color: "#E9A06B", fontWeight: 700, fontSize: 13, minWidth: 18, fontVariantNumeric: "tabular-nums" },
   tocText: { fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   form: { marginTop: 20, background: "#241B2D", border: "1px solid #3A2E44", borderRadius: 16, padding: 20, display: "flex", flexDirection: "column", gap: 8 },
+  nextMove: { marginTop: 28, padding: 20, background: "linear-gradient(115deg, rgba(233,160,107,.14), rgba(212,106,139,.12))", border: "1px solid #4a3a50", borderRadius: 16, display: "flex", flexWrap: "wrap", alignItems: "center", gap: "16px 24px" },
+  nextMoveCopy: { flex: "1 1 300px", minWidth: 0 },
+  nextMoveEyebrow: { color: "#E9A06B", fontSize: 11, fontWeight: 700, letterSpacing: ".12em", textTransform: "uppercase", margin: 0 },
+  nextMoveTitle: { fontFamily: "Georgia, serif", color: "#F4EAF0", fontSize: 26, lineHeight: 1.15, margin: "4px 0 6px" },
+  nextMoveBody: { color: "#CBBBD0", fontSize: 14, lineHeight: 1.5, margin: 0, maxWidth: 460 },
+  nextMoveActions: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 },
+  nextMovePrimary: { border: 0, cursor: "pointer", color: "#1A1220", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", borderRadius: 10, padding: "11px 15px", fontWeight: 650, fontSize: 14, textDecoration: "none" },
+  nextMoveSecondary: { color: "#F4EAF0", background: "#231A2B", border: "1px solid #4a3a50", borderRadius: 10, padding: "10px 14px", fontWeight: 600, fontSize: 14, textDecoration: "none" },
   formTop: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 },
   formTitle: { fontFamily: "Georgia, serif", fontSize: 20, margin: 0 },
   surprise: { background: "#231A2B", color: "#E9A06B", border: "1px solid #4a3a50", borderRadius: 999, padding: "7px 13px", cursor: "pointer", fontSize: 13, fontWeight: 600 },
