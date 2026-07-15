@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { characters, threads } from "@/db/schema";
+import { characters, stories, threads } from "@/db/schema";
 import { getCurrentUserId } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -17,9 +17,14 @@ export async function GET() {
       characterId: threads.characterId,
       name: sql<string>`${characters.definition}->>'name'`,
       lastActiveAt: threads.lastActiveAt,
+      storyId: threads.storyId,
+      storyContext: threads.storyContext,
+      storyContextChapter: threads.storyContextChapter,
+      storyTitle: stories.title,
     })
     .from(threads)
     .innerJoin(characters, eq(threads.characterId, characters.id))
+    .leftJoin(stories, eq(threads.storyId, stories.id))
     .where(eq(threads.userId, userId))
     .orderBy(desc(threads.lastActiveAt))
     .limit(30);

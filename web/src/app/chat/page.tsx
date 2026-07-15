@@ -3,13 +3,17 @@
 import { useEffect, useRef, useState } from "react";
 import { CharacterAvatar } from "@/components/CharacterAvatar";
 import { EntryGate } from "@/components/EntryGate";
+import { StoryMemoryCard, type StoryMemory } from "@/components/StoryMemoryCard";
 import { pickExpression } from "@/lib/expression";
 import { pickStatusLine } from "@/lib/status";
 import { speakReply, stopSpeaking } from "@/lib/speech";
 
 type Msg = { role: "user" | "character" | "system"; content: string; id?: string; hasImage?: boolean };
 type Char = { id: string; name: string; tagline: string; greeting?: string; tags?: string[] };
-type Convo = { id: string; characterId: string; name: string; lastActiveAt: string };
+type Convo = {
+  id: string; characterId: string; name: string; lastActiveAt: string;
+  storyId?: string | null; storyContext?: string | null; storyContextChapter?: number; storyTitle?: string | null;
+};
 
 const OPENERS = [
   "Hey — I've been thinking about you.",
@@ -17,6 +21,16 @@ const OPENERS = [
   "What have you been up to?",
   "I had the strangest day…",
 ];
+
+function memoryFromConvo(convo?: Convo): StoryMemory | null {
+  if (!convo?.storyId) return null;
+  return {
+    storyId: convo.storyId,
+    title: convo.storyTitle || "Your story",
+    summary: convo.storyContext || "The scene you entered is part of this conversation now.",
+    chapter: convo.storyContextChapter || 1,
+  };
+}
 
 export default function ChatPage() {
   const [authEmail, setAuthEmail] = useState<string | null | undefined>(undefined); // undefined = loading
@@ -33,6 +47,7 @@ export default function ChatPage() {
   const [broke, setBroke] = useState(false);
   const [storyId, setStoryId] = useState<string | null>(null);
   const [storyChapter, setStoryChapter] = useState<number | undefined>();
+  const [storyMemory, setStoryMemory] = useState<StoryMemory | null>(null);
   const [convos, setConvos] = useState<Convo[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [resumedHistory, setResumedHistory] = useState(false);
@@ -42,8 +57,15 @@ export default function ChatPage() {
   const [speaking, setSpeaking] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
-  function loadConvos() {
-    fetch("/api/threads").then((r) => r.json()).then((c: Convo[]) => setConvos(Array.isArray(c) ? c : [])).catch(() => {});
+  async function loadConvos(): Promise<Convo[]> {
+    try {
+      const result = await fetch("/api/threads").then((r) => r.json());
+      const list = Array.isArray(result) ? result : [];
+      setConvos(list);
+      return list;
+    } catch {
+      return [];
+    }
   }
 
   // Auth check on mount.
@@ -59,7 +81,15 @@ export default function ChatPage() {
     const params = new URLSearchParams(window.location.search);
     const urlChar = params.get("characterId");
     const fromStory = params.get("fromStory");
-    if (fromStory) setStoryId(fromStory);
+    if (fromStory) {
+      setStoryId(fromStory);
+      setStoryMemory({
+        storyId: fromStory,
+        title: "Your story",
+        summary: "The moment you just read is ready to continue here. Your companion keeps that scene in mind.",
+        chapter: Number(params.get("chapter")) || 1,
+      });
+    }
     const ch = Number(params.get("chapter"));
     if (ch > 0) setStoryChapter(ch);
 
@@ -85,7 +115,10 @@ export default function ChatPage() {
         const latest = list.find((c) => c.characterId === preferred);
         if (latest) {
           const rows: Msg[] = await fetch(`/api/messages?threadId=${latest.id}`).then((r) => r.json()).catch(() => []);
-          if (Array.isArray(rows)) { setMessages(rows); setThreadId(latest.id); setResumedHistory(rows.length > 0); }
+          if (Array.isArray(rows)) {
+            setMessages(rows); setThreadId(latest.id); setResumedHistory(rows.length > 0);
+            setStoryMemory(memoryFromConvo(latest));
+          }
         }
       }
     })();
@@ -97,24 +130,24 @@ export default function ChatPage() {
   async function signOut() {
     await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
     setAuthEmail(null);
-    setMessages([]); setThreadId(undefined); setConvos([]); setCredits(null);
+    setMessages([]); setThreadId(undefined); setConvos([]); setCredits(null); setStoryMemory(null);
   }
 
-  function newChat() { setThreadId(undefined); setMessages([]); setBroke(false); setStoryId(null); setStoryChapter(undefined); setShowHistory(false); setResumedHistory(false); }
+  function newChat() { setThreadId(undefined); setMessages([]); setBroke(false); setStoryId(null); setStoryChapter(undefined); setStoryMemory(null); setShowHistory(false); setResumedHistory(false); }
 
   async function switchCharacter(id: string) {
-    setCharId(id); setStoryId(null); setBroke(false); setShowHistory(false);
+    setCharId(id); setStoryId(null); setStoryMemory(null); setBroke(false); setShowHistory(false);
     const latest = convos.find((c) => c.characterId === id);
     if (latest) {
       const rows: Msg[] = await fetch(`/api/messages?threadId=${latest.id}`).then((r) => r.json()).catch(() => []);
-      setMessages(Array.isArray(rows) ? rows : []); setThreadId(latest.id); setResumedHistory(Array.isArray(rows) && rows.length > 0);
+      setMessages(Array.isArray(rows) ? rows : []); setThreadId(latest.id); setStoryMemory(memoryFromConvo(latest)); setResumedHistory(Array.isArray(rows) && rows.length > 0);
     } else {
       setMessages([]); setThreadId(undefined); setResumedHistory(false);
     }
   }
 
   async function openConvo(c: Convo) {
-    setShowHistory(false); setCharId(c.characterId); setStoryId(null); setBroke(false);
+    setShowHistory(false); setCharId(c.characterId); setStoryId(null); setStoryMemory(memoryFromConvo(c)); setBroke(false);
     try {
       const rows: Msg[] = await fetch(`/api/messages?threadId=${c.id}`).then((r) => r.json());
       setMessages(Array.isArray(rows) ? rows : []); setThreadId(c.id); setResumedHistory(Array.isArray(rows) && rows.length > 0);
@@ -218,7 +251,13 @@ export default function ChatPage() {
             else { if (ev.replace) setLast(ev.replace); if (ev.messageId) setLastId(ev.messageId); }
             if (ev.threadId) setThreadId(ev.threadId);
             if (ev.balance) setCredits(ev.balance.total);
-            if (wasNew) loadConvos();
+            if (wasNew) {
+              void loadConvos().then((list) => {
+                const convo = list.find((item) => item.id === ev.threadId);
+                const memory = memoryFromConvo(convo);
+                if (memory) setStoryMemory(memory);
+              });
+            }
           } else if (ev.error) {
             if (started) setLast("[chat failed]", "system"); else setMessages((m) => [...m, { role: "system", content: "[chat failed]" }]);
           }
@@ -278,6 +317,7 @@ export default function ChatPage() {
       ) : null}
 
       <div style={S.feed}>
+        {storyMemory && active ? <StoryMemoryCard memory={storyMemory} characterId={active.id} characterName={active.name} /> : null}
         {messages.length === 0 && !busy ? (
           <div style={S.empty}>
             {active ? <CharacterAvatar characterId={active.id} name={active.name} size={60} variant={expr} /> : null}

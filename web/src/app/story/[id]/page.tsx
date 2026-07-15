@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { CharacterAvatar } from "@/components/CharacterAvatar";
 import { ChatDock } from "@/components/ChatDock";
+import { SceneRecapCard } from "@/components/SceneRecapCard";
 import { RatingBar } from "@/components/RatingBar";
 import { ReportLink } from "@/components/TrustControls";
 import { pickExpression } from "@/lib/expression";
@@ -405,6 +406,18 @@ export default function StoryReadPage() {
             </a>
           </div>
         </section>
+      ) : null}
+
+      {last ? (
+        <SceneRecapCard
+          storyId={story.id}
+          title={story.title}
+          characterId={story.characterId}
+          characterName={story.characterName}
+          chapterCount={chapters.length}
+          excerpt={(chapters[idx] ?? "").replace(/\s+/g, " ").trim()}
+          hasBackground={story.hasBackground}
+        />
       ) : null}
 
       {story.isOwner ? (
