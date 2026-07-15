@@ -167,10 +167,10 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 @media (max-width: 560px) {
   /* Story creation needs a compact lead-in on narrow or zoomed layouts: the
      character picker should arrive quickly, not below a billboard-sized title. */
-  .rv-story-start { padding: 24px 16px 72px !important; }
-  .rv-story-start-title { font-size: 32px !important; line-height: 1.08 !important; margin: 6px 0 8px !important; }
-  .rv-story-start-sub { font-size: 15px !important; line-height: 1.48 !important; margin-bottom: 10px !important; }
-  .rv-story-start-character-section { margin-top: 18px !important; }
+  .rv-story-start { padding: 18px 16px 68px !important; }
+  .rv-story-start-title { font-size: 28px !important; line-height: 1.08 !important; margin: 5px 0 7px !important; }
+  .rv-story-start-sub { font-size: 14px !important; line-height: 1.45 !important; margin-bottom: 8px !important; }
+  .rv-story-start-character-section { margin-top: 14px !important; }
   .rv-story-start-cards { gap: 10px !important; }
   .rv-home-hero .rv-btn { padding: 11px 16px !important; border-radius: 10px !important; }
   .rv-character-card { border-radius: 12px !important; }
