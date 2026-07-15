@@ -286,7 +286,7 @@ const S: Record<string, React.CSSProperties> = {
   spotBgImage: { position: "absolute", inset: -30, backgroundSize: "cover", backgroundPosition: "center 20%", filter: "blur(16px) brightness(.4) saturate(1.15)", transform: "scale(1.12)" },
   spotFallbackBg: { position: "absolute", inset: 0, background: "#211827" },
   spotScrim: { position: "absolute", inset: 0, background: "linear-gradient(100deg, rgba(21,15,26,.72), rgba(21,15,26,.5))" },
-  spotPortrait: { position: "relative", zIndex: 1, width: 260, maxWidth: "100%", flexShrink: 0 },
+  spotPortrait: { position: "relative", zIndex: 1, width: 310, maxWidth: "100%", flexShrink: 0 },
   spotBody: { position: "relative", zIndex: 1, flex: "1 1 320px", minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: 8 },
   spotEyebrow: { letterSpacing: ".18em", textTransform: "uppercase", fontSize: 11.5, color: "#E9A06B", fontWeight: 700, margin: 0 },
   spotName: { fontFamily: "Georgia, serif", fontSize: 38, margin: "2px 0 0", color: "#F4EAF0" },

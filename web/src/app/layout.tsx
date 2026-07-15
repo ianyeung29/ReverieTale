@@ -193,6 +193,33 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   .rv-home-moods > div:first-child { margin-top: 28px !important; }
 }
 
+/* Explore: lead with one full scene, then keep the rest of the catalogue dense
+   and thumb-friendly. Sorting stays available as a horizontal strip instead of
+   expanding into a row of oversized mobile buttons. */
+@media (max-width: 680px) {
+  .rv-explore { padding: 30px 16px 82px !important; }
+  .rv-explore-hero h1 { font-size: 40px !important; }
+  .rv-explore-controls { display: grid !important; grid-template-columns: minmax(0, 1fr); }
+  .rv-explore-controls input { min-width: 0 !important; width: 100%; box-sizing: border-box; }
+  .rv-explore-sort {
+    width: 100%; box-sizing: border-box; overflow-x: auto; scrollbar-width: none;
+  }
+  .rv-explore-sort::-webkit-scrollbar { display: none; }
+  .rv-explore-sort button { flex: 0 0 auto; }
+  .rv-explore-tags { flex-wrap: nowrap !important; overflow-x: auto; padding: 2px 0 6px; scrollbar-width: none; }
+  .rv-explore-tags::-webkit-scrollbar { display: none; }
+  .rv-explore-tags button { flex: 0 0 auto; }
+  .rv-explore-feature { grid-template-columns: minmax(0, 1fr) !important; min-height: 0 !important; margin-bottom: 28px !important; }
+  .rv-explore-feature-media { min-height: 0 !important; }
+  .rv-explore-feature-media > div { height: min(82vw, 330px) !important; aspect-ratio: auto !important; }
+  .rv-explore-feature-body { padding: 24px 20px 26px !important; }
+  .rv-explore-feature-body h2 { font-size: 34px !important; }
+  .rv-explore-feature-body p { max-width: none !important; }
+  .rv-explore-grid { gap: 12px !important; }
+  .rv-explore-grid .rv-character-card-body { padding: 10px !important; }
+  .rv-explore-grid .rv-character-card-body > div:last-child { margin-top: 0 !important; }
+}
+
 /* Mobile bottom navigation: the primary nav on small screens (desktop keeps
    the top bar). Hidden by default, shown only under the mobile breakpoint.
    Create is a raised central action. */
