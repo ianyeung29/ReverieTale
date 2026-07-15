@@ -46,10 +46,19 @@ export function ChatDock({
   const [saved, setSaved] = useState<Set<string>>(new Set());
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [speaking, setSpeaking] = useState<string | null>(null);
+  const [sceneImagePrice, setSceneImagePrice] = useState(8);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, busy, open]);
   useEffect(() => () => stopSpeaking(), []);
+
+  useEffect(() => {
+    if (!open) return;
+    fetch("/api/config")
+      .then((r) => r.json())
+      .then((d) => { if (d.pricing?.sceneImage) setSceneImagePrice(d.pricing.sceneImage); })
+      .catch(() => {});
+  }, [open]);
 
   // Check sign-in status as soon as the panel opens, so an anonymous visitor
   // sees the "sign in to talk" prompt right away instead of only after typing
@@ -199,7 +208,7 @@ export function ChatDock({
                     <button style={D.actionBtn} onClick={() => setLightbox(`/api/messages/${m.id}/image`)}>🖼 View</button>
                   ) : (
                     <button style={D.actionBtn} onClick={() => visualize(m.id!)} disabled={visualizing.has(m.id)}>
-                      {visualizing.has(m.id) ? "Visualizing…" : "✨ Visualize"}
+                      {visualizing.has(m.id) ? "Visualizing…" : `✨ Visualize · ${sceneImagePrice} credits`}
                     </button>
                   )}
                   <button style={D.actionBtn} onClick={() => saveMoment(m.id!)} disabled={saved.has(m.id)}>

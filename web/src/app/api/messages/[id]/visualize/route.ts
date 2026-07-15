@@ -11,8 +11,8 @@ import { mediaStorageConfigured, readImageBase64, storeImage } from "@/lib/media
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-const MOMENT_IMAGE_PRICE = Number(process.env.MOMENT_IMAGE_PRICE || 5);
-const DAILY_DRIP = Number(process.env.DAILY_DRIP || 20);
+const MOMENT_IMAGE_PRICE = Number(process.env.MOMENT_IMAGE_PRICE || 8);
+const DAILY_DRIP = Number(process.env.DAILY_DRIP || 10);
 
 // POST /api/messages/:id/visualize -> illustrate a character reply (on demand,
 // costs credits). Cached on the message row, so a second call is free and just

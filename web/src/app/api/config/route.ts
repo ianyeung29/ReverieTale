@@ -14,11 +14,12 @@ export async function GET() {
     welcomeCredits: Number(process.env.WELCOME_CREDITS || 20),
     pricing: {
       chat: Number(process.env.CHAT_PRICE || 1),
-      chapter: Number(process.env.CHAPTER_PRICE || 10),
+      chapter: Number(process.env.CHAPTER_PRICE || 5),
       portrait: Number(process.env.PORTRAIT_PRICE || 5),
+      sceneImage: Number(process.env.MOMENT_IMAGE_PRICE || 8),
       portraitFree: Number(process.env.FREE_PORTRAITS || 2),
       chatFree: Number(process.env.FREE_CHAT_MESSAGES || 5),
-      dailyDrip: Number(process.env.DAILY_DRIP || 20),
+      dailyDrip: Number(process.env.DAILY_DRIP || 10),
       creatorRewardRate: REWARD_RATE,
     },
   });

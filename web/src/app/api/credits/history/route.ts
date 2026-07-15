@@ -4,7 +4,7 @@ import { getCurrentUserId } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
-const DAILY_DRIP = Number(process.env.DAILY_DRIP || 20);
+const DAILY_DRIP = Number(process.env.DAILY_DRIP || 10);
 
 // Turn a raw ledger transaction into a human label + icon for the credits page.
 // Icons mirror the "how credits are spent" cards so the history reads at a glance.

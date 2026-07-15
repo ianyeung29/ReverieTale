@@ -9,7 +9,7 @@ import { getCurrentUserId } from "@/lib/session";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-const DAILY_DRIP = Number(process.env.DAILY_DRIP || 20);
+const DAILY_DRIP = Number(process.env.DAILY_DRIP || 10);
 
 const Body = z.object({
   characterId: z.string().uuid(),

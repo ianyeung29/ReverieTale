@@ -8,7 +8,7 @@ type Balance = { purchased: number; earned: number; total: number };
 type Item = { id: string; label: string; icon?: string; amount: number; at: string };
 type Data = { balance: Balance; earnedFromReaders: number; items: Item[] };
 type Pack = { id: string; credits: number; price: number; label: string; blurb?: string };
-type Pricing = { chat: number; chapter: number; portrait: number; portraitFree: number; chatFree: number; dailyDrip: number; creatorRewardRate: number };
+type Pricing = { chat: number; chapter: number; portrait: number; sceneImage: number; portraitFree: number; chatFree: number; dailyDrip: number; creatorRewardRate: number };
 type Promo = { code: string; percent: number | null; text: string };
 
 function when(at: string): string {
@@ -138,6 +138,11 @@ export default function CreditsPage() {
           <span style={S.usageIcon}>🎨</span>
           <span style={S.usageAmt}>{pricing ? `${pricing.portrait} credits` : "…"}</span>
           <span style={S.usageWhat}>{pricing ? `per portrait — first ${pricing.portraitFree} on a companion are free` : "per portrait"}</span>
+        </div>
+        <div className="rv-card" style={S.usageCard}>
+          <span style={S.usageIcon}>🖼</span>
+          <span style={S.usageAmt}>{pricing ? `${pricing.sceneImage} credits` : "…"}</span>
+          <span style={S.usageWhat}>to turn one character reply into a scene image</span>
         </div>
         <div className="rv-card" style={S.usageCard}>
           <span style={S.usageIcon}>☀︎</span>

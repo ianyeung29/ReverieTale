@@ -13,8 +13,8 @@ import { mediaStorageConfigured, readImageBase64, storeImage } from "@/lib/media
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-const CHAPTER_PRICE = Number(process.env.CHAPTER_PRICE || 10);
-const DAILY_DRIP = Number(process.env.DAILY_DRIP || 20);
+const CHAPTER_PRICE = Number(process.env.CHAPTER_PRICE || 5);
+const DAILY_DRIP = Number(process.env.DAILY_DRIP || 10);
 
 const Body = z.object({
   whatHappens: z.string().max(400).optional(),

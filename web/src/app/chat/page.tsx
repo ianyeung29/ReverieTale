@@ -29,6 +29,7 @@ export default function ChatPage() {
   const [credits, setCredits] = useState<number | null>(null);
   const [earned, setEarned] = useState(0);
   const [chatPrice, setChatPrice] = useState(1);
+  const [sceneImagePrice, setSceneImagePrice] = useState(8);
   const [broke, setBroke] = useState(false);
   const [storyId, setStoryId] = useState<string | null>(null);
   const [storyChapter, setStoryChapter] = useState<number | undefined>();
@@ -69,7 +70,10 @@ export default function ChatPage() {
       if (preferred) setCharId(preferred);
 
       fetch("/api/credits").then((r) => r.json()).then((d) => { setCredits(d.balance?.total ?? 0); setEarned(d.earnedFromReaders ?? 0); }).catch(() => {});
-      fetch("/api/config").then((r) => r.json()).then((d) => { if (d.pricing?.chat) setChatPrice(d.pricing.chat); }).catch(() => {});
+      fetch("/api/config").then((r) => r.json()).then((d) => {
+        if (d.pricing?.chat) setChatPrice(d.pricing.chat);
+        if (d.pricing?.sceneImage) setSceneImagePrice(d.pricing.sceneImage);
+      }).catch(() => {});
 
       const cv: Convo[] = await fetch("/api/threads").then((r) => r.json()).catch(() => []);
       const list = Array.isArray(cv) ? cv : [];
@@ -307,7 +311,7 @@ export default function ChatPage() {
                     <button style={S.actionBtn} onClick={() => setLightbox(`/api/messages/${m.id}/image`)}>🖼 View</button>
                   ) : (
                     <button style={S.actionBtn} onClick={() => visualize(m.id!)} disabled={visualizing.has(m.id)}>
-                      {visualizing.has(m.id) ? "Visualizing…" : "✨ Visualize"}
+                      {visualizing.has(m.id) ? "Visualizing…" : `✨ Visualize · ${sceneImagePrice} credits`}
                     </button>
                   )}
                   <button style={S.actionBtn} onClick={() => saveMoment(m.id!)} disabled={saved.has(m.id)}>
