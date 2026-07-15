@@ -9,22 +9,22 @@ const SITE_DESC =
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Reverie — AI companions who remember you",
-    template: "%s · Reverie",
+    default: "ReverieTale — AI companions who remember you",
+    template: "%s · ReverieTale",
   },
   description: SITE_DESC,
-  applicationName: "Reverie",
+  applicationName: "ReverieTale",
   keywords: ["AI companion", "AI chat", "interactive fiction", "interactive story", "romance stories", "AI characters", "roleplay chat"],
   openGraph: {
     type: "website",
-    siteName: "Reverie",
-    title: "Reverie — AI companions who remember you",
+    siteName: "ReverieTale",
+    title: "ReverieTale — AI companions who remember you",
     description: SITE_DESC,
     url: SITE_URL,
   },
   twitter: {
     card: "summary_large_image",
-    title: "Reverie — AI companions who remember you",
+    title: "ReverieTale — AI companions who remember you",
     description: SITE_DESC,
   },
   robots: { index: true, follow: true },

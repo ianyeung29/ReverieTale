@@ -36,7 +36,7 @@ export async function POST(req: Request) {
         {
           price_data: {
             currency: "usd",
-            product_data: { name: `Reverie — ${pack.label}` },
+            product_data: { name: `ReverieTale — ${pack.label}` },
             unit_amount: pack.price,
           },
           quantity: 1,

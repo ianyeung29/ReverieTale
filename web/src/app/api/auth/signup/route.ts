@@ -58,8 +58,8 @@ export async function POST(req: Request) {
   const link = `${appUrl}/verify-email?token=${raw}`;
   const result = await sendEmail({
     to: [email],
-    subject: "Confirm your Reverie account",
-    html: `<p>Welcome to Reverie - confirm your email to finish creating your account:</p><p><a href="${escapeHtml(link)}">${escapeHtml(link)}</a></p><p>This link expires in an hour. If you didn't request this, you can ignore it.</p>`,
+    subject: "Confirm your ReverieTale account",
+    html: `<p>Welcome to ReverieTale - confirm your email to finish creating your account:</p><p><a href="${escapeHtml(link)}">${escapeHtml(link)}</a></p><p>This link expires in an hour. If you didn't request this, you can ignore it.</p>`,
   });
 
   // Without RESEND_API_KEY configured (e.g. local dev), sending is a no-op - hand

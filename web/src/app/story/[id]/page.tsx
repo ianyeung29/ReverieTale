@@ -277,7 +277,7 @@ export default function StoryReadPage() {
       ) : null}
 
       <div style={S.topRow}>
-        <a href="/" style={S.back}>← Reverie</a>
+        <a href="/" style={S.back}>← ReverieTale</a>
         <div style={S.topTools}>
           {story.canSave ? (
             <button style={S.iconToggle} onClick={toggleSave} title={saved ? "Remove from your library" : "Save to your library"} aria-pressed={saved}>

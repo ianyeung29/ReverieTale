@@ -75,7 +75,7 @@ export default function ProfilePage() {
 
   return (
     <main style={S.wrap}>
-      <a href="/" style={S.back}>← Reverie</a>
+      <a href="/" style={S.back}>← ReverieTale</a>
       <h1 style={S.h1}>Your profile</h1>
       <p style={S.sub}>Everything about your account, your world, and your companions — in one place.</p>
 

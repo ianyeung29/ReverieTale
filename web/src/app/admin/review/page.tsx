@@ -109,12 +109,12 @@ export default function AdminReviewPage() {
   }
 
   if (forbidden) {
-    return <main style={S.wrap}><a href="/" style={S.back}>← Reverie</a><p style={{ color: "#AC9CB0", marginTop: 24 }}>This page is for moderators only.</p></main>;
+    return <main style={S.wrap}><a href="/" style={S.back}>← ReverieTale</a><p style={{ color: "#AC9CB0", marginTop: 24 }}>This page is for moderators only.</p></main>;
   }
 
   return (
     <main style={S.wrap}>
-      <a href="/" style={S.back}>← Reverie</a>
+      <a href="/" style={S.back}>← ReverieTale</a>
       <h1 style={S.h1}>Review queue</h1>
       <p style={S.sub}>Companions held for a human check. Approve to publish, reject to keep them off the platform.</p>
 

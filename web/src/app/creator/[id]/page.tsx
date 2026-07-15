@@ -13,7 +13,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   try {
     const [u] = await db.select({ dn: users.displayName }).from(users).where(eq(users.id, id)).limit(1);
     const name = u?.dn?.trim() || "Creator";
-    return { title: name, description: `Companions by ${name} on Reverie.` };
+    return { title: name, description: `Companions by ${name} on ReverieTale.` };
   } catch {
     return { title: "Creator" };
   }

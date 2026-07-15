@@ -40,7 +40,7 @@ export async function POST(req: Request) {
     const link = `${appUrl}/reset-password?token=${raw}`;
     const result = await sendEmail({
       to: [email],
-      subject: "Reset your Reverie password",
+      subject: "Reset your ReverieTale password",
       html: `<p>Someone requested a password reset for this account. Choose a new password:</p><p><a href="${escapeHtml(link)}">${escapeHtml(link)}</a></p><p>This link expires in an hour. If you didn't request this, you can ignore it.</p>`,
     });
     if (result.skipped) devResetUrl = link;

@@ -8,11 +8,11 @@ export default function CookiesPage() {
     <LegalLayout
       eyebrow="Legal"
       title="Cookies Notice"
-      intro="This notice explains what cookies Reverie actually uses today — deliberately short, because we don't use more than we need."
+      intro="This notice explains what cookies ReverieTale actually uses today — deliberately short, because we don't use more than we need."
     >
       <Section title="1. What we use">
         <p style={S.p}>
-          Reverie sets exactly one cookie: a session cookie that keeps you signed in. It&apos;s strictly necessary — without it,
+          ReverieTale sets exactly one cookie: a session cookie that keeps you signed in. It&apos;s strictly necessary — without it,
           the site can&apos;t tell you&apos;re logged in between page loads. It contains a random session identifier, not your
           password or other personal data directly, and it&apos;s cleared when you sign out.
         </p>

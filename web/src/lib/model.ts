@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 
 /**
- * The single, 13+ model gateway for Reverie-Tale. Content safety belongs in
+ * The single, 13+ model gateway for ReverieTale. Content safety belongs in
  * the prompts and moderation layer; there is intentionally no alternate
  * mature-content provider or route to accidentally enable.
  */

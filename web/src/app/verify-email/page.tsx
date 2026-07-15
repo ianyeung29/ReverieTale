@@ -39,13 +39,13 @@ function VerifyEmailInner() {
           <>
             <h2 style={S.h}>You&apos;re in</h2>
             {welcomeCredits > 0 ? <p style={S.bonus}>◈ {welcomeCredits} welcome credits added</p> : null}
-            <p style={S.sub}>Your account is confirmed — taking you to Reverie.</p>
+            <p style={S.sub}>Your account is confirmed — taking you to ReverieTale.</p>
           </>
         ) : (
           <>
             <h2 style={S.h}>Link didn&apos;t work</h2>
             <p style={S.sub}>{err}</p>
-            <a href="/" style={S.btn}>Back to Reverie</a>
+            <a href="/" style={S.btn}>Back to ReverieTale</a>
           </>
         )}
       </div>

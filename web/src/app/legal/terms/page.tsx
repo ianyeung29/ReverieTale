@@ -17,7 +17,7 @@ export default function TermsPage() {
 
       <Section title="Key points up front">
         <ul style={S.ul}>
-          <li><strong style={S.strong}>Entertainment only.</strong> Reverie is fiction. It isn&apos;t therapy, counseling, or emotional support. If you&apos;re struggling, please reach out to a real, qualified professional.</li>
+          <li><strong style={S.strong}>Entertainment only.</strong> ReverieTale is fiction. It isn&apos;t therapy, counseling, or emotional support. If you&apos;re struggling, please reach out to a real, qualified professional.</li>
           <li><strong style={S.strong}>Companions aren&apos;t real.</strong> Every companion is an AI character. They don&apos;t have real feelings, intentions, or the ability to keep promises in the real world. Anything a companion says that resembles a real-world offer or plan is fictional.</li>
           <li><strong style={S.strong}>AI output isn&apos;t guaranteed to be accurate.</strong> Companions can produce inconsistent, wrong, or unexpected output. Use your own judgment.</li>
         </ul>
@@ -25,7 +25,7 @@ export default function TermsPage() {
 
       <Section title="1. The Service">
         <p style={S.p}>
-          Reverie lets you create and chat with AI companions, and write interactive stories starring them. Some features
+          ReverieTale lets you create and chat with AI companions, and write interactive stories starring them. Some features
           require an account; some require credits (see Section 6). We may add, change, or remove features or companions at any
           time.
         </p>
@@ -33,7 +33,7 @@ export default function TermsPage() {
 
       <Section title="2. Eligibility and accounts">
         <p style={S.p}>
-          You must be {MIN_AGE} or older, or the age of majority where you live if higher, to use Reverie — see our{" "}
+          You must be {MIN_AGE} or older, or the age of majority where you live if higher, to use ReverieTale — see our{" "}
           <a href="/legal/underage" style={S.link}>Underage Policy</a>. By using the Service you confirm you meet this
           requirement.
         </p>
@@ -56,7 +56,7 @@ export default function TermsPage() {
         <p style={S.p}>
           &quot;Content&quot; means anything you input (messages, prompts, companion details, story setup) and anything
           generated in response. You keep ownership of what you write. To make the Service work, you grant us a license to use,
-          store, process, and display your Content as needed to operate, moderate, and improve Reverie — including using
+          store, process, and display your Content as needed to operate, moderate, and improve ReverieTale — including using
           de-identified or aggregated content to improve moderation and the underlying models. We won&apos;t sell your Content or
           share it with advertisers.
         </p>
@@ -69,7 +69,7 @@ export default function TermsPage() {
 
       <Section title="4. Conduct">
         <p style={S.p}>
-          Using Reverie means agreeing to our <a href="/guidelines" style={S.link}>Community Guidelines</a> and our{" "}
+          Using ReverieTale means agreeing to our <a href="/guidelines" style={S.link}>Community Guidelines</a> and our{" "}
           <a href="/legal/blocked-content" style={S.link}>Blocked Content Policy</a>, which set out what&apos;s never allowed —
           including anything resembling a minor, non-consensual intimate imagery, hate speech, and illegal content. You also
           agree not to:
@@ -93,7 +93,7 @@ export default function TermsPage() {
 
       <Section title="6. Credits and subscriptions">
         <p style={S.p}>
-          Some actions on Reverie — sending a chat message, writing a story chapter, generating a portrait — cost credits, at
+          Some actions on ReverieTale — sending a chat message, writing a story chapter, generating a portrait — cost credits, at
           rates shown in the app before you spend them.
         </p>
         <p style={S.p}>
@@ -162,7 +162,7 @@ export default function TermsPage() {
 
       <Section title="13. Termination">
         <p style={S.p}>
-          You can stop using Reverie and close your account at any time. We can suspend or terminate your access, with or
+          You can stop using ReverieTale and close your account at any time. We can suspend or terminate your access, with or
           without notice, for violating these Terms or any Policy, or at our discretion for any other reason.
         </p>
       </Section>

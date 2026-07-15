@@ -2,7 +2,7 @@
   "name": "reverie-web",
   "version": "0.1.0",
   "private": true,
-  "description": "Reverie-Tale: a 13+ visual interactive-fiction app with persistent companion memory.",
+  "description": "ReverieTale: a 13+ visual interactive-fiction app with persistent companion memory.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

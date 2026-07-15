@@ -1,12 +1,12 @@
 export const metadata = { title: "Legal Information" };
 
 const DOCS = [
-  { href: "/legal/terms", title: "Terms of Service", desc: "The rules for using Reverie." },
+  { href: "/legal/terms", title: "Terms of Service", desc: "The rules for using ReverieTale." },
   { href: "/legal/privacy", title: "Privacy Notice", desc: "What we collect and why." },
   { href: "/legal/cookies", title: "Cookies Notice", desc: "The one cookie we actually use." },
   { href: "/legal/underage", title: "Underage Policy", desc: "Age requirements and how we enforce them." },
   { href: "/guidelines", title: "Community Guidelines", desc: "What's allowed, what's not, and how moderation works." },
-  { href: "/legal/blocked-content", title: "Blocked Content Policy", desc: "Content that's never allowed on Reverie." },
+  { href: "/legal/blocked-content", title: "Blocked Content Policy", desc: "Content that's never allowed on ReverieTale." },
   { href: "/legal/content-removal", title: "Content Removal Policy", desc: "If AI content resembles a real person." },
   { href: "/legal/dmca", title: "DMCA Policy", desc: "Reporting copyright infringement." },
   { href: "/legal/complaints", title: "Complaint Policy", desc: "How to file a complaint and what happens next." },
@@ -15,10 +15,10 @@ const DOCS = [
 export default function LegalHubPage() {
   return (
     <main style={S.wrap}>
-      <a href="/" style={S.back}>← Reverie</a>
+      <a href="/" style={S.back}>← ReverieTale</a>
       <p style={S.mark}>Legal</p>
       <h1 style={S.h1}>Legal information</h1>
-      <p style={S.sub}>Every policy that governs Reverie, in one place.</p>
+      <p style={S.sub}>Every policy that governs ReverieTale, in one place.</p>
 
       <div style={S.grid}>
         {DOCS.map((d) => (

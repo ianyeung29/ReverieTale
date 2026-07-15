@@ -1,4 +1,4 @@
-# Reverie-Tale (web)
+# ReverieTale (web)
 
 The application foundation for a 13+ visual interactive-fiction product: meet a
 fictional companion in a short opening scene, then continue the conversation.
@@ -39,7 +39,7 @@ npm run db:push
 - Embeddings: set `EMBEDDINGS_API_KEY` (default target: OpenAI text-embedding-3-small; swap the base URL for Voyage/Jina/local).
 
 ### Image storage: Cloudflare R2
-Reverie stores every portrait, story scene, and private chat visual in R2. The
+ReverieTale stores every portrait, story scene, and private chat visual in R2. The
 database stores only an object key and MIME type - never the image bytes.
 
 1. In Cloudflare, create a bucket such as `reverie-media`.
@@ -101,5 +101,5 @@ see without exposing secrets, and confirms the DB is reachable.
 ## Notes / guardrails carried from the specs
 - Credits are a **double-entry ledger** (`exec-3` sec 4): balances are derived from immutable entries, transactions carry an idempotency key, entries sum to zero.
 - Memory is per **(character x reader)** (`exec-3` sec 6); raw chat is meant to be transient, distilled memory durable.
-- Production requires **encryption at rest** for messages/memory and a real **moderation gate** before broad launch. The current age check is self-attestation and must be reviewed against the markets where Reverie-Tale is available.
+- Production requires **encryption at rest** for messages/memory and a real **moderation gate** before broad launch. The current age check is self-attestation and must be reviewed against the markets where ReverieTale is available.
 - Scene images use the configured image provider. Leave `SCENE_IMAGES=opening` for a single visual opening scene per story, or use `all` only after confirming the extra image cost.

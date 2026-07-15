@@ -82,7 +82,7 @@ export function EntryGate({ onDone, subtitle = `Sign in or create an account. ${
     <div style={G.center}>
       <div style={G.gate}>
         <p style={G.mk}>{MIN_AGE}+ only</p>
-        <h2 style={G.h}>Enter Reverie</h2>
+        <h2 style={G.h}>Enter ReverieTale</h2>
         <p style={G.sub}>{subtitle}</p>
 
         <div style={G.tabs}>

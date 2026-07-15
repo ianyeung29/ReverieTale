@@ -59,7 +59,7 @@ export default function MyCharactersPage() {
 
   return (
     <main style={S.wrap}>
-      <a href="/" style={S.back}>← Reverie</a>
+      <a href="/" style={S.back}>← ReverieTale</a>
       <div style={S.titleRow}>
         <h1 style={S.h1}>Your companions</h1>
         <div style={S.titleActions}>

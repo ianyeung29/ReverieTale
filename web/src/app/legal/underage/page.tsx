@@ -13,7 +13,7 @@ export default function UnderagePolicyPage() {
       <Section title="1. Age gate and registration">
         <p style={S.p}>
           You must be {MIN_AGE} or older, or the age of majority where you live if that&apos;s higher, to create an account or
-          use Reverie. Every signup requires an explicit confirmation of age before an account is created. If you are under 18,
+          use ReverieTale. Every signup requires an explicit confirmation of age before an account is created. If you are under 18,
           see the parental/guardian consent requirement in our <a href="/legal/terms" style={S.link}>Terms of Service</a>.
         </p>
         <p style={S.p}>
@@ -23,7 +23,7 @@ export default function UnderagePolicyPage() {
           verification measures in the future as the platform grows.
         </p>
         <p style={S.p}>
-          If you believe a younger user has accessed Reverie — including your own child — contact us at{" "}
+          If you believe a younger user has accessed ReverieTale — including your own child — contact us at{" "}
           <a href={`mailto:${SUPPORT_EMAIL}`} style={S.link}>{SUPPORT_EMAIL}</a> so we can investigate and block further access.
           We are not able to independently verify a user&apos;s age beyond their own attestation, and it remains each user&apos;s
           responsibility to comply with the laws of their own location regarding access to age-restricted content.

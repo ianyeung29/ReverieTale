@@ -92,7 +92,7 @@ export default function CreditsPage() {
 
   return (
     <main style={S.wrap}>
-      <a href="/" style={S.back}>← Reverie</a>
+      <a href="/" style={S.back}>← ReverieTale</a>
       <h1 style={S.h1}>Credits</h1>
       <p style={S.sub}>One currency for every companion — chat, write chapters, and generate portraits. No subscriptions: buy what you need, and bigger packs cost less per credit. Nothing expires on purchased credits.</p>
 

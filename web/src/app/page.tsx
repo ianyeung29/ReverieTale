@@ -253,7 +253,7 @@ export default async function Home() {
       ) : null}
 
       <footer style={S.footer}>
-        <span>Reverie · interactive fiction</span>
+        <span>ReverieTale · interactive fiction</span>
         <span style={S.footLinks}>
           <a href="/browse" style={S.footLink}>Companions</a>
           <a href="/stories" style={S.footLink}>Stories</a>

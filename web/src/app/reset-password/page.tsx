@@ -31,7 +31,7 @@ function ResetPasswordInner() {
         {done ? (
           <>
             <h2 style={S.h}>Password updated</h2>
-            <p style={S.sub}>Taking you to Reverie.</p>
+            <p style={S.sub}>Taking you to ReverieTale.</p>
           </>
         ) : (
           <>
