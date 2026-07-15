@@ -242,8 +242,12 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   .rv-explore-feature-body h2 { font-size: 34px !important; }
   .rv-explore-feature-body p { max-width: none !important; }
   .rv-explore-grid { gap: 12px !important; }
-  .rv-explore-grid .rv-character-card-body { padding: 10px !important; }
-  .rv-explore-grid .rv-character-card-body > div:last-child { margin-top: 0 !important; }
+  .rv-explore-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .rv-moment-card > div { min-height: 0 !important; }
+  .rv-moment-card h2 { font-size: 18px !important; }
+  .rv-moment-card p { font-size: 12px !important; }
+  .rv-scene-starter-choices:not(.rv-scene-starter-choices-compact) { grid-template-columns: minmax(0, 1fr) !important; }
+  .rv-scene-starter-choice { min-height: 0 !important; }
 }
 
 /* Mobile bottom navigation: the primary nav on small screens (desktop keeps

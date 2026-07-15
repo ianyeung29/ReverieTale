@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { characters, stories, users } from "@/db/schema";
 import { CharacterAvatar } from "@/components/CharacterAvatar";
 import { EpisodeShelf } from "@/components/EpisodeShelf";
+import { SceneStarter } from "@/components/SceneStarter";
 import { RatingBar } from "@/components/RatingBar";
 import { StarRating } from "@/components/StarRating";
 import { HideToggle, ReportLink } from "@/components/TrustControls";
@@ -223,6 +224,10 @@ export default async function CharacterProfile({ params }: { params: Promise<{ i
           <span key={i} style={S.signal}>{sig}</span>
         ))}
         <span style={S.signalRating}><StarRating value={p.rating} count={p.ratingCount} size={13} /></span>
+      </div>
+
+      <div id="scene-starters" className="rv-reveal rv-d1">
+        <SceneStarter character={{ id: p.id, name: p.name, tags: p.tags, tagline: p.backstory }} />
       </div>
 
       {p.canModerate ? (

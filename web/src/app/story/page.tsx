@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { CharacterAvatar } from "@/components/CharacterAvatar";
 import { EntryGate } from "@/components/EntryGate";
 import { MIN_AGE } from "@/lib/legal";
+import { buildSceneStarters } from "@/lib/scene-starters";
 
 type Char = { id: string; name: string; tagline: string; persona: string; tags: string[] };
 
@@ -80,6 +81,7 @@ export default function StoryPage() {
   const [paywall, setPaywall] = useState(false);
   const [authEmail, setAuthEmail] = useState<string | null | undefined>(undefined);
   const [opts, setOpts] = useState<OptionSet>(() => buildOptions(firstOptions));
+  const [starterTitle, setStarterTitle] = useState("");
 
   useEffect(() => {
     fetch("/api/auth/me").then((r) => r.json()).then((d) => setAuthEmail(d.user?.email ?? null)).catch(() => setAuthEmail(null));
@@ -98,7 +100,9 @@ export default function StoryPage() {
   }
 
   useEffect(() => {
-    const urlChar = new URLSearchParams(window.location.search).get("characterId");
+    const search = new URLSearchParams(window.location.search);
+    const urlChar = search.get("characterId");
+    const starterId = search.get("starter");
     fetch("/api/characters").then((r) => r.json()).then((c: Char[]) => {
       setChars(c);
       const cameFromCharacter = Boolean(urlChar && c.some((x) => x.id === urlChar));
@@ -106,6 +110,16 @@ export default function StoryPage() {
       if (preferred) setCharId(preferred);
       // Arrived for a specific companion -> collapse the list to just them.
       if (cameFromCharacter) setShowAllChars(false);
+      const selected = c.find((character) => character.id === preferred);
+      const starter = starterId && selected ? buildSceneStarters(selected).find((candidate) => candidate.id === starterId) : undefined;
+      if (starter) {
+        setStarterTitle(starter.title);
+        setRelationship(starter.relationship);
+        setGenre(selected?.tags[0] ?? "");
+        setScenario(starter.scenario);
+        setTone(starter.tone);
+        setSetting(starter.setting);
+      }
     }).catch(() => {});
     fetch("/api/config").then((r) => r.json()).then((d) => { if (d.pricing?.chapter) setChapterPrice(d.pricing.chapter); }).catch(() => {});
     roll(); // fresh blend of suggestions + a random combination each visit
@@ -151,6 +165,19 @@ export default function StoryPage() {
       <h1 style={S.h1} className="rv-story-start-title">Meet someone new</h1>
       <p style={S.sub} className="rv-story-start-sub">Choose a character and shape one vivid opening moment. When the scene ends, the conversation is yours to continue.</p>
       <button style={S.shuffle} onClick={roll} type="button">🎲 Shuffle suggestions</button>
+
+      {starterTitle ? (
+        <section style={S.starterReady} className="rv-story-start-ready">
+          <div>
+            <p style={S.starterEyebrow}>Scene ready</p>
+            <p style={S.starterTitle}>{starterTitle} with {active?.name ?? "your companion"}</p>
+            <p style={S.starterCopy}>The setting, mood, and first beat are ready. You can begin now or fine-tune them below.</p>
+          </div>
+          <button style={{ ...S.starterButton, opacity: busy ? 0.6 : 1 }} onClick={generate} disabled={busy || !charId}>
+            {busy ? "Creating…" : `Start this scene · ${chapterPrice} credits`}
+          </button>
+        </section>
+      ) : null}
 
       <div style={S.sectionRow} className="rv-story-start-character-section">
         <p style={S.section}>Who you meet</p>
@@ -221,6 +248,11 @@ const S: Record<string, React.CSSProperties> = {
   h1: { fontFamily: "Georgia, serif", fontSize: 34, margin: "6px 0 8px", lineHeight: 1.12 },
   sub: { color: "#AC9CB0", margin: "0 0 10px", fontSize: 15 },
   shuffle: { background: "#231A2B", color: "#E9A06B", border: "1px solid #4a3a50", borderRadius: 999, padding: "8px 13px", cursor: "pointer", fontSize: 13, fontWeight: 600 },
+  starterReady: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16, margin: "22px 0 4px", padding: "16px 18px", border: "1px solid #5A414F", borderRadius: 14, background: "linear-gradient(100deg, rgba(233,160,107,.14), #241B2D)" },
+  starterEyebrow: { margin: 0, color: "#E9A06B", fontSize: 10.5, letterSpacing: ".14em", textTransform: "uppercase", fontWeight: 700 },
+  starterTitle: { margin: "3px 0 0", color: "#F4EAF0", fontFamily: "Georgia, serif", fontSize: 20, lineHeight: 1.25 },
+  starterCopy: { margin: "3px 0 0", color: "#AC9CB0", fontSize: 13, lineHeight: 1.45, maxWidth: 510 },
+  starterButton: { border: 0, borderRadius: 10, background: "linear-gradient(100deg,#E9A06B,#D46A8B)", color: "#1A1220", padding: "11px 14px", fontWeight: 700, fontSize: 13.5, cursor: "pointer", whiteSpace: "nowrap" },
   section: { fontSize: 11.5, letterSpacing: ".14em", textTransform: "uppercase", color: "#8A7A90", fontWeight: 700, margin: "18px 0 8px" },
   sectionRow: { display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 },
   createLink: { color: "#E9A06B", textDecoration: "none", fontSize: 13.5, fontWeight: 600, whiteSpace: "nowrap" },

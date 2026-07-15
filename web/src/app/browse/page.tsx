@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { CharacterAvatar } from "@/components/CharacterAvatar";
-import { CharacterCard } from "@/components/CharacterCard";
+import { MomentCard } from "@/components/MomentCard";
+import { SceneStarter } from "@/components/SceneStarter";
 
 type Char = {
   id: string;
@@ -117,26 +118,20 @@ export default function BrowsePage() {
                 <div style={S.featureTags}>
                   {featured.tags.slice(0, 3).map((tag) => <span key={tag} style={S.featureTag}>{tag}</span>)}
                 </div>
+                <SceneStarter character={featured} compact />
                 <div style={S.featureActions}>
-                  <a href={`/story?characterId=${featured.id}`} className="rv-btn rv-btn-primary" style={S.featurePrimary}>Read opening &rarr;</a>
-                  <a href={`/c/${featured.id}`} style={S.featureLink}>Meet {featured.name}</a>
+                  <a href={`/c/${featured.id}`} style={S.featureLink}>See {featured.name}&apos;s profile &rarr;</a>
                 </div>
               </div>
             </section>
           ) : null}
 
           <div style={S.resultsHead}>
-            <p style={S.resultsTitle}>{shown.length > 1 ? "More scenes to enter" : "Your scene"}</p>
+            <p style={S.resultsTitle}>{shown.length > 1 ? "More moments to enter" : "Your moment"}</p>
             <span style={S.resultsCount}>{shown.length} companion{shown.length === 1 ? "" : "s"}</span>
           </div>
           <div style={S.grid} className="rv-companion-grid rv-explore-grid">
-            {shown.slice(featured ? 1 : 0).map((c) => (
-              <CharacterCard
-                key={c.id}
-                c={c}
-                actions={<a className="rv-btn rv-btn-primary" style={S.primary} href={`/story?characterId=${c.id}`}>Read opening &rarr;</a>}
-              />
-            ))}
+            {shown.slice(featured ? 1 : 0).map((c) => <MomentCard key={c.id} character={c} />)}
           </div>
         </>
       )}
