@@ -192,6 +192,24 @@ export const reports = pgTable(
   (t) => ({ byStatus: index("reports_status_idx").on(t.status) }),
 );
 
+// Private product feedback. This is distinct from reports, which request a
+// moderation action against a particular piece of content.
+export const feedback = pgTable(
+  "feedback",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    kind: text("kind").notNull(), // idea | issue | general
+    message: text("message").notNull(),
+    pagePath: text("page_path"),
+    status: text("status").notNull().default("open"), // open | reviewed
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    reviewedBy: uuid("reviewed_by").references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({ byStatus: index("feedback_status_idx").on(t.status, t.createdAt) }),
+);
+
 // ---------------------------------------------------------------------------
 // Character blocks. A reader hides a specific companion from their own
 // discovery surfaces (browse/home/tags) - a personal preference, not a

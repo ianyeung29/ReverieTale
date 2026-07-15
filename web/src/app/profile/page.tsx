@@ -150,6 +150,7 @@ export default function ProfilePage() {
 
       <p style={S.section}>More</p>
       <div style={S.linkRow}>
+        <a href="/feedback" style={S.footLink}>Share feedback</a>
         <a href="/guidelines" style={S.footLink}>Community guidelines</a>
         <a href="/legal" style={S.footLink}>Legal information</a>
       </div>

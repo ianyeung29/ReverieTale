@@ -40,6 +40,15 @@ type ResolvedReport = {
   createdAt: string;
 };
 
+type Feedback = {
+  id: string;
+  kind: "idea" | "issue" | "general";
+  message: string;
+  pagePath: string | null;
+  createdAt: string;
+  email: string;
+};
+
 const REASON_LABELS: Record<string, string> = {
   minor_safety: "Underage or age-ambiguous",
   real_person: "Impersonates a real person",
@@ -48,10 +57,17 @@ const REASON_LABELS: Record<string, string> = {
   other: "Something else",
 };
 
+const FEEDBACK_LABELS: Record<Feedback["kind"], string> = {
+  idea: "Idea or feature request",
+  issue: "Something is not working",
+  general: "General feedback",
+};
+
 export default function AdminReviewPage() {
   const [items, setItems] = useState<Pending[] | null>(null);
   const [reports, setReports] = useState<Report[] | null>(null);
   const [resolved, setResolved] = useState<ResolvedReport[] | null>(null);
+  const [feedback, setFeedback] = useState<Feedback[] | null>(null);
   const [forbidden, setForbidden] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [notes, setNotes] = useState<Record<string, string>>({});
@@ -72,6 +88,10 @@ export default function AdminReviewPage() {
       .then((r) => (r.ok ? r.json() : []))
       .then((d: ResolvedReport[]) => setResolved(Array.isArray(d) ? d : []))
       .catch(() => setResolved([]));
+    fetch("/api/admin/feedback")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d: Feedback[]) => setFeedback(Array.isArray(d) ? d : []))
+      .catch(() => setFeedback([]));
   }
   useEffect(() => { load(); }, []);
 
@@ -105,6 +125,15 @@ export default function AdminReviewPage() {
         setNotes((cur) => { const c = { ...cur }; delete c[id]; return c; });
         fetch("/api/admin/reports?status=resolved").then((r) => (r.ok ? r.json() : [])).then((d: ResolvedReport[]) => setResolved(Array.isArray(d) ? d : [])).catch(() => {});
       }
+    } catch {} finally { setBusyId(null); }
+  }
+
+  async function reviewFeedback(id: string) {
+    if (busyId) return;
+    setBusyId(id);
+    try {
+      const res = await fetch(`/api/admin/feedback/${id}`, { method: "POST" });
+      if (res.ok) setFeedback((cur) => (cur ? cur.filter((item) => item.id !== id) : cur));
     } catch {} finally { setBusyId(null); }
   }
 
@@ -193,6 +222,27 @@ export default function AdminReviewPage() {
                 ) : (
                   <button style={{ ...S.approve, opacity: busyId === r.id ? 0.5 : 1 }} onClick={() => act(r.id, "dismiss")} disabled={busyId === r.id}>Resolve</button>
                 )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <h1 style={{ ...S.h1, marginTop: 44 }}>Feedback</h1>
+      <p style={S.sub}>Private notes about the product from signed-in readers. Marking an item reviewed clears it from this inbox.</p>
+      {feedback === null ? (
+        <p style={S.muted}>Loading...</p>
+      ) : feedback.length === 0 ? (
+        <p style={S.muted}>No open feedback. Nice and quiet.</p>
+      ) : (
+        <div style={S.list}>
+          {feedback.map((item) => (
+            <div key={item.id} className="rv-card" style={S.card}>
+              <div style={S.name}>{FEEDBACK_LABELS[item.kind]}</div>
+              <div style={S.by}>{item.email} · {new Date(item.createdAt).toLocaleDateString()}{item.pagePath ? ` · from ${item.pagePath}` : ""}</div>
+              <p style={S.fieldValue}>{item.message}</p>
+              <div style={S.actions}>
+                <button style={{ ...S.approve, opacity: busyId === item.id ? 0.5 : 1 }} onClick={() => reviewFeedback(item.id)} disabled={busyId === item.id}>Mark reviewed</button>
               </div>
             </div>
           ))}

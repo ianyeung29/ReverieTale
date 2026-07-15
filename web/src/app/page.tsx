@@ -259,6 +259,7 @@ export default async function Home() {
           <a href="/stories" style={S.footLink}>Stories</a>
           <a href="/create" style={S.footLink}>Create</a>
           <a href="/credits" style={S.footLink}>Credits</a>
+          <a href="/feedback" style={S.footLink}>Feedback</a>
           <a href="/guidelines" style={S.footLink}>Guidelines</a>
           <a href="/legal" style={S.footLink}>Legal</a>
         </span>
