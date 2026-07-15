@@ -88,6 +88,16 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   .rv-nav-links.rv-nav-open a, .rv-nav-links.rv-nav-open button { width: 100%; box-sizing: border-box; }
   .rv-nav-links.rv-nav-open a { padding: 12px 4px; border-bottom: 1px solid #241a2b !important; }
   .rv-nav-links.rv-nav-open > :last-child { border-bottom: 0; }
+
+  /* The nav collapses at 760px, so the home lead needs to become compact at
+     the same point. This also covers desktop windows used at a larger zoom. */
+  .rv-home { padding: 24px 18px 28px !important; }
+  .rv-home-hero { margin-top: 20px !important; }
+  .rv-home-hero h1 { font-size: 30px !important; line-height: 1.08 !important; margin: 8px 0 10px !important; }
+  .rv-home-hero > p:not(:first-child) { font-size: 15px !important; line-height: 1.48 !important; }
+  .rv-home-hero-cta { gap: 10px !important; margin-top: 16px !important; }
+  .rv-home-hero-cta .rv-btn { padding: 10px 14px !important; border-radius: 10px !important; min-height: 0 !important; font-size: 13.5px !important; }
+  .rv-home-hero-cta a:not(.rv-btn) { font-size: 13.5px !important; }
 }
 
 /* Character-create wizard: stacked on narrow screens, form + sticky live
@@ -187,8 +197,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
    focused character moment instead of a squeezed desktop layout. */
 @media (max-width: 560px) {
   .rv-home { padding: 24px 16px 24px !important; }
-  .rv-home-hero h1 { font-size: 32px !important; line-height: 1.08 !important; margin: 8px 0 10px !important; }
-  .rv-home-hero > p:not(:first-child) { font-size: 15px !important; line-height: 1.48 !important; }
+  .rv-home-hero h1 { font-size: 28px !important; line-height: 1.08 !important; margin: 8px 0 10px !important; }
+  .rv-home-hero > p:not(:first-child) { font-size: 14px !important; line-height: 1.48 !important; }
   .rv-home-hero-cta { gap: 10px !important; margin-top: 18px !important; }
   .rv-home-hero-cta .rv-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; }
   .rv-home-spotlight { margin-top: 24px !important; padding: 10px !important; gap: 12px !important; flex-direction: row !important; flex-wrap: nowrap !important; align-items: stretch !important; border-radius: 14px !important; }

@@ -269,17 +269,17 @@ export default async function Home() {
 
 function btn(primary: boolean): React.CSSProperties {
   return primary
-    ? { color: "#1A1220", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", padding: "13px 24px", borderRadius: 12, fontWeight: 650, textDecoration: "none" }
-    : { color: "#F4EAF0", background: "#231A2B", border: "1px solid #3A2E44", padding: "13px 24px", borderRadius: 12, fontWeight: 600, textDecoration: "none" };
+    ? { color: "#1A1220", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", padding: "11px 18px", borderRadius: 10, fontWeight: 650, textDecoration: "none" }
+    : { color: "#F4EAF0", background: "#231A2B", border: "1px solid #3A2E44", padding: "11px 18px", borderRadius: 10, fontWeight: 600, textDecoration: "none" };
 }
 
 const S: Record<string, React.CSSProperties> = {
-  wrap: { maxWidth: 940, margin: "0 auto", padding: "54px 24px 40px", lineHeight: 1.6, position: "relative", overflow: "hidden" },
+  wrap: { maxWidth: 940, margin: "0 auto", padding: "44px 24px 36px", lineHeight: 1.6, position: "relative", overflow: "hidden" },
   hero: { position: "relative", zIndex: 1, padding: 4, borderRadius: 24, overflow: "hidden" },
   eyebrow: { position: "relative", letterSpacing: ".22em", textTransform: "uppercase", fontSize: 12, color: "#E9A06B", fontWeight: 700, margin: 0 },
-  h1: { position: "relative", fontFamily: "Georgia, serif", fontSize: 54, margin: "12px 0 14px", letterSpacing: "-.015em", lineHeight: 1.05 },
-  heroCopy: { position: "relative", color: "#CBBBD0", fontSize: 16.5, lineHeight: 1.55, maxWidth: 560, margin: 0 },
-  cta: { position: "relative", display: "flex", gap: "14px 20px", marginTop: 24, flexWrap: "wrap", alignItems: "center" },
+  h1: { position: "relative", fontFamily: "Georgia, serif", fontSize: 46, margin: "10px 0 12px", letterSpacing: "-.015em", lineHeight: 1.06 },
+  heroCopy: { position: "relative", color: "#CBBBD0", fontSize: 15.5, lineHeight: 1.55, maxWidth: 540, margin: 0 },
+  cta: { position: "relative", display: "flex", gap: "12px 16px", marginTop: 20, flexWrap: "wrap", alignItems: "center" },
   heroTextLink: { color: "#E9A06B", textDecoration: "none", fontWeight: 600, fontSize: 15 },
   spot: { position: "relative", zIndex: 1, marginTop: 0, borderRadius: 20, overflow: "hidden", border: "1px solid #3A2E44", display: "flex", flexWrap: "wrap", gap: 22, padding: 22 },
   spotBgLayer: { position: "absolute", inset: 0, zIndex: 0, overflow: "hidden", pointerEvents: "none" },
