@@ -146,17 +146,17 @@ export default function StoryPage() {
   const active = chars.find((c) => c.id === charId);
 
   return (
-    <main style={S.wrap}>
-      <p style={S.eyebrow}>Enter a scene</p>
-      <h1 style={S.h1}>Meet someone new</h1>
-      <p style={S.sub}>Choose a character and shape one vivid opening moment. When the scene ends, the conversation is yours to continue.</p>
+    <main style={S.wrap} className="rv-story-start">
+      <p style={S.eyebrow} className="rv-story-start-eyebrow">Enter a scene</p>
+      <h1 style={S.h1} className="rv-story-start-title">Meet someone new</h1>
+      <p style={S.sub} className="rv-story-start-sub">Choose a character and shape one vivid opening moment. When the scene ends, the conversation is yours to continue.</p>
       <button style={S.shuffle} onClick={roll} type="button">🎲 Shuffle suggestions</button>
 
-      <div style={S.sectionRow}>
+      <div style={S.sectionRow} className="rv-story-start-character-section">
         <p style={S.section}>Who you meet</p>
         <a href="/create" style={S.createLink}>＋ Create your own</a>
       </div>
-      <div style={S.cards}>
+      <div style={S.cards} className="rv-story-start-cards">
         {(showAllChars ? chars : chars.filter((c) => c.id === charId)).map((c) => (
           <button key={c.id} style={{ ...S.card, ...(c.id === charId ? S.cardOn : {}) }} onClick={() => setCharId(c.id)}>
             <div style={S.cardHead}><CharacterAvatar characterId={c.id} name={c.name} size={38} /><div style={S.cardName}>{c.name}</div></div>
@@ -216,12 +216,12 @@ function Picker({ options, value, onChange, placeholder }: { options: string[]; 
 }
 
 const S: Record<string, React.CSSProperties> = {
-  wrap: { maxWidth: 720, margin: "0 auto", padding: "52px 24px 80px", lineHeight: 1.6 },
+  wrap: { maxWidth: 720, margin: "0 auto", padding: "40px 24px 72px", lineHeight: 1.6 },
   eyebrow: { letterSpacing: ".2em", textTransform: "uppercase", fontSize: 12, color: "#E9A06B", fontWeight: 700, margin: 0 },
-  h1: { fontFamily: "Georgia, serif", fontSize: 44, margin: "10px 0 12px" },
-  sub: { color: "#AC9CB0", margin: "0 0 16px" },
+  h1: { fontFamily: "Georgia, serif", fontSize: 40, margin: "8px 0 10px", lineHeight: 1.12 },
+  sub: { color: "#AC9CB0", margin: "0 0 12px", fontSize: 15.5 },
   shuffle: { background: "#231A2B", color: "#E9A06B", border: "1px solid #4a3a50", borderRadius: 999, padding: "9px 16px", cursor: "pointer", fontSize: 14, fontWeight: 600 },
-  section: { fontSize: 12, letterSpacing: ".14em", textTransform: "uppercase", color: "#8A7A90", fontWeight: 700, margin: "26px 0 12px" },
+  section: { fontSize: 12, letterSpacing: ".14em", textTransform: "uppercase", color: "#8A7A90", fontWeight: 700, margin: "22px 0 10px" },
   sectionRow: { display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 },
   createLink: { color: "#E9A06B", textDecoration: "none", fontSize: 13.5, fontWeight: 600, whiteSpace: "nowrap" },
   cards: { display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))", gap: 12 },
