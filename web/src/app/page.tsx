@@ -133,16 +133,6 @@ export default async function Home() {
   return (
     <main style={S.wrap} className="rv-home">
 
-      <section style={S.hero} className="rv-reveal rv-home-hero">
-        <p style={S.eyebrow}>interactive stories</p>
-        <h1 style={S.h1}>Choose a scene. Make it yours.</h1>
-        <p style={S.heroCopy}>Meet a character at the moment something changes, then decide what happens next.</p>
-        <div style={S.cta} className="rv-home-hero-cta">
-          <a href="/story" className="rv-btn rv-btn-primary" style={btn(true)}>Start exploring →</a>
-          <a href="/browse" style={S.heroTextLink}>Browse companions →</a>
-        </div>
-      </section>
-
       {spotlight ? (
         <section style={S.spot} className="rv-reveal rv-d1 rv-home-spotlight">
           <div aria-hidden style={S.spotBgLayer}>
@@ -173,6 +163,16 @@ export default async function Home() {
           </div>
         </section>
       ) : null}
+
+      <section style={{ ...S.hero, marginTop: spotlight ? 36 : 0 }} className="rv-reveal rv-home-hero">
+        <p style={S.eyebrow}>interactive stories</p>
+        <h1 style={S.h1}>Choose a scene. Make it yours.</h1>
+        <p style={S.heroCopy}>Meet a character at the moment something changes, then decide what happens next.</p>
+        <div style={S.cta} className="rv-home-hero-cta">
+          <a href="/story" className="rv-btn rv-btn-primary" style={btn(true)}>Start exploring →</a>
+          <a href="/browse" style={S.heroTextLink}>Browse companions →</a>
+        </div>
+      </section>
 
       {continueWith.length > 0 ? (
         <section className="rv-reveal rv-d1">
@@ -281,7 +281,7 @@ const S: Record<string, React.CSSProperties> = {
   heroCopy: { position: "relative", color: "#CBBBD0", fontSize: 16.5, lineHeight: 1.55, maxWidth: 560, margin: 0 },
   cta: { position: "relative", display: "flex", gap: "14px 20px", marginTop: 24, flexWrap: "wrap", alignItems: "center" },
   heroTextLink: { color: "#E9A06B", textDecoration: "none", fontWeight: 600, fontSize: 15 },
-  spot: { position: "relative", zIndex: 1, marginTop: 34, borderRadius: 20, overflow: "hidden", border: "1px solid #3A2E44", display: "flex", flexWrap: "wrap", gap: 22, padding: 22 },
+  spot: { position: "relative", zIndex: 1, marginTop: 0, borderRadius: 20, overflow: "hidden", border: "1px solid #3A2E44", display: "flex", flexWrap: "wrap", gap: 22, padding: 22 },
   spotBgLayer: { position: "absolute", inset: 0, zIndex: 0, overflow: "hidden", pointerEvents: "none" },
   spotBgImage: { position: "absolute", inset: -30, backgroundSize: "cover", backgroundPosition: "center 20%", filter: "blur(16px) brightness(.4) saturate(1.15)", transform: "scale(1.12)" },
   spotFallbackBg: { position: "absolute", inset: 0, background: "#211827" },
