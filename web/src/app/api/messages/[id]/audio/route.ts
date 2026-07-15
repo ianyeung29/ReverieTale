@@ -9,6 +9,19 @@ export const runtime = "nodejs";
 
 const MAX_TTS_CHARS = 2000;
 
+function speechText(content: string): string {
+  // Parentheses are commonly used for in-character actions and stage direction.
+  // Keep them in the visible transcript, but don't make the companion narrate
+  // them back to the reader. Repeat to handle a small amount of nesting safely.
+  let text = content;
+  for (let i = 0; i < 4; i += 1) {
+    const next = text.replace(/\([^()]*\)/g, " ");
+    if (next === text) break;
+    text = next;
+  }
+  return text.replace(/\s+/g, " ").trim().slice(0, MAX_TTS_CHARS);
+}
+
 // GET /api/messages/:id/audio -> synthesize a private companion reply through
 // Deepgram. We intentionally don't persist audio yet: the client caches it
 // for the current visit, avoiding database media growth while keeping each
@@ -31,7 +44,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const key = process.env.DEEPGRAM_API_KEY?.trim();
   if (!key) return new Response("Deepgram is not configured", { status: 503 });
 
-  const text = row.content.replace(/\s+/g, " ").trim().slice(0, MAX_TTS_CHARS);
+  const text = speechText(row.content);
   if (!text) return new Response("empty reply", { status: 400 });
   const model = resolveTtsVoice((row.definition ?? {}) as Record<string, unknown>, row.characterId);
   const speed = resolveTtsSpeed((row.definition ?? {}) as Record<string, unknown>, row.characterId);
