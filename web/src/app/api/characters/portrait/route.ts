@@ -25,7 +25,7 @@ const Body = z.object({
   look: z.string().max(400).optional(),
   persona: z.string().max(600).optional(),
   tags: z.array(z.string().max(30)).max(8).optional(),
-  style: z.enum(["realistic", "anime", "anime_3d"]).optional(),
+  style: z.enum(["realistic", "anime"]).optional(),
 });
 
 // POST /api/characters/portrait -> a generated portrait (base64) for the current

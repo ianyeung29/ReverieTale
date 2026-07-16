@@ -105,7 +105,6 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     characterName: def.name ?? "Unknown",
     characterTagline: def.backstory ?? "",
     characterTags: (row.definition as { tags?: string[] } | null)?.tags ?? [],
-    characterStyle: def.style === "anime_3d" ? "anime_3d" : def.style === "anime" ? "anime" : "realistic",
     tone: (row.elements as Record<string, string> | null)?.tone ?? "",
     createdAt: row.createdAt,
     chapterDates: row.chapterDates ?? [],

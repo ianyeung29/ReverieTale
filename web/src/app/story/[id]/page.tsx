@@ -13,7 +13,6 @@ import { intensityColor, intensityScore } from "@/lib/intensity";
 
 type Story = {
   id: string; title: string; content: string; characterId: string; characterName: string; characterTagline: string; characterTags: string[]; tone: string;
-  characterStyle: "realistic" | "anime" | "anime_3d";
   isOwner: boolean; isPublic: boolean; hasBackup: boolean; hasBackground: boolean;
   reads: number; rating: number; ratingCount: number; myRating: number | null; canRate: boolean;
   isSaved: boolean; canSave: boolean;
@@ -254,15 +253,10 @@ export default function StoryReadPage() {
   // canonical portrait for characters without variants, or a neutral tone).
   const expr = pickExpression(story.tone);
   const sceneState = pickStatusLine({ tags: story.characterTags, expr, isReturning: idx > 0 });
-  // Flux Headshot keeps identity cues, but it cannot reliably preserve a glossy
-  // 3D-anime render treatment across a new image. Use the canonical portrait in
-  // the chapter composition so a companion never appears as a different artist's
-  // character in the same story.
-  const usePortraitFirstScene = story.characterStyle === "anime_3d";
 
   return (
     <main style={S.wrap}>
-      <style>{"@keyframes rvFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}@keyframes rvBgIn{from{opacity:0}to{opacity:1}}@media(max-width:640px){.rv-portrait-first-scene{grid-template-columns:minmax(0,1fr) 132px!important;min-height:250px!important}.rv-portrait-first-copy{padding:18px!important}.rv-portrait-first-name{font-size:25px!important}.rv-portrait-first-portrait{padding:10px 10px 0 0!important}}"}</style>
+      <style>{"@keyframes rvFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}@keyframes rvBgIn{from{opacity:0}to{opacity:1}}"}</style>
       {story.hasBackground && bgOn ? (
         <div aria-hidden style={S.bgLayer}>
           <div style={{ ...S.bgImage, backgroundImage: `url(/api/stories/${id}/background)` }} />
@@ -339,21 +333,7 @@ export default function StoryReadPage() {
         </div>
       ) : null}
 
-      {story.chapterImages.includes(idx) || usePortraitFirstScene ? (
-        usePortraitFirstScene ? (
-          <div style={S.portraitFirstScene} className="rv-portrait-first-scene" key={`portrait-scene-${idx}`}>
-            <div aria-hidden style={{ ...S.portraitFirstSceneBg, backgroundImage: story.hasBackground ? `url(/api/stories/${id}/background)` : undefined }} />
-            <div aria-hidden style={S.portraitFirstSceneScrim} />
-            <div style={S.portraitFirstSceneCopy} className="rv-portrait-first-copy">
-              <p style={S.portraitFirstEyebrow}>Chapter {idx + 1} of {chapters.length}</p>
-              <p style={S.portraitFirstName} className="rv-portrait-first-name">{story.characterName}</p>
-              <p style={S.portraitFirstState}>{sceneState}</p>
-            </div>
-            <div style={S.portraitFirstPortrait} className="rv-portrait-first-portrait">
-              <CharacterAvatar characterId={story.characterId} name={story.characterName} shape="rect" variant={expr} />
-            </div>
-          </div>
-        ) : (
+      {story.chapterImages.includes(idx) ? (
         <div style={S.chapterScene} key={`scene-${idx}`}>
           <img
             src={`/api/stories/${id}/chapter-image?chapter=${idx}${imgVersion[idx] ? `&v=${imgVersion[idx]}` : ""}`}
@@ -370,7 +350,6 @@ export default function StoryReadPage() {
             </button>
           ) : null}
         </div>
-        )
       ) : story.canManageImages ? (
         <button style={S.genImgBtn} onClick={() => reRenderImage(idx)} disabled={renderingImg === idx} key={`genimg-${idx}`}>
           {renderingImg === idx ? "Rendering…" : "＋ Generate image for this chapter"}
@@ -649,14 +628,6 @@ const S: Record<string, React.CSSProperties> = {
   railBtn: { marginTop: 8, width: "100%", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", color: "#1A1220", border: 0, borderRadius: 10, padding: "9px 0", fontWeight: 650, fontSize: 13, cursor: "pointer" },
   chapterScene: { position: "relative", display: "block", width: "100%", padding: 0, margin: "0 0 22px", borderRadius: 16, overflow: "hidden", border: "1px solid #3A2E44", boxShadow: "0 16px 40px rgba(0,0,0,.4)", cursor: "zoom-in", background: "none" },
   chapterSceneImg: { display: "block", width: "100%", aspectRatio: "16 / 9", objectFit: "cover" },
-  portraitFirstScene: { position: "relative", isolation: "isolate", display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(210px, 34%)", minHeight: 330, width: "100%", margin: "0 0 22px", borderRadius: 16, overflow: "hidden", border: "1px solid #3A2E44", boxShadow: "0 16px 40px rgba(0,0,0,.4)", background: "#21192A" },
-  portraitFirstSceneBg: { position: "absolute", inset: -18, zIndex: -2, backgroundSize: "cover", backgroundPosition: "center", filter: "blur(8px) saturate(1.12) brightness(.62)", transform: "scale(1.07)" },
-  portraitFirstSceneScrim: { position: "absolute", inset: 0, zIndex: -1, background: "linear-gradient(90deg, rgba(18,12,22,.88) 0%, rgba(18,12,22,.58) 58%, rgba(18,12,22,.08) 100%)" },
-  portraitFirstSceneCopy: { alignSelf: "end", padding: 28, color: "#F4EAF0" },
-  portraitFirstEyebrow: { margin: 0, color: "#E9A06B", fontSize: 11.5, letterSpacing: ".12em", textTransform: "uppercase", fontWeight: 700 },
-  portraitFirstName: { margin: "7px 0 4px", fontFamily: "Georgia, serif", fontSize: 32, lineHeight: 1.08 },
-  portraitFirstState: { margin: 0, color: "#DDD0DB", fontSize: 14, lineHeight: 1.45 },
-  portraitFirstPortrait: { position: "relative", display: "flex", alignItems: "end", padding: "18px 18px 0 0", filter: "drop-shadow(0 16px 24px rgba(0,0,0,.36))" },
   chapterZoomHint: { position: "absolute", top: 10, right: 10, width: 30, height: 30, display: "grid", placeItems: "center", borderRadius: 8, background: "rgba(15,10,19,.55)", color: "#F4EAF0", fontSize: 15, border: "1px solid rgba(255,255,255,.15)", backdropFilter: "blur(4px)", cursor: "pointer", padding: 0 },
   reRenderBtn: { position: "absolute", bottom: 10, right: 10, background: "rgba(15,10,19,.65)", color: "#F4EAF0", fontSize: 12, fontWeight: 600, border: "1px solid rgba(255,255,255,.18)", borderRadius: 8, padding: "5px 10px", cursor: "pointer", backdropFilter: "blur(4px)" },
   genImgBtn: { display: "block", width: "100%", margin: "0 0 22px", background: "#1A1420", color: "#AC9CB0", border: "1px dashed #3A2E44", borderRadius: 14, padding: "14px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" },
