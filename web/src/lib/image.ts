@@ -13,6 +13,10 @@ const grokKey = () => process.env.XAI_IMAGE_KEY || process.env.XAI_API_KEY;
 const IMAGE_REQUEST_TIMEOUT_MS = Number(process.env.IMAGE_REQUEST_TIMEOUT_MS || 90_000);
 const MODELSLAB_POLL_INTERVAL_MS = Number(process.env.MODELSLAB_POLL_INTERVAL_MS || 4_000);
 const MODELSLAB_POLL_MAX_MS = Number(process.env.MODELSLAB_POLL_MAX_MS || 240_000);
+// A request timeout alone is not enough: ModelsLab may first queue a job and
+// then continue returning "processing". Keep the complete submit-and-poll
+// lifecycle bounded so a seed run can move on to the next portrait.
+const MODELSLAB_GENERATION_MAX_MS = Number(process.env.MODELSLAB_GENERATION_MAX_MS || 180_000);
 function imageFetch(input: RequestInfo | URL, init?: RequestInit, timeoutMs = IMAGE_REQUEST_TIMEOUT_MS): Promise<Response> {
   return fetch(input, { ...init, signal: AbortSignal.timeout(timeoutMs) });
 }
@@ -165,8 +169,8 @@ async function generateGrok(prompt: string): Promise<{ base64: string; mime: str
   throw new Error("grok: no image in response");
 }
 
-async function urlToImage(url: string): Promise<{ base64: string; mime: string }> {
-  const bin = await imageFetch(url);
+async function urlToImage(url: string, timeoutMs = IMAGE_REQUEST_TIMEOUT_MS): Promise<{ base64: string; mime: string }> {
+  const bin = await imageFetch(url, undefined, timeoutMs);
   if (!bin.ok) throw new Error(`failed to fetch generated image (${bin.status})`);
   // ModelsLab's base64 mode (img2img / face_swap / ip-adapter) returns a URL to a
   // ".base64" TEXT file whose CONTENTS are the image's base64. Fetch it as text
@@ -199,12 +203,12 @@ function mimeFromBase64(base64: string): string {
 
 // ModelsLab's `output` entries are normally URLs, but img2img with base64:"yes"
 // can hand back a data URI or a bare base64 string instead - handle both.
-async function outputToImage(value: string): Promise<{ base64: string; mime: string }> {
+async function outputToImage(value: string, timeoutMs = IMAGE_REQUEST_TIMEOUT_MS): Promise<{ base64: string; mime: string }> {
   // Strip any base64 data-URI prefix (not just image/* ones) so we always store
   // raw base64, never "data:...;base64,..." which decodes to garbage.
   const dataUri = value.match(/^data:([^;]+);base64,(.+)$/s);
   if (dataUri) return { base64: dataUri[2], mime: /^image\//.test(dataUri[1]) ? dataUri[1] : "image/png" };
-  if (/^https?:\/\//i.test(value)) return urlToImage(value);
+  if (/^https?:\/\//i.test(value)) return urlToImage(value, timeoutMs);
   return { base64: value, mime: "image/png" };
 }
 
@@ -293,13 +297,23 @@ async function generateModelsLab(prompt: string, ref?: { image: string }): Promi
 
   // "Try Again" = the model is warming up; ModelsLab wants a resubmit. Retry the
   // whole request a few times, polling fetch_result when it returns "processing".
+  const deadline = Date.now() + MODELSLAB_GENERATION_MAX_MS;
+  const takeOutput = (value: string) => outputToImage(value, Math.max(1, deadline - Date.now()));
   let lastMsg = "";
   for (let attempt = 0; attempt < 4; attempt++) {
-    const res = await imageFetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) {
+      throw new Error(`modelslab generation timed out after ${Math.round(MODELSLAB_GENERATION_MAX_MS / 1000)} seconds`);
+    }
+    const res = await imageFetch(
+      url,
+      { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) },
+      Math.min(IMAGE_REQUEST_TIMEOUT_MS, remaining),
+    );
     if (!res.ok) throw new Error(`modelslab ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
 
     let data = (await res.json()) as MlResp;
-    if (data.output?.[0]) return outputToImage(data.output[0]); // synchronous (e.g. realtime endpoint)
+    if (data.output?.[0]) return takeOutput(data.output[0]); // synchronous (e.g. realtime endpoint)
 
     // The v6 text-to-image contract documents result retrieval at
     // /api/v6/images/fetch/:id. Prefer that stable endpoint over the optional
@@ -310,8 +324,8 @@ async function generateModelsLab(prompt: string, ref?: { image: string }): Promi
     if (data.status === "processing" && fetchUrl) {
       const jobId = data.id ?? "unknown";
       console.log(`[image] ModelsLab job ${jobId} queued; polling for its result`);
-      data = await pollModelsLab(fetchUrl, key);
-      if (data.output?.[0]) return outputToImage(data.output[0]);
+      data = await pollModelsLab(fetchUrl, key, deadline);
+      if (data.output?.[0]) return takeOutput(data.output[0]);
       const message = String(data.message || data.messege || data.status || "no result").trim();
       throw new Error(`modelslab job ${jobId} did not complete: ${message}`);
     }
@@ -319,7 +333,9 @@ async function generateModelsLab(prompt: string, ref?: { image: string }): Promi
     lastMsg = String(data.message || data.messege || data.status || "").trim();
     // Warm-up: wait and resubmit. Anything else is a real error.
     if (/try again|loading|warming/i.test(lastMsg)) {
-      await new Promise((r) => setTimeout(r, 5000));
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) break;
+      await new Promise((r) => setTimeout(r, Math.min(5000, remaining)));
       continue;
     }
     throw new Error(`modelslab: ${lastMsg || "no image in response"}`);
@@ -327,23 +343,32 @@ async function generateModelsLab(prompt: string, ref?: { image: string }): Promi
   throw new Error(`modelslab: the model kept warming up (${lastMsg || "Try Again"}) — wait a moment and retry`);
 }
 
-async function pollModelsLab(fetchUrl: string, key: string): Promise<MlResp> {
+async function pollModelsLab(
+  fetchUrl: string,
+  key: string,
+  deadline = Date.now() + MODELSLAB_POLL_MAX_MS,
+): Promise<MlResp> {
   let last: MlResp = { status: "processing" };
   // A queued job can briefly return "Try Again" while it continues on the
   // provider. Keep polling the same job instead of submitting duplicates.
   const interval = Math.max(1_000, MODELSLAB_POLL_INTERVAL_MS);
-  const attempts = Math.max(1, Math.ceil(MODELSLAB_POLL_MAX_MS / interval));
-  for (let i = 0; i < attempts; i++) {
-    await new Promise((r) => setTimeout(r, interval));
+  const pollDeadline = Math.min(deadline, Date.now() + MODELSLAB_POLL_MAX_MS);
+  let attempt = 0;
+  while (Date.now() < pollDeadline) {
+    attempt += 1;
+    const remainingBeforeWait = pollDeadline - Date.now();
+    await new Promise((r) => setTimeout(r, Math.min(interval, remainingBeforeWait)));
+    const remaining = pollDeadline - Date.now();
+    if (remaining <= 0) break;
     let res: Response;
     try {
       res = await imageFetch(fetchUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ key }),
-      }, 12_000);
+      }, Math.min(12_000, remaining));
     } catch {
-      if ((i + 1) % 5 === 0) console.log(`[image] ModelsLab poll ${i + 1}/${attempts} is still timing out`);
+      if (attempt % 5 === 0) console.log(`[image] ModelsLab poll ${attempt} is still timing out`);
       continue;
     }
     if (!res.ok) continue;
@@ -352,10 +377,10 @@ async function pollModelsLab(fetchUrl: string, key: string): Promise<MlResp> {
     if (last.status === "error" || last.status === "failed") return last;
     const message = String(last.message || last.messege || "").trim();
     if (/try again|rate limit|queue.*full/i.test(message)) {
-      if ((i + 1) % 5 === 0) console.log(`[image] ModelsLab job is still queued (${i + 1}/${attempts})`);
+      if (attempt % 5 === 0) console.log(`[image] ModelsLab job is still queued (${attempt})`);
       continue;
     }
-    if ((i + 1) % 5 === 0) console.log(`[image] ModelsLab job is still processing (${i + 1}/${attempts})`);
+    if (attempt % 5 === 0) console.log(`[image] ModelsLab job is still processing (${attempt})`);
   }
   return last; // still processing; caller throws with context
 }

@@ -4934,6 +4934,14 @@ async function main() {
       }
     }
 
+    // Keep portrait repair runs strictly to portrait work. In particular, do
+    // not start the character-scene generation below after a slow or failed
+    // portrait attempt.
+    if (portraitsOnly) {
+      portraitByName.set(def.name, canonicalBase64);
+      continue;
+    }
+
     if (VARIANT_PILOT.has(def.name) && !hasVariants && canDrawVariants && canonicalBase64) {
       for (const expression of ["warm", "flirty"] as const) {
         try {
