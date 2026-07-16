@@ -65,6 +65,8 @@ export default function StoryReadPage() {
   const [zoomChapter, setZoomChapter] = useState<number | null>(null); // chapter image shown enlarged
   const [renderingImg, setRenderingImg] = useState<number | null>(null); // chapter whose image is (re)rendering
   const [imgVersion, setImgVersion] = useState<Record<number, number>>({}); // cache-buster per chapter image
+  const [renderingBg, setRenderingBg] = useState(false);
+  const [bgVersion, setBgVersion] = useState(0);
   const [bgOn, setBgOn] = useState(true);
   const [fontSize, setFontSize] = useState<FontSize>("sm"); // small by default; a saved preference overrides below
   const [theme, setTheme] = useState<ReaderTheme>("dark");
@@ -228,6 +230,27 @@ export default function StoryReadPage() {
     }
   }
 
+  async function reRenderBackground() {
+    if (renderingBg) return;
+    setRenderingBg(true);
+    setNotice(null);
+    try {
+      const res = await fetch(`/api/stories/${id}/background`, { method: "POST" });
+      if (res.ok) {
+        setStory((s) => (s ? { ...s, hasBackground: true } : s));
+        setBgOn(true);
+        setBgVersion((v) => v + 1);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setNotice(data.reason === "safety" ? "The background was blocked by the safety filter." : "Background render failed - try again in a moment.");
+      }
+    } catch {
+      setNotice("Background render failed - try again in a moment.");
+    } finally {
+      setRenderingBg(false);
+    }
+  }
+
   async function restore() {
     if (!confirm("Restore the previous version? This replaces the current story with your saved backup.")) return;
     try {
@@ -259,7 +282,7 @@ export default function StoryReadPage() {
       <style>{"@keyframes rvFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}@keyframes rvBgIn{from{opacity:0}to{opacity:1}}"}</style>
       {story.hasBackground && bgOn ? (
         <div aria-hidden style={S.bgLayer}>
-          <div style={{ ...S.bgImage, backgroundImage: `url(/api/stories/${id}/background)` }} />
+          <div style={{ ...S.bgImage, backgroundImage: `url(/api/stories/${id}/background?v=${bgVersion})` }} />
           <div style={S.bgScrim} />
         </div>
       ) : null}
@@ -311,6 +334,14 @@ export default function StoryReadPage() {
                       <button className="rv-chip" style={{ ...S.readerChip, width: "100%" }} onClick={toggleBg}>{bgOn ? "On" : "Off"}</button>
                     </>
                   ) : null}
+                  {story.canManageImages ? (
+                    <>
+                      <p style={S.readerMenuLabel}>Image controls</p>
+                      <button className="rv-chip" style={{ ...S.readerChip, width: "100%" }} onClick={reRenderBackground} disabled={renderingBg}>
+                        {renderingBg ? "Generating background..." : story.hasBackground ? "Regenerate background" : "Generate background"}
+                      </button>
+                    </>
+                  ) : null}
                 </div>
               </>
             ) : null}
@@ -346,13 +377,13 @@ export default function StoryReadPage() {
           <button style={S.chapterZoomHint} onClick={() => setZoomChapter(idx)} aria-label="Enlarge image">⤢</button>
           {story.canManageImages ? (
             <button style={S.reRenderBtn} onClick={() => reRenderImage(idx)} disabled={renderingImg === idx}>
-              {renderingImg === idx ? "Rendering…" : "↻ Re-render"}
+              {renderingImg === idx ? "Rendering..." : "Regenerate scene"}
             </button>
           ) : null}
         </div>
       ) : story.canManageImages ? (
         <button style={S.genImgBtn} onClick={() => reRenderImage(idx)} disabled={renderingImg === idx} key={`genimg-${idx}`}>
-          {renderingImg === idx ? "Rendering…" : "＋ Generate image for this chapter"}
+          {renderingImg === idx ? "Rendering..." : "Generate scene for this chapter"}
         </button>
       ) : null}
 
