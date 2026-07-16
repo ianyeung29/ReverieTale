@@ -53,9 +53,14 @@ export function Nav() {
           <a key={l.href} href={l.href} style={{ ...S.link, ...(isActive(l.href) ? S.linkOn : {}) }}>{l.label}</a>
         ))}
         {me?.isAdmin ? (
-          <a href="/admin/review" style={{ ...S.review, ...(isActive("/admin") ? S.linkOn : {}) }}>
-            Review{me.pendingReviews ? <span style={S.count}>{me.pendingReviews}</span> : null}
-          </a>
+          <>
+            <a href="/admin/review" style={{ ...S.review, ...(isActive("/admin/review") ? S.linkOn : {}) }}>
+              Review{me.pendingReviews ? <span style={S.count}>{me.pendingReviews}</span> : null}
+            </a>
+            <a href="/admin/media" style={{ ...S.review, ...(isActive("/admin/media") ? S.linkOn : {}) }}>
+              Media
+            </a>
+          </>
         ) : null}
         {credits !== null ? <a href="/credits" style={S.credits} title="Your credit balance — view history">◈ {credits}</a> : null}
         {me ? <a href="/profile" style={{ ...S.link, ...(isActive("/profile") ? S.linkOn : {}) }}>Profile</a> : null}
