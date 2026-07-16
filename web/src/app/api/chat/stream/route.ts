@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { chatStream } from "@/lib/model";
+import { chat, chatStream } from "@/lib/model";
 import { finalizeChat, prepareChat } from "@/lib/chat";
 import { screen } from "@/lib/moderation";
 import { ensureDailyDrip } from "@/lib/ledger";
@@ -53,9 +53,21 @@ export async function POST(req: Request) {
     async start(controller) {
       let full = "";
       try {
-        for await (const delta of chatStream(prep.msgs, { temperature: 0.9, maxTokens: 600 })) {
-          full += delta;
-          controller.enqueue(encoder.encode(sse({ delta })));
+        try {
+          for await (const delta of chatStream(prep.msgs, { temperature: 0.9, maxTokens: 600 })) {
+            full += delta;
+            controller.enqueue(encoder.encode(sse({ delta })));
+          }
+        } catch (error) {
+          // Some OpenAI-compatible providers intermittently fail their streamed
+          // response while a regular completion still succeeds. Before showing
+          // a dead-end to the reader, retry once through that established path.
+          console.error("[chat/stream] upstream stream failed", { threadId: prep.threadId, error: error instanceof Error ? error.message : error });
+          if (!full) {
+            const fallback = await chat(prep.msgs, { temperature: 0.9, maxTokens: 600 });
+            full = fallback.text?.trim() || "...";
+            controller.enqueue(encoder.encode(sse({ delta: full })));
+          }
         }
 
         let reply = full || "...";
@@ -78,7 +90,8 @@ export async function POST(req: Request) {
         });
 
         controller.enqueue(encoder.encode(sse({ done: true, threadId: prep.threadId, messageId, balance, replace: replaced ? reply : undefined })));
-      } catch {
+      } catch (error) {
+        console.error("[chat/stream] generation or persistence failed", { threadId: prep.threadId, error: error instanceof Error ? error.message : error });
         controller.enqueue(encoder.encode(sse({ error: "chat failed" })));
       } finally {
         controller.close();
