@@ -76,12 +76,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     // A scene image for the new chapter, in the background - only when scene
     // images are enabled for this chapter (SCENE_IMAGES=all covers later chapters).
     if (shouldGenerateChapterScene(newIndex) && mediaStorageConfigured()) {
-      const prompt = buildChapterScenePrompt({ name: def.name, gender: def.gender, look: def.look, style: def.style }, chapter);
+      const prompt = buildChapterScenePrompt({ name: def.name, gender: def.gender, look: def.look, outfit: def.outfit, style: def.style }, chapter);
       if (!screenImagePrompt(prompt).blocked) {
         after(async () => {
           try {
             const portraitBase64 = await readImageBase64(row.portraitKey);
-            const gen = await generateChapterScene({ name: def.name, gender: def.gender, look: def.look, style: def.style }, chapter, portraitBase64, portraitBase64 ? characterImageUrl(row.characterId) : null);
+            const gen = await generateChapterScene({ name: def.name, gender: def.gender, look: def.look, outfit: def.outfit, style: def.style }, chapter, portraitBase64, portraitBase64 ? characterImageUrl(row.characterId) : null);
             const imageKey = await storeImage({ scope: "chapters", ownerId: `${id}/${newIndex}`, base64: gen.base64, mime: gen.mime });
             await db.insert(chapterScenes).values({ storyId: id, chapterIndex: newIndex, imageKey, imageMime: gen.mime }).onConflictDoNothing();
           } catch (err) {

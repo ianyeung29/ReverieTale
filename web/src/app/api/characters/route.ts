@@ -75,6 +75,7 @@ const Body = z.object({
   gender: z.string().trim().min(1).max(30), // required: female | male | non-binary | …
   age: z.number().int().min(18).max(120), // characters must be adults
   persona: z.string().trim().max(600).optional(),
+  outfit: z.string().trim().max(200).optional(),
   look: z.string().trim().max(400).optional(),
   backstory: z.string().trim().max(600).optional(),
   voice: z.string().trim().max(300).optional(),
@@ -104,7 +105,7 @@ export async function POST(req: Request) {
 
   // Hybrid pre-publish gate: hard filter -> classifier -> auto-approve / hold /
   // reject. Creators never publish directly; only auto-approve or an admin does.
-  const blob = [body.name, body.persona, body.look, body.backstory, body.voice, body.greeting, ...(body.tags ?? [])].filter(Boolean).join(" ");
+  const blob = [body.name, body.persona, body.outfit, body.look, body.backstory, body.voice, body.greeting, ...(body.tags ?? [])].filter(Boolean).join(" ");
   const mod = await moderateContent(blob);
   if (mod.decision === "reject") {
     return NextResponse.json({ error: "blocked", reason: mod.reason }, { status: 422 });
@@ -116,6 +117,7 @@ export async function POST(req: Request) {
     gender: body.gender,
     age: body.age,
     persona: body.persona ?? "",
+    outfit: body.outfit ?? "",
     look: body.look ?? "",
     backstory: body.backstory ?? "",
     voice: body.voice ?? "",
@@ -152,7 +154,7 @@ export async function POST(req: Request) {
   }
 
   if (!body.image && imageConfigured() && mediaStorageConfigured()) {
-    const prompt = buildPortraitPrompt({ name: body.name, gender: body.gender, age: body.age, look: body.look, persona: body.persona, tags: body.tags, style: body.style });
+    const prompt = buildPortraitPrompt({ name: body.name, gender: body.gender, age: body.age, outfit: body.outfit, look: body.look, persona: body.persona, tags: body.tags, style: body.style });
     if (!screenImagePrompt(prompt).blocked) {
       after(async () => {
         try {

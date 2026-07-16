@@ -580,23 +580,29 @@ export function characterImageUrl(characterId: string): string | null {
   return `${base}/api/characters/${characterId}/image`;
 }
 
-const HEADSHOT_NEGATIVE =
+const HEADSHOT_NEGATIVE_REALISTIC =
   "anime, cartoon, drawing, big nose, long nose, fat, ugly, big lips, big mouth, face proportion mismatch, unrealistic, monochrome, lowres, bad anatomy, worst quality, low quality, blurry";
+
+const HEADSHOT_NEGATIVE_ANIME =
+  "photorealistic, realistic photography, live action, real person, 3d render, big nose, long nose, bad anatomy, worst quality, low quality, blurry, monochrome";
 
 // `faceImage` is the character's portrait. Per the flux-headshot API, this is a
 // public image URL; we also accept raw base64 (sent with base64:"yes") as a
 // fallback in case the account supports it.
-async function generateModelsLabHeadshot(faceImage: string, prompt: string): Promise<{ base64: string; mime: string }> {
+async function generateModelsLabHeadshot(faceImage: string, prompt: string, style: ArtStyle): Promise<{ base64: string; mime: string }> {
   const key = process.env.MODELSLAB_API_KEY;
   if (!key) throw new Error("MODELSLAB_API_KEY is not set");
   const url = process.env.MODELSLAB_HEADSHOT_URL || "https://modelslab.com/api/v8/images/flux-headshot";
   const imageField = process.env.MODELSLAB_HEADSHOT_IMAGE_FIELD || "face_image";
   const isUrl = /^https?:\/\//i.test(faceImage);
+  const styleLock = style === "anime"
+    ? "MANDATORY RENDER STYLE: a polished 2D anime illustration with cel shading and clean linework. Keep the referenced character's anime visual identity. Do not render this as photography or live action."
+    : "MANDATORY RENDER STYLE: photorealistic cinematic photography. Keep the referenced character's realistic visual identity.";
   const payload: Record<string, string> = {
     key,
     model_id: process.env.MODELSLAB_HEADSHOT_MODEL || "flux_headshot",
-    prompt,
-    negative_prompt: HEADSHOT_NEGATIVE,
+    prompt: `${styleLock}\n\n${prompt}`,
+    negative_prompt: style === "anime" ? HEADSHOT_NEGATIVE_ANIME : HEADSHOT_NEGATIVE_REALISTIC,
     [imageField]: faceImage,
     width: "1024",
     height: "1024",
@@ -646,6 +652,7 @@ export async function generateSceneWithIdentity(
   prompt: string,
   portraitBase64?: string | null,
   portraitUrl?: string | null,
+  style: ArtStyle = "realistic",
 ): Promise<{ base64: string; mime: string }> {
   // Flux Headshot is the identity-preserving path. It needs a public portrait
   // URL; never silently replace it with a generic scene, which would depict a
@@ -654,7 +661,7 @@ export async function generateSceneWithIdentity(
     if (!portraitUrl) {
       throw new Error("Flux Headshot requires a public portrait URL. Set APP_URL or PUBLIC_IMAGE_BASE to the deployed site URL.");
     }
-    return generateModelsLabHeadshot(portraitUrl, prompt);
+    return generateModelsLabHeadshot(portraitUrl, prompt, style);
   }
   if (portraitBase64 && identityScenesEnabled()) {
     try {
@@ -677,25 +684,26 @@ export async function generateSceneWithIdentity(
 // the provider's safety filter - which returns a fully blacked-out image that
 // shows up as a blank screen. A described scene is both truer to "visualize
 // this moment" and much more reliable.)
-export function buildMomentPrompt(def: { name?: string; gender?: string; look?: string; style?: string }, sceneText: string): string {
+export function buildMomentPrompt(def: { name?: string; gender?: string; look?: string; outfit?: string; style?: string }, sceneText: string): string {
   const g = genderWord(def.gender);
   const who = def.name ? (g ? `${g} named ${def.name}` : def.name) : g || "person";
   const look = def.look ? `, ${def.look}` : "";
+  const outfit = def.outfit ? ` Wearing ${def.outfit}.` : "";
   const scene = sceneText.trim().replace(/\s+/g, " ").slice(0, 300);
   const { lead, tail } = sceneStyle(normalizeStyle(def.style));
   return (
-    `${lead} featuring ${who}${look}. The moment: ${scene} ` +
+    `${lead} featuring ${who}${look}.${outfit} The moment: ${scene} ` +
     `Full scene with environment, ${tail}`
   );
 }
 
 export async function generateMomentImage(
-  def: { name?: string; gender?: string; look?: string; style?: string },
+  def: { name?: string; gender?: string; look?: string; outfit?: string; style?: string },
   sceneText: string,
   portraitBase64?: string | null,
   portraitUrl?: string | null,
 ): Promise<{ base64: string; mime: string }> {
-  const scene = await generateSceneWithIdentity(buildMomentPrompt(def, sceneText), portraitBase64, portraitUrl);
+  const scene = await generateSceneWithIdentity(buildMomentPrompt(def, sceneText), portraitBase64, portraitUrl, normalizeStyle(def.style));
   return withFaceSwap(scene, portraitBase64);
 }
 
@@ -703,50 +711,52 @@ export async function generateMomentImage(
 // A wide establishing image - the character within their backstory setting
 // (e.g. Sable at the piano in a closed club) - used behind the profile hero.
 // Wide/landscape, unlike the portrait, so it reads as a place, not a headshot.
-export function buildCharacterScenePrompt(def: { name?: string; gender?: string; look?: string; backstory?: string; tags?: string[]; style?: string }): string {
+export function buildCharacterScenePrompt(def: { name?: string; gender?: string; look?: string; outfit?: string; backstory?: string; tags?: string[]; style?: string }): string {
   const g = genderWord(def.gender);
   const who = def.name ? (g ? `${g} named ${def.name}` : def.name) : g || "person";
   const look = def.look ? `, ${def.look}` : "";
+  const outfit = def.outfit ? ` Wearing ${def.outfit}.` : "";
   const place = def.backstory ? def.backstory.trim().replace(/\s+/g, " ").slice(0, 200) : "an intimate, atmospheric setting";
   const genre = def.tags?.length ? ` ${def.tags.join(", ")} mood.` : "";
   const { lead, tail } = sceneStyle(normalizeStyle(def.style));
   return (
-    `Wide ${lead} of ${who}${look}, within their world: ${place} ` +
+    `Wide ${lead} of ${who}${look}.${outfit} Within their world: ${place} ` +
     `The character is present in the scene, environmental and atmospheric.${genre} ` +
     `${tail} Depth of field, moody lighting.`
   );
 }
 
 export async function generateCharacterScene(
-  def: { name?: string; gender?: string; look?: string; backstory?: string; tags?: string[]; style?: string },
+  def: { name?: string; gender?: string; look?: string; outfit?: string; backstory?: string; tags?: string[]; style?: string },
   portraitBase64?: string | null,
   portraitUrl?: string | null,
 ): Promise<{ base64: string; mime: string }> {
   // Identity: flux-headshot (from the portrait URL) if enabled, else IP-Adapter,
   // else plain text2img. FACE_SWAP, if separately enabled, pastes the portrait
   // face on top as an extra pass. All default off.
-  const scene = await generateSceneWithIdentity(buildCharacterScenePrompt(def), portraitBase64, portraitUrl);
+  const scene = await generateSceneWithIdentity(buildCharacterScenePrompt(def), portraitBase64, portraitUrl, normalizeStyle(def.style));
   return withFaceSwap(scene, portraitBase64);
 }
 
 // ---- Per-chapter scene art --------------------------------------------------
 // One illustration per chapter, from that chapter's own prose, placed at a
 // turning point in the reader.
-export function buildChapterScenePrompt(def: { name?: string; gender?: string; look?: string; style?: string }, chapterText: string): string {
+export function buildChapterScenePrompt(def: { name?: string; gender?: string; look?: string; outfit?: string; style?: string }, chapterText: string): string {
   const g = genderWord(def.gender);
   const who = def.name ? (g ? `${g} named ${def.name}` : def.name) : g || "person";
   const look = def.look ? `, ${def.look}` : "";
+  const outfit = def.outfit ? ` Wearing ${def.outfit}.` : "";
   // Lead with the opening of the chapter - it usually sets the scene.
   const scene = chapterText.trim().replace(/\s+/g, " ").slice(0, 320);
   const { lead, tail } = sceneStyle(normalizeStyle(def.style));
   return (
-    `${lead} featuring ${who}${look}. Scene: ${scene} ` +
+    `${lead} featuring ${who}${look}.${outfit} Scene: ${scene} ` +
     `Full environment, ${tail}`
   );
 }
 
 export async function generateChapterScene(
-  def: { name?: string; gender?: string; look?: string; style?: string },
+  def: { name?: string; gender?: string; look?: string; outfit?: string; style?: string },
   chapterText: string,
   portraitBase64?: string | null,
   portraitUrl?: string | null,
@@ -763,7 +773,7 @@ export async function generateChapterScene(
   } catch (e) {
     console.error("[image] chapter scene description failed, using raw text:", e instanceof Error ? e.message : e);
   }
-  const scene = await generateSceneWithIdentity(buildChapterScenePrompt(def, sceneText), portraitBase64, portraitUrl);
+  const scene = await generateSceneWithIdentity(buildChapterScenePrompt(def, sceneText), portraitBase64, portraitUrl, normalizeStyle(def.style));
   return withFaceSwap(scene, portraitBase64);
 }
 

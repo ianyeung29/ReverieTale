@@ -63,7 +63,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (chapter >= chapters.length) return NextResponse.json({ error: "no such chapter" }, { status: 400 });
 
   const def = (row.definition ?? {}) as Record<string, string>;
-  const sceneDef = { name: def.name, gender: def.gender, look: def.look, style: def.style };
+  const sceneDef = { name: def.name, gender: def.gender, look: def.look, outfit: def.outfit, style: def.style };
   if (screenImagePrompt(buildChapterScenePrompt(sceneDef, chapters[chapter])).blocked) {
     return NextResponse.json({ error: "blocked", reason: "safety" }, { status: 422 });
   }

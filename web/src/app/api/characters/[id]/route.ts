@@ -12,7 +12,7 @@ import { isTtsLanguage, isTtsStyle, isTtsVoice } from "@/lib/tts";
 export const dynamic = "force-dynamic";
 
 // Gender is intentionally NOT here: it's set at creation and immutable thereafter.
-const FIELDS = ["name", "look", "persona", "backstory", "voice", "ttsVoice", "ttsLanguage", "ttsStyle", "greeting", "tags"] as const;
+const FIELDS = ["name", "outfit", "look", "persona", "backstory", "voice", "ttsVoice", "ttsLanguage", "ttsStyle", "greeting", "tags"] as const;
 
 // GET /api/characters/:id -> owner-only detail for editing.
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -44,6 +44,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     hasImage,
     name: (def.name as string) ?? "",
     gender: (def.gender as string) ?? "",
+    outfit: (def.outfit as string) ?? "",
     look: (def.look as string) ?? "",
     persona: (def.persona as string) ?? "",
     backstory: (def.backstory as string) ?? "",
@@ -64,6 +65,7 @@ const Patch = z.object({
   name: z.string().trim().min(1).max(60).optional(),
   // gender is immutable after creation; any value sent here is ignored (stripped).
   age: z.number().int().min(18).max(120).optional(),
+  outfit: z.string().trim().max(200).optional(),
   look: z.string().trim().max(400).optional(),
   persona: z.string().trim().max(600).optional(),
   backstory: z.string().trim().max(600).optional(),
@@ -132,7 +134,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (body.age !== undefined) def.age = body.age;
   if (body.style !== undefined) def.style = body.style;
 
-  const blob = [def.name, def.look, def.persona, def.backstory, def.voice, def.greeting, ...(Array.isArray(def.tags) ? def.tags : [])]
+  const blob = [def.name, def.outfit, def.look, def.persona, def.backstory, def.voice, def.greeting, ...(Array.isArray(def.tags) ? def.tags : [])]
     .filter(Boolean)
     .join(" ");
   const mod = await moderateContent(String(blob));

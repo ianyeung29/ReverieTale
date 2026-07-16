@@ -4795,7 +4795,7 @@ const LAUNCH_CHARACTERS: CharDef[] = [
   { name: "Rina", gender: "female", age: 26, persona: "curious, composed, and openly delighted by difficult questions; becomes fearless when someone needs an answer", look: "freckled cheeks, a short copper-brown bob, clear round glasses, and a constellation tattoo on one wrist", outfit: "a navy field jacket over a telescope-club tee, with fingerless gloves and a folded star map", backstory: "Runs a small city observatory's public night program. During a livestream, an unexplained light appears in the same patch of sky every time someone asks a certain question.", voice: "clear, thoughtful, bright when excited", greeting: "I was hoping someone else would see it before I told the internet. Good news: you do. Less good news: it just moved.", tags: ["sci-fi", "mystery", "adventure"] },
   { name: "Hana", gender: "female", age: 21, persona: "driven, bright, and slyly funny; turns every note of criticism into a reason to improve", look: "long glossy black hair in a high ponytail, expressive dark eyes, a small silver star ear cuff, and a dancer's confident posture", outfit: "a cropped silver moto jacket over a high-neck black performance top, a pleated charcoal skirt with opaque tights, and polished dance boots", backstory: "A twenty-one-year-old K-pop trainee preparing for her first showcase. During a late rehearsal, an unreleased demo begins playing through the empty studio speakers - in her voice, but with lyrics she has never learned.", voice: "energetic, teasing, precise", greeting: "You heard that too, right? Great. I was worried the studio had decided to debut me without asking.", tags: ["music", "dance", "mystery"] },
   { name: "Amara", gender: "female", age: 27, persona: "poised, observant, and gently mischievous; can make a stressful room feel calmer with one perfectly timed sentence", look: "warm brown skin, a sleek chin-length bob, alert hazel eyes, and a gold name pin", outfit: "a tailored midnight-blue flight-attendant uniform dress, a crimson silk neck scarf, sheer navy tights, and a structured carry-on case", backstory: "A twenty-seven-year-old flight attendant on the final overnight departure before a storm. A passenger has left a sealed envelope in her galley with her name on it - and a boarding pass dated tomorrow.", voice: "calm, polished, warm", greeting: "I have checked the manifest twice. You are not supposed to be on this flight, which makes you either very lost or exactly who I need.", tags: ["travel", "mystery", "romance"] },
-  { name: "Tessa", gender: "female", age: 22, persona: "fearless, loyal, and candid; makes people feel braver simply by expecting them to be", look: "sunlit auburn curls, sharp green eyes, a bright smile, and a tiny lightning-bolt charm at her wrist", outfit: "an emerald varsity jacket over a fitted team top, a pleated midnight skirt with opaque dance shorts, and white high-top trainers", backstory: "A twenty-two-year-old captain of a semi-pro basketball cheer and dance squad. On the night of a sold-out game, the arena's scoreboard begins flashing a routine nobody taught her team.", voice: "bold, playful, encouraging", greeting: "Okay, that was not our cue. But the crowd thinks it was, so grab a count and help me make it look intentional.", tags: ["sports", "dance", "adventure"] },
+  { name: "Tessa", gender: "female", age: 22, persona: "fearless, loyal, and candid; makes people feel braver simply by expecting them to be", look: "sunlit auburn curls, sharp green eyes, a bright smile, and a tiny lightning-bolt charm at her wrist", outfit: "an emerald varsity jacket over a fitted team top, a pleated midnight skirt with opaque dance shorts, and white high-top trainers", backstory: "A twenty-two-year-old captain of a semi-pro basketball cheer and dance squad. On the night of a sold-out game, the arena's scoreboard begins flashing a routine nobody taught her team.", voice: "bold, playful, encouraging", greeting: "Okay, that was not our cue. But the crowd thinks it was, so grab a count and help me make it look intentional.", tags: ["sports", "dance", "adventure"], style: "anime" },
   { name: "Marisol", gender: "female", age: 28, persona: "confident, creative, and impossible to rattle; sees a whole story in the way someone asks for a change", look: "soft waves of dark hair, amber eyes, a beauty mark near one cheek, and stacked gold rings", outfit: "a fitted black jumpsuit with a satin wine-red blouse underneath, a slim belt, pointed ankle boots, and a pair of gold salon shears", backstory: "A twenty-eight-year-old hair stylist whose after-hours salon is known for transformations and honest conversations. Tonight, a regular client has vanished after leaving a locked styling case and a message hidden in the appointment book.", voice: "smooth, witty, reassuring", greeting: "Close the door behind you, darling. We have a missing client, a locked case, and exactly one hour before someone comes back for both.", tags: ["fashion", "mystery", "creator"] },
 ];
 
@@ -4881,7 +4881,7 @@ async function main() {
 
   for (const def of charactersToSeed) {
     const [existing] = await db
-      .select({ id: characters.id, imageKey: characters.imageKey, warmKey: characters.imageWarmKey, flirtyKey: characters.imageFlirtyKey, sceneKey: characters.sceneImageKey })
+      .select({ id: characters.id, definition: characters.definition, imageKey: characters.imageKey, warmKey: characters.imageWarmKey, flirtyKey: characters.imageFlirtyKey, sceneKey: characters.sceneImageKey })
       .from(characters)
       .where(sql`${characters.definition}->>'name' = ${def.name}`)
       .limit(1);
@@ -4897,6 +4897,15 @@ async function main() {
       hasVariants = Boolean(existing.warmKey) && Boolean(existing.flirtyKey);
       hasScene = Boolean(existing.sceneKey);
       canonicalBase64 = canStoreMedia && existing.imageKey ? await readImageBase64(existing.imageKey) : null;
+      const savedDefinition = (existing.definition ?? {}) as Record<string, unknown>;
+      const desiredStyle = def.style ?? "realistic";
+      if (savedDefinition.outfit !== def.outfit || savedDefinition.style !== desiredStyle) {
+        await db.update(characters).set({
+          definition: { ...savedDefinition, outfit: def.outfit, style: desiredStyle },
+          updatedAt: new Date(),
+        }).where(eq(characters.id, charId));
+        console.log(`  refreshed scene details for ${def.name}`);
+      }
       console.log(`= ${def.name.padEnd(8)} already exists (${charId})`);
     } else {
       const [c] = await db
@@ -4911,6 +4920,7 @@ async function main() {
             age: def.age,
             persona: def.persona,
             look: def.look,
+            outfit: def.outfit,
             backstory: def.backstory,
             voice: def.voice,
             greeting: def.greeting,
@@ -4966,13 +4976,13 @@ async function main() {
 
     // Character scene art: the companion within their world, behind the profile hero.
     if (canDrawImages && (!hasScene || regenScenes) && shouldGenerateCharacterScene()) {
-      const scenePrompt = buildCharacterScenePrompt({ name: def.name, gender: def.gender, look: def.look, backstory: def.backstory, tags: def.tags, style: def.style });
+      const scenePrompt = buildCharacterScenePrompt({ name: def.name, gender: def.gender, look: def.look, outfit: def.outfit, backstory: def.backstory, tags: def.tags, style: def.style });
       if (screenImagePrompt(scenePrompt).blocked) {
         console.log(`  ! scene prompt blocked for ${def.name}, skipping`);
       } else {
         try {
           console.log(`  drawing scene for ${def.name}...`);
-          const gen = await generateCharacterScene({ name: def.name, gender: def.gender, look: def.look, backstory: def.backstory, tags: def.tags, style: def.style }, canonicalBase64, canonicalBase64 ? characterImageUrl(charId) : null);
+          const gen = await generateCharacterScene({ name: def.name, gender: def.gender, look: def.look, outfit: def.outfit, backstory: def.backstory, tags: def.tags, style: def.style }, canonicalBase64, canonicalBase64 ? characterImageUrl(charId) : null);
           const imageKey = await storeImage({ scope: "characters", ownerId: `${charId}/scene`, base64: gen.base64, mime: gen.mime });
           await db.update(characters).set({ sceneImageKey: imageKey, sceneImageMime: gen.mime }).where(eq(characters.id, charId));
           console.log(`  scene drawn for ${def.name}`);
@@ -5059,11 +5069,11 @@ async function main() {
           .where(and(eq(chapterScenes.storyId, storyId), eq(chapterScenes.chapterIndex, i)))
           .limit(1);
         if (have && !regenScenes) continue;
-        const prompt = buildChapterScenePrompt({ name: charDef?.name, gender: charDef?.gender, look: charDef?.look, style: charDef?.style }, chapters[i]);
+        const prompt = buildChapterScenePrompt({ name: charDef?.name, gender: charDef?.gender, look: charDef?.look, outfit: charDef?.outfit, style: charDef?.style }, chapters[i]);
         if (screenImagePrompt(prompt).blocked) continue;
         try {
           const portraitBase64 = portraitByName.get(s.character) ?? null;
-          const gen = await generateChapterScene({ name: charDef?.name, gender: charDef?.gender, look: charDef?.look, style: charDef?.style }, chapters[i], portraitBase64, portraitBase64 ? characterImageUrl(characterId) : null);
+          const gen = await generateChapterScene({ name: charDef?.name, gender: charDef?.gender, look: charDef?.look, outfit: charDef?.outfit, style: charDef?.style }, chapters[i], portraitBase64, portraitBase64 ? characterImageUrl(characterId) : null);
           // Replace the cached row when regenerating (unique on storyId+chapterIndex).
           if (have) await db.delete(chapterScenes).where(eq(chapterScenes.id, have.id));
           const imageKey = await storeImage({ scope: "chapters", ownerId: `${storyId}/${i}`, base64: gen.base64, mime: gen.mime });

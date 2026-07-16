@@ -92,12 +92,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     // Regenerate a scene for the rewritten chapter, in the background - only
     // when scene images are enabled for this chapter index.
     if (shouldGenerateChapterScene(body.chapterIndex) && mediaStorageConfigured()) {
-      const prompt = buildChapterScenePrompt({ name: def.name, gender: def.gender, look: def.look, style: def.style }, newChapter);
+      const prompt = buildChapterScenePrompt({ name: def.name, gender: def.gender, look: def.look, outfit: def.outfit, style: def.style }, newChapter);
       if (!screenImagePrompt(prompt).blocked) {
         after(async () => {
           try {
             const portraitBase64 = await readImageBase64(row.portraitKey);
-            const gen = await generateChapterScene({ name: def.name, gender: def.gender, look: def.look, style: def.style }, newChapter, portraitBase64, portraitBase64 ? characterImageUrl(row.characterId) : null);
+            const gen = await generateChapterScene({ name: def.name, gender: def.gender, look: def.look, outfit: def.outfit, style: def.style }, newChapter, portraitBase64, portraitBase64 ? characterImageUrl(row.characterId) : null);
             const imageKey = await storeImage({ scope: "chapters", ownerId: `${id}/${body.chapterIndex}`, base64: gen.base64, mime: gen.mime });
             await db.insert(chapterScenes).values({ storyId: id, chapterIndex: body.chapterIndex, imageKey, imageMime: gen.mime }).onConflictDoNothing();
           } catch (err) {

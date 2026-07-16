@@ -191,6 +191,7 @@ export default function CreateCharacterPage() {
       name: name.trim(),
       gender,
       age: ageNum,
+      outfit: outfit.trim() || undefined,
       look: look.trim() || undefined,
       persona: persona.trim() || undefined,
       backstory: backstory.trim() || undefined,

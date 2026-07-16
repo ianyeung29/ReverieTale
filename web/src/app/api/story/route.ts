@@ -119,12 +119,12 @@ export async function POST(req: Request) {
     // A scene image for the opening chapter (chapter 0), in the background -
     // only when scene images are enabled (SCENE_IMAGES=opening|all).
     if (shouldGenerateChapterScene(0) && mediaStorageConfigured()) {
-      const chapterPrompt = buildChapterScenePrompt({ name: def.name, gender: def.gender, look: def.look, style: def.style }, content);
+      const chapterPrompt = buildChapterScenePrompt({ name: def.name, gender: def.gender, look: def.look, outfit: def.outfit, style: def.style }, content);
       if (!screenImagePrompt(chapterPrompt).blocked) {
         after(async () => {
           try {
             const portraitBase64 = await readImageBase64(char.imageKey);
-            const gen = await generateChapterScene({ name: def.name, gender: def.gender, look: def.look, style: def.style }, content, portraitBase64, portraitBase64 ? characterImageUrl(body.characterId) : null);
+            const gen = await generateChapterScene({ name: def.name, gender: def.gender, look: def.look, outfit: def.outfit, style: def.style }, content, portraitBase64, portraitBase64 ? characterImageUrl(body.characterId) : null);
             const imageKey = await storeImage({ scope: "chapters", ownerId: `${story.id}/0`, base64: gen.base64, mime: gen.mime });
             await db.insert(chapterScenes).values({ storyId: story.id, chapterIndex: 0, imageKey, imageMime: gen.mime }).onConflictDoNothing();
           } catch (err) {
