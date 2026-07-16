@@ -586,6 +586,67 @@ const HEADSHOT_NEGATIVE_REALISTIC =
 const HEADSHOT_NEGATIVE_ANIME =
   "photorealistic, realistic photography, live action, real person, 3d render, big nose, long nose, bad anatomy, worst quality, low quality, blurry, monochrome";
 
+// FLUX Headshot is excellent at carrying a real face into a fresh image, but it
+// is designed for headshots and can change an illustrated character's rendering
+// treatment. Kontext is an image-to-image editor: its init image preserves the
+// source illustration while the prompt changes the composition and setting.
+const KONTEXT_NEGATIVE_ANIME =
+  "photorealistic, realistic photography, live action, real person, different character, different face, different hairstyle, different outfit, text, watermark, logo, bad anatomy, low quality, blurry";
+
+async function generateModelsLabKontextScene(
+  initImageUrl: string,
+  prompt: string,
+): Promise<{ base64: string; mime: string }> {
+  const key = process.env.MODELSLAB_API_KEY;
+  if (!key) throw new Error("MODELSLAB_API_KEY is not set");
+  const url = process.env.MODELSLAB_KONTEXT_URL || "https://modelslab.com/api/v6/images/img2img";
+  const payload: Record<string, string | number | null> = {
+    key,
+    model_id: process.env.MODELSLAB_KONTEXT_MODEL || "flux-kontext-dev",
+    init_image: initImageUrl,
+    prompt: `Use the supplied portrait as the exact visual reference. Preserve the same character, facial features, hair, outfit, and illustration rendering style. Compose a cinematic 16:9 story moment with a clear environment and action drawn from the chapter. Keep the character in the scene, but do not create a portrait, character sheet, collage, or isolated full-body pose. ${prompt}`,
+    negative_prompt: KONTEXT_NEGATIVE_ANIME,
+    strength: Number(process.env.MODELSLAB_KONTEXT_STRENGTH || 0.45),
+    guidance: Number(process.env.MODELSLAB_KONTEXT_GUIDANCE || 2.5),
+    width: 1024,
+    height: 576,
+    samples: 1,
+    num_inference_steps: Number(process.env.MODELSLAB_KONTEXT_STEPS || 28),
+    safety_checker: process.env.IMAGE_SAFETY_CHECKER || "yes",
+    enhance_prompt: "no",
+    base64: "no",
+    webhook: null,
+    track_id: null,
+    temp: "no",
+  };
+
+  const deadline = Date.now() + MODELSLAB_GENERATION_MAX_MS;
+  const take = async (value: string) => {
+    const image = await outputToImage(value, Math.max(1, deadline - Date.now()));
+    if (!looksLikeImage(image.base64)) throw new Error(`kontext returned non-image output: ${String(value).slice(0, 160)}`);
+    return image;
+  };
+
+  const res = await imageFetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  }, Math.min(IMAGE_REQUEST_TIMEOUT_MS, deadline - Date.now()));
+  if (!res.ok) throw new Error(`modelslab kontext ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
+
+  let data = (await res.json()) as MlResp;
+  if (data.output?.[0]) return take(data.output[0]);
+  const fetchUrl = data.id != null
+    ? `https://modelslab.com/api/v6/images/fetch/${encodeURIComponent(String(data.id))}`
+    : data.fetch_result;
+  if (data.status === "processing" && fetchUrl) {
+    console.log(`[image] ModelsLab Kontext job ${data.id ?? "unknown"} queued; polling for its result`);
+    data = await pollModelsLab(fetchUrl, key, deadline);
+    if (data.output?.[0]) return take(data.output[0]);
+  }
+  throw new Error(`modelslab kontext: ${String(data.message || data.messege || data.status || "no image in response").trim()}`);
+}
+
 // `faceImage` is the character's portrait. Per the flux-headshot API, this is a
 // public image URL; we also accept raw base64 (sent with base64:"yes") as a
 // fallback in case the account supports it.
@@ -654,6 +715,12 @@ export async function generateSceneWithIdentity(
   portraitUrl?: string | null,
   style: ArtStyle = "realistic",
 ): Promise<{ base64: string; mime: string }> {
+  // For illustrated companions, use an image-to-image editor rather than a
+  // headshot generator. This keeps the portrait's actual illustration style
+  // while still allowing a new, wide chapter composition.
+  if (style === "anime" && portraitUrl && (process.env.IMAGE_PROVIDER || "grok") === "modelslab") {
+    return generateModelsLabKontextScene(portraitUrl, prompt);
+  }
   // Flux Headshot is the identity-preserving path. It needs a public portrait
   // URL; never silently replace it with a generic scene, which would depict a
   // different character.
