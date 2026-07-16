@@ -10,7 +10,7 @@ import { moderateContent, screenImagePrompt } from "@/lib/moderation";
 import { ratingAggregates } from "@/lib/ratings";
 import { getCurrentUserId } from "@/lib/session";
 import { mediaStorageConfigured, storeImage } from "@/lib/media";
-import { isTtsSpeed, isTtsVoice } from "@/lib/tts";
+import { isTtsLanguage, isTtsStyle, isTtsVoice } from "@/lib/tts";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120; // may auto-generate a default portrait on create
@@ -79,7 +79,8 @@ const Body = z.object({
   backstory: z.string().trim().max(600).optional(),
   voice: z.string().trim().max(300).optional(),
   ttsVoice: z.string().trim().max(80).optional(),
-  ttsSpeed: z.number().nullable().optional(),
+  ttsLanguage: z.string().trim().max(8).optional(),
+  ttsStyle: z.string().trim().max(30).optional(),
   greeting: z.string().trim().max(300).optional(), // their first line, shown on cards/profile/chat
   tags: z.array(z.string().trim().min(1).max(30)).max(8).optional(),
   style: z.enum(["realistic", "anime"]).optional(), // art style for portrait + all scene images
@@ -98,7 +99,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid request body" }, { status: 400 });
   }
   if (body.ttsVoice && !isTtsVoice(body.ttsVoice)) return NextResponse.json({ error: "invalid narration voice" }, { status: 400 });
-  if (body.ttsSpeed !== undefined && body.ttsSpeed !== null && !isTtsSpeed(body.ttsSpeed)) return NextResponse.json({ error: "invalid narration delivery" }, { status: 400 });
+  if (body.ttsLanguage && !isTtsLanguage(body.ttsLanguage)) return NextResponse.json({ error: "invalid companion language" }, { status: 400 });
+  if (body.ttsStyle && !isTtsStyle(body.ttsStyle)) return NextResponse.json({ error: "invalid narration style" }, { status: 400 });
 
   // Hybrid pre-publish gate: hard filter -> classifier -> auto-approve / hold /
   // reject. Creators never publish directly; only auto-approve or an admin does.
@@ -118,7 +120,8 @@ export async function POST(req: Request) {
     backstory: body.backstory ?? "",
     voice: body.voice ?? "",
     ttsVoice: body.ttsVoice ?? "",
-    ttsSpeed: body.ttsSpeed ?? null,
+    ttsLanguage: body.ttsLanguage ?? "en",
+    ttsStyle: body.ttsStyle ?? "",
     greeting: body.greeting ?? "",
     tags: body.tags ?? [],
     style: body.style ?? "realistic",
