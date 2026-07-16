@@ -33,7 +33,7 @@ export default function CreateCharacterPage() {
   const [age, setAge] = useState("");
   const [outfit, setOutfit] = useState("");
   const [look, setLook] = useState("");
-  const [style, setStyle] = useState<"realistic" | "anime">("realistic");
+  const [style, setStyle] = useState<"realistic" | "anime" | "anime_3d">("realistic");
   const [persona, setPersona] = useState("");
   const [backstory, setBackstory] = useState("");
   const [voice, setVoice] = useState("");
@@ -75,7 +75,7 @@ export default function CreateCharacterPage() {
     fetch(`/api/characters/${id}`).then((r) => (r.ok ? r.json() : Promise.reject(r.status))).then((d) => {
       setName(d.name || ""); setLook(d.look || ""); setPersona(d.persona || "");
       setBackstory(d.backstory || ""); setVoice(d.voice || ""); setTtsVoice(d.ttsVoice || ""); setTtsLanguage(d.ttsLanguage || "en"); setTtsStyle(d.ttsStyle || ""); setGreeting(d.greeting || ""); setTags(Array.isArray(d.tags) ? d.tags : []);
-      setAge(d.age ? String(d.age) : ""); setGender(d.gender || ""); setStyle(d.style === "anime" ? "anime" : "realistic");
+      setAge(d.age ? String(d.age) : ""); setGender(d.gender || ""); setStyle(d.style === "anime_3d" ? "anime_3d" : d.style === "anime" ? "anime" : "realistic");
       setHasImage(!!d.hasImage);
     }).catch(() => setLoadErr(true));
   }, []);
@@ -357,7 +357,7 @@ export default function CreateCharacterPage() {
 
               <label style={S.label}>Art style <span style={S.hint}>(applies to the portrait and every scene image)</span></label>
               <div style={S.chips}>
-                {([{ value: "realistic", label: "Realistic" }, { value: "anime", label: "Anime / illustrated" }] as const).map((o) => (
+                {([{ value: "realistic", label: "Realistic" }, { value: "anime", label: "Anime / illustrated" }, { value: "anime_3d", label: "3D anime" }] as const).map((o) => (
                   <button key={o.value} type="button" className="rv-chip" style={{ ...S.chip, ...(style === o.value ? S.chipOn : {}) }} onClick={() => setStyle(o.value)}>{o.label}</button>
                 ))}
               </div>
@@ -537,7 +537,7 @@ export default function CreateCharacterPage() {
 
               <label style={S.label}>Art style <span style={S.hint}>(applies to the portrait and every scene image)</span></label>
               <div style={S.chips}>
-                {([{ value: "realistic", label: "Realistic" }, { value: "anime", label: "Anime / illustrated" }] as const).map((o) => (
+                {([{ value: "realistic", label: "Realistic" }, { value: "anime", label: "Anime / illustrated" }, { value: "anime_3d", label: "3D anime" }] as const).map((o) => (
                   <button key={o.value} type="button" className="rv-chip" style={{ ...S.chip, ...(style === o.value ? S.chipOn : {}) }} onClick={() => setStyle(o.value)}>{o.label}</button>
                 ))}
               </div>

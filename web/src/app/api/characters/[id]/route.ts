@@ -55,7 +55,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     greeting: (def.greeting as string) ?? "",
     tags: Array.isArray(def.tags) ? (def.tags as string[]) : [],
     age: typeof def.age === "number" ? def.age : null,
-    style: def.style === "anime" ? "anime" : "realistic",
+    style: def.style === "anime_3d" ? "anime_3d" : def.style === "anime" ? "anime" : "realistic",
   });
 }
 
@@ -75,7 +75,7 @@ const Patch = z.object({
   ttsStyle: z.string().trim().max(30).optional(),
   greeting: z.string().trim().max(300).optional(),
   tags: z.array(z.string().trim().min(1).max(30)).max(8).optional(),
-  style: z.enum(["realistic", "anime"]).optional(),
+  style: z.enum(["realistic", "anime", "anime_3d"]).optional(),
   status: z.enum(["published", "disabled"]).optional(),
   image: z.string().max(12_000_000).optional(),
   imageMime: z.string().max(60).optional(),

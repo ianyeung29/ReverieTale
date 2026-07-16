@@ -34,19 +34,26 @@ function genderWord(gender?: string): string {
 // every scene/chapter image for that character must use it - otherwise a
 // cartoon-looking character ends up with photorealistic chapter images (or vice
 // versa). Default is realistic; "anime" characters stay illustrated everywhere.
-export type ArtStyle = "realistic" | "anime";
+export type ArtStyle = "realistic" | "anime" | "anime_3d";
 export function normalizeStyle(s?: string | null): ArtStyle {
   const x = (s || "").trim().toLowerCase();
+  if (x === "anime_3d" || x === "anime-3d" || x === "3d anime" || x === "3d-anime") return "anime_3d";
   return x === "anime" || x === "cartoon" || x === "illustrated" ? "anime" : "realistic";
 }
 // Trailing style tags for a *portrait* (upper-body headshot).
 function portraitStyleTag(style: ArtStyle): string {
+  if (style === "anime_3d") {
+    return "high-end 3D anime character render, polished game-cinematic illustration, semi-realistic anime features, luminous studio lighting, highly detailed, high quality";
+  }
   return style === "anime"
     ? "anime illustration, cel-shaded, clean linework, vibrant colors, soft anime shading, high quality"
     : "photorealistic, soft cinematic lighting, detailed, high quality";
 }
 // The leading frame + trailing tags for a wide *scene* image, per style.
 function sceneStyle(style: ArtStyle): { lead: string; tail: string } {
+  if (style === "anime_3d") {
+    return { lead: "High-end 3D anime game-cinematic render", tail: "polished 3D anime character design, semi-realistic anime proportions, luminous cinematic lighting, richly detailed environment, no flat cel shading, evocative mood, tasteful, safe for work." };
+  }
   return style === "anime"
     ? { lead: "Anime-style illustration, cinematic anime key visual", tail: "cel-shaded, clean linework, vibrant colors, soft anime shading, evocative mood, tasteful, safe for work." }
     : { lead: "Photorealistic cinematic film still", tail: "realistic photography, sharp focus, natural cinematic lighting, evocative mood, tasteful, safe for work." };
@@ -586,6 +593,9 @@ const HEADSHOT_NEGATIVE_REALISTIC =
 const HEADSHOT_NEGATIVE_ANIME =
   "photorealistic, realistic photography, live action, real person, 3d render, big nose, long nose, bad anatomy, worst quality, low quality, blurry, monochrome";
 
+const HEADSHOT_NEGATIVE_ANIME_3D =
+  "photorealistic, realistic photography, live action, real person, 2d anime illustration, flat cel shading, hand-drawn line art, flat colors, big nose, long nose, bad anatomy, worst quality, low quality, blurry, monochrome";
+
 // `faceImage` is the character's portrait. Per the flux-headshot API, this is a
 // public image URL; we also accept raw base64 (sent with base64:"yes") as a
 // fallback in case the account supports it.
@@ -595,14 +605,16 @@ async function generateModelsLabHeadshot(faceImage: string, prompt: string, styl
   const url = process.env.MODELSLAB_HEADSHOT_URL || "https://modelslab.com/api/v8/images/flux-headshot";
   const imageField = process.env.MODELSLAB_HEADSHOT_IMAGE_FIELD || "face_image";
   const isUrl = /^https?:\/\//i.test(faceImage);
-  const styleLock = style === "anime"
-    ? "MANDATORY RENDER STYLE: a polished 2D anime illustration with cel shading and clean linework. Keep the referenced character's anime visual identity. Do not render this as photography or live action."
-    : "MANDATORY RENDER STYLE: photorealistic cinematic photography. Keep the referenced character's realistic visual identity.";
+  const styleLock = style === "anime_3d"
+    ? "MANDATORY RENDER STYLE: high-end 3D anime game-cinematic illustration. Match the referenced character's glossy, semi-realistic anime proportions, face, hair, and rendering treatment exactly. Do not use flat 2D cel shading, hand-drawn linework, photography, or live action."
+    : style === "anime"
+      ? "MANDATORY RENDER STYLE: a polished 2D anime illustration with cel shading and clean linework. Keep the referenced character's anime visual identity. Do not render this as photography or live action."
+      : "MANDATORY RENDER STYLE: photorealistic cinematic photography. Keep the referenced character's realistic visual identity.";
   const payload: Record<string, string> = {
     key,
     model_id: process.env.MODELSLAB_HEADSHOT_MODEL || "flux_headshot",
     prompt: `${styleLock}\n\n${prompt}`,
-    negative_prompt: style === "anime" ? HEADSHOT_NEGATIVE_ANIME : HEADSHOT_NEGATIVE_REALISTIC,
+    negative_prompt: style === "anime_3d" ? HEADSHOT_NEGATIVE_ANIME_3D : style === "anime" ? HEADSHOT_NEGATIVE_ANIME : HEADSHOT_NEGATIVE_REALISTIC,
     [imageField]: faceImage,
     width: "1024",
     height: "1024",

@@ -84,7 +84,7 @@ const Body = z.object({
   ttsStyle: z.string().trim().max(30).optional(),
   greeting: z.string().trim().max(300).optional(), // their first line, shown on cards/profile/chat
   tags: z.array(z.string().trim().min(1).max(30)).max(8).optional(),
-  style: z.enum(["realistic", "anime"]).optional(), // art style for portrait + all scene images
+  style: z.enum(["realistic", "anime", "anime_3d"]).optional(), // art style for portrait + all scene images
   image: z.string().max(12_000_000).optional(), // base64 portrait
   imageMime: z.string().max(60).optional(),
 });
