@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 
 const CONSENT_KEY = "rv_analytics_consent";
-const PUBLIC_PATHS = ["/", "/browse", "/stories", "/guidelines", "/legal"];
+const PUBLIC_PATHS = ["/", "/browse", "/stories", "/story", "/guidelines", "/legal"];
 
 function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.includes(pathname) || ["/c/", "/story/", "/tag/", "/creator/"].some((prefix) => pathname.startsWith(prefix));
