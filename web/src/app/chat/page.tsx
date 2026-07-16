@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { CharacterAvatar } from "@/components/CharacterAvatar";
 import { EntryGate } from "@/components/EntryGate";
 import { StoryMemoryCard, type StoryMemory } from "@/components/StoryMemoryCard";
+import { getChatWelcome } from "@/lib/chatWelcome";
 import { pickExpression } from "@/lib/expression";
 import { pickStatusLine } from "@/lib/status";
 import { speakReply, stopSpeaking } from "@/lib/speech";
@@ -55,6 +56,8 @@ export default function ChatPage() {
   const [saved, setSaved] = useState<Set<string>>(new Set());
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [speaking, setSpeaking] = useState<string | null>(null);
+  const [welcomeVisit, setWelcomeVisit] = useState(0);
+  const [showWelcome, setShowWelcome] = useState(true);
   const endRef = useRef<HTMLDivElement>(null);
 
   async function loadConvos(): Promise<Convo[]> {
@@ -97,7 +100,7 @@ export default function ChatPage() {
       const cs: Char[] = await fetch("/api/characters").then((r) => r.json()).catch(() => []);
       setChars(Array.isArray(cs) ? cs : []);
       const preferred = urlChar && cs.some((x) => x.id === urlChar) ? urlChar : cs[0]?.id;
-      if (preferred) setCharId(preferred);
+      if (preferred) { setCharId(preferred); setWelcomeVisit((visit) => visit + 1); setShowWelcome(true); }
 
       fetch("/api/credits").then((r) => r.json()).then((d) => { setCredits(d.balance?.total ?? 0); setEarned(d.earnedFromReaders ?? 0); }).catch(() => {});
       fetch("/api/config").then((r) => r.json()).then((d) => {
@@ -133,10 +136,10 @@ export default function ChatPage() {
     setMessages([]); setThreadId(undefined); setConvos([]); setCredits(null); setStoryMemory(null);
   }
 
-  function newChat() { setThreadId(undefined); setMessages([]); setBroke(false); setStoryId(null); setStoryChapter(undefined); setStoryMemory(null); setShowHistory(false); setResumedHistory(false); }
+  function newChat() { setThreadId(undefined); setMessages([]); setBroke(false); setStoryId(null); setStoryChapter(undefined); setStoryMemory(null); setShowHistory(false); setResumedHistory(false); setWelcomeVisit((visit) => visit + 1); setShowWelcome(true); }
 
   async function switchCharacter(id: string) {
-    setCharId(id); setStoryId(null); setStoryMemory(null); setBroke(false); setShowHistory(false);
+    setCharId(id); setStoryId(null); setStoryMemory(null); setBroke(false); setShowHistory(false); setWelcomeVisit((visit) => visit + 1); setShowWelcome(true);
     const latest = convos.find((c) => c.characterId === id);
     if (latest) {
       const rows: Msg[] = await fetch(`/api/messages?threadId=${latest.id}`).then((r) => r.json()).catch(() => []);
@@ -147,7 +150,7 @@ export default function ChatPage() {
   }
 
   async function openConvo(c: Convo) {
-    setShowHistory(false); setCharId(c.characterId); setStoryId(null); setStoryMemory(memoryFromConvo(c)); setBroke(false);
+    setShowHistory(false); setCharId(c.characterId); setStoryId(null); setStoryMemory(memoryFromConvo(c)); setBroke(false); setWelcomeVisit((visit) => visit + 1); setShowWelcome(true);
     try {
       const rows: Msg[] = await fetch(`/api/messages?threadId=${c.id}`).then((r) => r.json());
       setMessages(Array.isArray(rows) ? rows : []); setThreadId(c.id); setResumedHistory(Array.isArray(rows) && rows.length > 0);
@@ -204,6 +207,7 @@ export default function ChatPage() {
     const text = input.trim();
     if (!text || !charId || busy) return;
     setInput("");
+    setShowWelcome(false);
     const wasNew = !threadId;
     setMessages((m) => [...m, { role: "user", content: text }]);
     setBusy(true);
@@ -280,6 +284,7 @@ export default function ChatPage() {
   const lastReply = [...messages].reverse().find((m) => m.role === "character");
   const expr = pickExpression(lastReply?.content);
   const status = pickStatusLine({ tags: active?.tags, expr, isReturning: resumedHistory && messages.length > 0 });
+  const welcome = active ? getChatWelcome({ tags: active.tags, greeting: active.greeting, isReturning: resumedHistory && messages.length > 0, visit: welcomeVisit }) : null;
 
   return (
     <div style={S.wrap}>
@@ -367,6 +372,15 @@ export default function ChatPage() {
             </div>
           ),
         )}
+        {welcome && showWelcome && !(messages.length === 0 && !busy) ? (
+          <div style={{ ...S.row, flexDirection: "column", alignItems: "flex-start" }}>
+            <p style={S.welcomeLabel}>{active?.name} started the conversation</p>
+            <div style={{ ...S.bubble, ...S.bot }}>{welcome.text}</div>
+            <div style={S.welcomeReplies}>
+              {welcome.suggestions.map((suggestion) => <button key={suggestion} style={S.welcomeReply} onClick={() => setInput(suggestion)}>{suggestion}</button>)}
+            </div>
+          </div>
+        ) : null}
         {busy && (messages.length === 0 || messages[messages.length - 1].role !== "character") ? (
           <div style={{ ...S.row, justifyContent: "flex-start" }}><div style={{ ...S.bubble, ...S.bot, color: "#8A7A90" }}>typing…</div></div>
         ) : null}
@@ -422,6 +436,9 @@ const S: Record<string, React.CSSProperties> = {
   emptyHint: { color: "#8A7A90", fontSize: 14, margin: "2px 0 16px" },
   openers: { display: "flex", flexDirection: "column", gap: 8, width: "100%", maxWidth: 340 },
   opener: { background: "#241B2D", color: "#CBBBD0", border: "1px solid #3A2E44", borderRadius: 12, padding: "11px 14px", cursor: "pointer", fontSize: 14, textAlign: "left" },
+  welcomeLabel: { color: "#8A7A90", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", margin: "0 0 5px 2px" },
+  welcomeReplies: { display: "flex", flexWrap: "wrap", gap: 7, marginTop: 7 },
+  welcomeReply: { background: "transparent", color: "#E9A06B", border: "1px solid #5A3A53", borderRadius: 999, padding: "6px 10px", cursor: "pointer", fontSize: 12.5 },
   sys: { alignSelf: "center", color: "#8A7A90", fontSize: 13, textAlign: "center" },
   row: { display: "flex" },
   bubble: { maxWidth: "78%", padding: "11px 15px", borderRadius: 16, lineHeight: 1.5, whiteSpace: "pre-wrap", wordBreak: "break-word" },

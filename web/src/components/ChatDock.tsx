@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { CharacterAvatar } from "./CharacterAvatar";
+import { getChatWelcome } from "@/lib/chatWelcome";
 import { pickExpression } from "@/lib/expression";
 import { pickStatusLine } from "@/lib/status";
 import { speakReply, stopSpeaking } from "@/lib/speech";
@@ -47,6 +48,8 @@ export function ChatDock({
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [speaking, setSpeaking] = useState<string | null>(null);
   const [sceneImagePrice, setSceneImagePrice] = useState(8);
+  const [welcomeVisit, setWelcomeVisit] = useState(0);
+  const [showWelcome, setShowWelcome] = useState(true);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, busy, open]);
@@ -54,6 +57,8 @@ export function ChatDock({
 
   useEffect(() => {
     if (!open) return;
+    setWelcomeVisit((visit) => visit + 1);
+    setShowWelcome(true);
     fetch("/api/config")
       .then((r) => r.json())
       .then((d) => { if (d.pricing?.sceneImage) setSceneImagePrice(d.pricing.sceneImage); })
@@ -102,6 +107,7 @@ export function ChatDock({
     const text = input.trim();
     if (!text || busy) return;
     setInput("");
+    setShowWelcome(false);
     setMessages((m) => [...m, { role: "user", content: text }]);
     setBusy(true); setBroke(false);
     try {
@@ -171,6 +177,7 @@ export function ChatDock({
   const lastReply = [...messages].reverse().find((m) => m.role === "character");
   const expr = pickExpression(lastReply?.content);
   const status = pickStatusLine({ tags: characterTags, expr, isReturning: resumedHistory && messages.length > 0 });
+  const welcome = getChatWelcome({ tags: characterTags, isReturning: resumedHistory && messages.length > 0, visit: welcomeVisit });
 
   if (!open) {
     return (
@@ -227,6 +234,17 @@ export function ChatDock({
         {busy ? <div style={{ ...D.row, justifyContent: "flex-start" }}><div style={{ ...D.bubble, ...D.bot, color: "#8A7A90" }}>…</div></div> : null}
         {authChecked && needAuth ? <a href={`/chat?characterId=${characterId}${storyId ? `&fromStory=${storyId}` : ""}`} style={D.signin}>Sign in to talk to {characterName} →</a> : null}
         {broke ? <a href="/credits" style={D.signin}>Get more credits →</a> : null}
+        {authChecked && showWelcome ? (
+          <div style={{ ...D.row, flexDirection: "column", alignItems: "flex-start" }}>
+            <p style={D.welcomeLabel}>{characterName} started the conversation</p>
+            <div style={{ ...D.bubble, ...D.bot }}>{welcome.text}</div>
+            {!needAuth ? (
+              <div style={D.welcomeReplies}>
+                {welcome.suggestions.map((suggestion) => <button key={suggestion} style={D.welcomeReply} onClick={() => setInput(suggestion)}>{suggestion}</button>)}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
         <div ref={endRef} />
       </div>
       {authChecked && !needAuth ? (
@@ -254,6 +272,9 @@ const D: Record<string, React.CSSProperties> = {
   close: { background: "transparent", border: 0, color: "#AC9CB0", fontSize: 22, cursor: "pointer", lineHeight: 1 },
   feed: { flex: 1, overflowY: "auto", padding: 14, display: "flex", flexDirection: "column", gap: 9 },
   hint: { color: "#8A7A90", fontSize: 13, textAlign: "center", marginTop: 20 },
+  welcomeLabel: { color: "#8A7A90", fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", margin: "2px 0 4px 2px" },
+  welcomeReplies: { display: "flex", flexWrap: "wrap", gap: 6, marginTop: 6 },
+  welcomeReply: { background: "transparent", color: "#E9A06B", border: "1px solid #5A3A53", borderRadius: 999, padding: "5px 8px", cursor: "pointer", fontSize: 11.5 },
   sys: { color: "#8A7A90", fontSize: 12.5, textAlign: "center" },
   row: { display: "flex" },
   bubble: { maxWidth: "82%", padding: "9px 12px", borderRadius: 14, fontSize: 14, lineHeight: 1.45, whiteSpace: "pre-wrap", wordBreak: "break-word" },
