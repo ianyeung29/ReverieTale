@@ -571,8 +571,12 @@ export function fluxHeadshotEnabled(): boolean {
 // Must be a host ModelsLab can reach - so seed/generate against a public deploy
 // (APP_URL), not localhost. Returns null if no public base is configured.
 export function characterImageUrl(characterId: string): string | null {
-  const base = (process.env.APP_URL || process.env.PUBLIC_IMAGE_BASE || "").trim().replace(/\/$/, "");
-  if (!base || /^https?:\/\/localhost/i.test(base)) return null;
+  const configuredBase = (process.env.PUBLIC_IMAGE_BASE || process.env.APP_URL || "").trim().replace(/\/$/, "");
+  const vercelBase = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "";
+  const base = /^https?:\/\/(?!localhost(?:[:/]|$)|127\.0\.0\.1(?:[:/]|$))/i.test(configuredBase)
+    ? configuredBase
+    : vercelBase;
+  if (!base) return null;
   return `${base}/api/characters/${characterId}/image`;
 }
 
@@ -643,15 +647,14 @@ export async function generateSceneWithIdentity(
   portraitBase64?: string | null,
   portraitUrl?: string | null,
 ): Promise<{ base64: string; mime: string }> {
-  // Preferred: the FLUX headshot model bakes the real face into a fresh image.
-  // It wants a public image URL; fall back to base64 if no URL is available.
-  const face = portraitUrl || portraitBase64;
-  if (face && fluxHeadshotEnabled()) {
-    try {
-      return await generateModelsLabHeadshot(face, prompt);
-    } catch (e) {
-      console.error("[image] flux-headshot failed, using plain scene:", e instanceof Error ? e.message : e);
+  // Flux Headshot is the identity-preserving path. It needs a public portrait
+  // URL; never silently replace it with a generic scene, which would depict a
+  // different character.
+  if (fluxHeadshotEnabled()) {
+    if (!portraitUrl) {
+      throw new Error("Flux Headshot requires a public portrait URL. Set APP_URL or PUBLIC_IMAGE_BASE to the deployed site URL.");
     }
+    return generateModelsLabHeadshot(portraitUrl, prompt);
   }
   if (portraitBase64 && identityScenesEnabled()) {
     try {
