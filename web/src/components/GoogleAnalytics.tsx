@@ -33,7 +33,8 @@ export function GoogleAnalytics({ measurementId }: { measurementId?: string }) {
     if (!measurementId || !enabled) return;
 
     window.dataLayer = window.dataLayer ?? [];
-    window.gtag = (...args: unknown[]) => { window.dataLayer?.push(args); };
+    // Google reads the Arguments objects created by its documented gtag shim.
+    window.gtag = function gtag() { window.dataLayer?.push(arguments); };
     const selector = `script[data-rv-ga="${measurementId}"]`;
     let script = document.querySelector<HTMLScriptElement>(selector);
 
