@@ -144,6 +144,7 @@ export default function AdminReviewPage() {
   return (
     <main style={S.wrap}>
       <a href="/" style={S.back}>← ReverieTale</a>
+      <a href="/admin/media" style={S.mediaLink}>Open media studio -&gt;</a>
       <h1 style={S.h1}>Review queue</h1>
       <p style={S.sub}>Companions held for a human check. Approve to publish, reject to keep them off the platform.</p>
 
@@ -293,6 +294,7 @@ function Field({ label, value }: { label: string; value: string }) {
 const S: Record<string, React.CSSProperties> = {
   wrap: { maxWidth: 720, margin: "0 auto", padding: "40px 24px 90px", lineHeight: 1.6 },
   back: { color: "#8A7A90", textDecoration: "none", fontSize: 14, letterSpacing: ".04em" },
+  mediaLink: { float: "right", color: "#E9A06B", textDecoration: "none", fontSize: 13.5, fontWeight: 650 },
   h1: { fontFamily: "Georgia, serif", fontSize: 36, margin: "22px 0 6px" },
   sub: { color: "#AC9CB0", margin: "0 0 26px", fontSize: 14.5 },
   muted: { color: "#AC9CB0" },
