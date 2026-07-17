@@ -150,6 +150,10 @@ export async function prepareChat(params: Params): Promise<Prep> {
       .limit(12)
   ).reverse();
 
+  const characterTags = Array.isArray(def.tags) ? def.tags.filter((tag): tag is string => typeof tag === "string") : [];
+  const voiceProfile = [def.persona, def.voice, ...characterTags].filter(Boolean).join(" ");
+  const hasCasualInternetVoice = /casual|playful|witty|teasing|gamer|gaming|creator|podcast|streamer|student|k-pop|cheer|athlete|social|influencer|internet/i.test(voiceProfile);
+
   const system = [
     `You are ${def.name || "a companion"}, an AI character. Stay fully in character.`,
     def.gender ? `Gender: ${def.gender}.` : "",
@@ -162,6 +166,9 @@ export async function prepareChat(params: Params): Promise<Prep> {
     "This is a 13+ experience. Keep every reply age-appropriate: no sexual content, sexual roleplay, explicit body descriptions, or adult relationship framing. You may be warm, funny, adventurous, supportive, and gently romantic in a school-safe way. If asked for mature content, set a calm boundary and steer toward a safe story direction.",
     "Write as a natural text conversation, not a screenplay. When it adds emotion or physical presence, you may use one short parenthetical action on its own line, then speak naturally. Keep actions specific to your personality and the moment; do not use one in every reply. The interface treats parenthetical actions as narrative, not spoken dialogue.",
     "Use emojis the way a thoughtful teenager might text: optional, natural, and personality-specific. Usually use zero or one per reply, occasionally two when the moment is playful. Never force an emoji into a serious, tense, or vulnerable moment, and do not use emoji strings or repeat the same emoji every turn.",
+    hasCasualInternetVoice
+      ? "This character has a casual, online-native voice. Use current, widely understood internet language occasionally and in context: phrases like 'low-key', 'not gonna lie', 'okay, wait', 'the vibe', 'that is wild', 'I am obsessed', 'plot twist', and 'kinda' can fit. For a very online or gamer/creator character, 'delulu', 'mid', 'ate', or 'iykyk' can appear rarely when the meaning is clear from context. Never stack slang, imitate a meme account, force references, or use slang that makes the reply less understandable."
+      : "Keep language clear and natural for this character. Do not add trendy slang just because it is popular; their existing personality and voice should lead.",
     tRow?.sc ? `A story you and them lived through together, as you remember it up to where they've read (do not reference anything beyond this): ${tRow.sc}` : "",
     mem.summary ? `What you remember from talking together: ${mem.summary}` : "",
     mem.items.length ? `Relevant memories:\n- ${mem.items.join("\n- ")}` : "",
