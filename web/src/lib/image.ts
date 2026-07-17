@@ -3,9 +3,11 @@
  *   - "grok" (xAI Grok image, OpenAI-compatible) — Bearer key, sync.
  *   - "modelslab" (ModelsLab, FLUX) — key in the JSON body, sync or async (poll).
  *   - "fal" (fal.ai, FLUX.1 [dev]) — key in the Authorization header, sync.
+ *   - "runware" (FLUX.2 [klein] 9B KV) — Bearer key, sync REST task.
  * Select with IMAGE_PROVIDER; the rest of the app is unchanged.
  */
 const grokKey = () => process.env.XAI_IMAGE_KEY || process.env.XAI_API_KEY;
+const runwareKey = () => process.env.RUNWARE_API_KEY?.trim();
 
 // Image providers occasionally keep a connection open without returning either
 // a result or an error. Bound every request so a single stalled generation never
@@ -106,6 +108,7 @@ export function imageConfigured(): boolean {
   if (provider === "grok") return Boolean(grokKey());
   if (provider === "modelslab") return Boolean(process.env.MODELSLAB_API_KEY);
   if (provider === "fal") return Boolean(process.env.FAL_KEY);
+  if (provider === "runware") return Boolean(runwareKey());
   return false;
 }
 
@@ -141,10 +144,37 @@ export function shouldGenerateCharacterScene(): boolean {
 
 export async function generateImage(prompt: string): Promise<{ base64: string; mime: string }> {
   const provider = process.env.IMAGE_PROVIDER || "grok";
-  if (provider === "grok") return generateGrok(prompt);
-  if (provider === "modelslab") return generateModelsLab(prompt);
-  if (provider === "fal") return generateFal(prompt);
-  throw new Error(`unsupported IMAGE_PROVIDER: ${provider}`);
+  try {
+    if (provider === "grok") return await generateGrok(prompt);
+    if (provider === "modelslab") return await generateModelsLab(prompt);
+    if (provider === "fal") return await generateFal(prompt);
+    if (provider === "runware") return await generateRunware(prompt);
+    throw new Error(`unsupported IMAGE_PROVIDER: ${provider}`);
+  } catch (error) {
+    return generateRunwareFallback(prompt, error);
+  }
+}
+
+function runwareFallbackEnabled(): boolean {
+  const value = (process.env.RUNWARE_FALLBACK_ENABLED || "true").trim();
+  return /^(1|true|yes|on)$/i.test(value);
+}
+
+async function generateRunwareFallback(
+  prompt: string,
+  sourceError: unknown,
+  options?: RunwareImageOptions,
+): Promise<{ base64: string; mime: string }> {
+  const provider = process.env.IMAGE_PROVIDER || "grok";
+  if (provider === "runware" || !runwareKey() || !runwareFallbackEnabled()) {
+    throw sourceError;
+  }
+
+  console.error(
+    `[image] ${provider} failed; using Runware fallback:`,
+    sourceError instanceof Error ? sourceError.message : sourceError,
+  );
+  return generateRunware(prompt, options);
 }
 
 // ---- xAI Grok (OpenAI-compatible images endpoint) ----------------------------
@@ -606,6 +636,83 @@ function kontextStyleLock(style?: ArtStyle): string {
   return "STYLE LOCK: The supplied portrait is the source of truth for both identity and visual medium. Preserve its exact rendering style, facial proportions, shading, palette, and lighting language. Never convert an illustrated source into photography, or a photographic source into illustration.";
 }
 
+// ---- Runware (FLUX.2 [klein] 9B KV) -----------------------------------------
+// Runware's REST API accepts a JSON array of tasks. Its FLUX.2 Klein KV model
+// can also receive public portrait URLs as reference images, allowing provider
+// fallback scenes to keep the companion's visual identity.
+type RunwareImageOptions = {
+  width?: number;
+  height?: number;
+  referenceImage?: string | null;
+};
+
+type RunwareResponse = {
+  data?: Array<{
+    taskUUID?: string;
+    imageURL?: string;
+    imageDataURI?: string;
+    imageBase64Data?: string;
+  }>;
+  error?: unknown;
+  errors?: unknown;
+};
+
+async function generateRunware(
+  prompt: string,
+  options: RunwareImageOptions = {},
+): Promise<{ base64: string; mime: string }> {
+  const key = runwareKey();
+  if (!key) throw new Error("RUNWARE_API_KEY is not set");
+
+  const taskUUID = crypto.randomUUID();
+  const width = options.width ?? Number(process.env.RUNWARE_WIDTH || 768);
+  const height = options.height ?? Number(process.env.RUNWARE_HEIGHT || 1024);
+  const referenceImage = options.referenceImage?.trim();
+  const task: Record<string, unknown> = {
+    taskType: "imageInference",
+    taskUUID,
+    model: process.env.RUNWARE_MODEL || "runware:400@6",
+    positivePrompt: prompt,
+    negativePrompt: process.env.RUNWARE_NEGATIVE_PROMPT || "text, watermark, logo, low quality, blurry, malformed anatomy, extra fingers",
+    width,
+    height,
+    numberResults: 1,
+    steps: Number(process.env.RUNWARE_STEPS || 4),
+    CFGScale: Number(process.env.RUNWARE_CFG_SCALE || 3.5),
+    scheduler: process.env.RUNWARE_SCHEDULER || "FlowMatchEulerDiscreteScheduler",
+  };
+  if (referenceImage && /^https?:\/\//i.test(referenceImage)) {
+    task.inputs = { referenceImages: [referenceImage] };
+  }
+
+  const baseUrl = (process.env.RUNWARE_API_URL || "https://api.runware.ai/v1").replace(/\/$/, "");
+  const res = await imageFetch(baseUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify([task]),
+  });
+  if (!res.ok) throw new Error(`runware ${res.status}: ${(await res.text().catch(() => "")).slice(0, 300)}`);
+
+  const data = (await res.json()) as RunwareResponse;
+  const result = data.data?.find((item) => item.taskUUID === taskUUID) || data.data?.[0];
+  const image = result?.imageDataURI || result?.imageBase64Data || result?.imageURL;
+  if (!image) {
+    const detail = typeof data.error === "string"
+      ? data.error
+      : typeof data.errors === "string"
+        ? data.errors
+        : JSON.stringify(data.error || data.errors || "no image in response");
+    throw new Error(`runware: ${detail.slice(0, 300)}`);
+  }
+
+  const output = await outputToImage(image);
+  if (!looksLikeImage(output.base64)) throw new Error("runware returned non-image output");
+  return output;
+}
+
 async function generateModelsLabKontextScene(
   initImageUrl: string,
   prompt: string,
@@ -825,11 +932,19 @@ export async function generateSceneWithIdentity(
   portraitUrl?: string | null,
   style?: ArtStyle,
 ): Promise<{ base64: string; mime: string }> {
+  const provider = process.env.IMAGE_PROVIDER || "grok";
   // Use an image-to-image editor rather than a headshot generator whenever a
   // public canonical portrait is available. This preserves visual identity
   // while still allowing a wide chapter composition.
-  if (portraitUrl && (process.env.IMAGE_PROVIDER || "grok") === "modelslab") {
-    return generateModelsLabKontextScene(portraitUrl, prompt, "scene", style);
+  if (portraitUrl && provider === "modelslab") {
+    try {
+      return await generateModelsLabKontextScene(portraitUrl, prompt, "scene", style);
+    } catch (error) {
+      return generateRunwareFallback(prompt, error, { width: 1024, height: 576, referenceImage: portraitUrl });
+    }
+  }
+  if (portraitUrl && provider === "runware") {
+    return generateRunware(prompt, { width: 1024, height: 576, referenceImage: portraitUrl });
   }
   // Flux Headshot is the identity-preserving path. It needs a public portrait
   // URL; never silently replace it with a generic scene, which would depict a
