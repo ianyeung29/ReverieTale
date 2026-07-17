@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { characters, stories, users } from "@/db/schema";
+import { characters, companionPosts, stories, users } from "@/db/schema";
 import { CharacterAvatar } from "@/components/CharacterAvatar";
 import { EpisodeShelf } from "@/components/EpisodeShelf";
 import { SceneStarter } from "@/components/SceneStarter";
@@ -63,6 +63,7 @@ type Profile = {
   rating: number; ratingCount: number; myRating: number | null; canRate: boolean;
   canModerate: boolean; isBlocked: boolean;
   hasScene: boolean;
+  posts: { id: string; caption: string; postedAt: Date }[];
   stories: { id: string; title: string; hook: string; chapters: number; readMin: number; reads: number; rating: number; ratingCount: number; hasCover: boolean }[];
 };
 
@@ -108,6 +109,18 @@ async function loadProfile(id: string): Promise<Profile | null> {
       /* scene_image column not migrated yet */
     }
 
+    let posts: { id: string; caption: string; postedAt: Date }[] = [];
+    try {
+      posts = await db
+        .select({ id: companionPosts.id, caption: companionPosts.caption, postedAt: companionPosts.postedAt })
+        .from(companionPosts)
+        .where(eq(companionPosts.characterId, id))
+        .orderBy(desc(companionPosts.postedAt))
+        .limit(8);
+    } catch {
+      // Keep profiles available while an older environment is awaiting migration 0021.
+    }
+
     // Ratings: this character's aggregate + the viewer's own, plus per-story aggregates.
     const charRating = (await ratingAggregates("character", [char.id])).get(char.id) ?? { average: 0, count: 0 };
     const myRating = userId ? await userRating(userId, "character", char.id) : null;
@@ -143,6 +156,7 @@ async function loadProfile(id: string): Promise<Profile | null> {
       canModerate: Boolean(userId) && !isOwner,
       isBlocked: blocked,
       hasScene,
+      posts,
       stories: rows.map((r) => {
         const sr = storyRatings.get(r.id) ?? { average: 0, count: 0 };
         const words = r.content.trim().split(/\s+/).length;
@@ -247,6 +261,27 @@ export default async function CharacterProfile({ params }: { params: Promise<{ i
       {p.persona ? (<><p style={S.section}>About</p><p style={S.body}>{p.persona}</p></>) : null}
       {p.backstory ? (<><p style={S.section}>Backstory</p><p style={S.body}>{p.backstory}</p></>) : null}
 
+      {p.posts.length ? <>
+        <p style={S.section}>Latest moments</p>
+        <section style={S.posts} aria-label={`Latest moments from ${p.name}`}>
+          {p.posts.map((post) => {
+            const reply = "I saw your new moment. What happened next?";
+            return (
+              <article key={post.id} style={S.post} className="rv-card">
+                <img src={`/api/companion-posts/${post.id}/image`} alt={`${p.name}'s latest moment`} style={S.postImage} loading="lazy" />
+                <div style={S.postBody}>
+                  <p style={S.postCaption}>{post.caption}</p>
+                  <div style={S.postFoot}>
+                    <span>{post.postedAt.toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
+                    <a href={`/chat?characterId=${p.id}&prefill=${encodeURIComponent(reply)}`} style={S.postReply}>Reply in chat -&gt;</a>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </section>
+      </> : null}
+
       <p style={S.section}>Episodes with {p.name}{p.stories.length ? ` · ${p.stories.length}` : ""}</p>
       {p.stories.length === 0 ? (
         <p style={S.muted}>No stories yet. <a href={`/story?characterId=${p.id}`} style={S.link}>Write the first →</a></p>
@@ -288,6 +323,13 @@ const S: Record<string, React.CSSProperties> = {
   secondary: { color: "#F4EAF0", background: "#231A2B", border: "1px solid #3A2E44", padding: "12px 18px", borderRadius: 11, fontWeight: 600, textDecoration: "none", fontSize: 15 },
   section: { fontSize: 12, letterSpacing: ".14em", textTransform: "uppercase", color: "#8A7A90", fontWeight: 700, margin: "28px 0 12px" },
   body: { color: "#EadFe6", fontSize: 15.5, margin: 0, whiteSpace: "pre-wrap" },
+  posts: { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 14 },
+  post: { overflow: "hidden", border: "1px solid #3A2E44", borderRadius: 14, background: "#241B2D" },
+  postImage: { width: "100%", display: "block", aspectRatio: "4 / 3", objectFit: "cover", background: "#1A121F" },
+  postBody: { padding: "12px 13px 13px" },
+  postCaption: { color: "#EadFe6", margin: 0, fontSize: 14, lineHeight: 1.45 },
+  postFoot: { color: "#8A7A90", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 12, fontSize: 12 },
+  postReply: { color: "#E9A06B", textDecoration: "none", fontWeight: 700, whiteSpace: "nowrap" },
   muted: { color: "#AC9CB0" },
   grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(230px,1fr))", gap: 14 },
   card: { display: "flex", flexDirection: "column", gap: 8, background: "#241B2D", border: "1px solid #3A2E44", borderRadius: 14, padding: 16, textDecoration: "none", color: "#F4EAF0" },

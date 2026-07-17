@@ -1,7 +1,7 @@
 import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { randomUUID } from "crypto";
 
-type MediaScope = "characters" | "stories" | "chapters" | "messages" | "moments";
+type MediaScope = "characters" | "stories" | "chapters" | "messages" | "moments" | "companion-posts";
 
 const R2_REQUIRED = ["R2_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_BUCKET"] as const;
 

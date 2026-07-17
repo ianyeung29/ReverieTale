@@ -83,6 +83,8 @@ export default function ChatPage() {
     if (!authEmail) return;
     const params = new URLSearchParams(window.location.search);
     const urlChar = params.get("characterId");
+    const prefill = params.get("prefill")?.trim();
+    if (prefill) setInput(prefill.slice(0, 320));
     const fromStory = params.get("fromStory");
     if (fromStory) {
       setStoryId(fromStory);

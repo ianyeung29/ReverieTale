@@ -312,6 +312,24 @@ export const moments = pgTable(
   (t) => ({ byUser: index("moments_user_idx").on(t.userId, t.createdAt) }),
 );
 
+// Public, companion-authored snapshots shown on a companion profile. These are
+// intentionally separate from `moments`, which are private saves from a
+// reader's own chat history.
+export const companionPosts = pgTable(
+  "companion_posts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    characterId: uuid("character_id").notNull().references(() => characters.id),
+    caption: text("caption").notNull(),
+    scene: text("scene").notNull(),
+    imageKey: text("image_key").notNull(),
+    imageMime: text("image_mime"),
+    automated: boolean("automated").notNull().default(false),
+    postedAt: timestamp("posted_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({ byCharacter: index("companion_posts_character_idx").on(t.characterId, t.postedAt) }),
+);
+
 export const memorySummaries = pgTable("memory_summaries", {
   id: uuid("id").primaryKey().defaultRandom(),
   threadId: uuid("thread_id").notNull().references(() => threads.id),

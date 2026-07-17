@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-type Companion = { id: string; name: string; hasScene: boolean };
+type Companion = { id: string; name: string; hasScene: boolean; postCount: number };
 type Story = { id: string; title: string; characterName: string; chapters: number; hasBackground: boolean };
 type Catalogue = { characters: Companion[]; stories: Story[] };
-type Job = "character_scene" | "chapter_scene" | "story_background";
+type Job = "companion_post" | "character_scene" | "chapter_scene" | "story_background";
 
 export default function AdminMediaPage() {
   const [catalogue, setCatalogue] = useState<Catalogue | null>(null);
@@ -68,12 +68,18 @@ export default function AdminMediaPage() {
 
       {catalogue === null ? <p style={S.muted}>Loading catalogue...</p> : <>
         <section className="rv-card" style={S.card}>
-          <h2 style={S.h2}>Companion scene</h2>
-          <p style={S.cardSub}>A wide, setting-led image used on a companion profile.</p>
+          <h2 style={S.h2}>Companion moments</h2>
+          <p style={S.cardSub}>Publish one safe, day-in-the-life profile update. It uses the portrait as a visual reference and creates a new entry in the public Moments feed.</p>
           <label style={S.label}>Companion</label>
           <select value={characterId} onChange={(event) => setCharacterId(event.target.value)} style={S.select}>
-            {catalogue.characters.map((character) => <option key={character.id} value={character.id}>{character.name}{character.hasScene ? " - scene ready" : " - no scene"}</option>)}
+            {catalogue.characters.map((character) => <option key={character.id} value={character.id}>{character.name} - {character.postCount} moment{character.postCount === 1 ? "" : "s"}</option>)}
           </select>
+          <button onClick={() => run("companion_post")} disabled={!characterId || Boolean(busy)} style={{ ...S.primary, opacity: busy ? 0.55 : 1 }}>
+            {busy === "companion_post" ? "Publishing a new moment..." : "Generate and publish a moment"}
+          </button>
+
+          <h2 style={{ ...S.h2, marginTop: 12 }}>Companion scene</h2>
+          <p style={S.cardSub}>A wide, setting-led image used behind the companion profile header.</p>
           <button onClick={() => run("character_scene")} disabled={!characterId || Boolean(busy)} style={{ ...S.primary, opacity: busy ? 0.55 : 1 }}>
             {busy === "character_scene" ? "Generating companion scene..." : "Generate companion scene"}
           </button>

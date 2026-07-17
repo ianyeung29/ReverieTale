@@ -1,7 +1,7 @@
 import { and, desc, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { characters, chapterScenes, stories } from "@/db/schema";
+import { characters, chapterScenes, companionPosts, stories } from "@/db/schema";
 import { isAdmin } from "@/lib/admin";
 import {
   buildChapterScenePrompt,
@@ -15,6 +15,7 @@ import {
 import { mediaStorageConfigured, readImageBase64, storeImage } from "@/lib/media";
 import { screenImagePrompt } from "@/lib/moderation";
 import { getCurrentUserId } from "@/lib/session";
+import { publishCompanionPost } from "@/lib/companionPosts";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -47,9 +48,17 @@ export async function GET() {
       .orderBy(desc(stories.createdAt)),
   ]);
 
+  let postCounts = new Map<string, number>();
+  try {
+    const posts = await db.select({ characterId: companionPosts.characterId }).from(companionPosts);
+    postCounts = posts.reduce((counts, post) => counts.set(post.characterId, (counts.get(post.characterId) ?? 0) + 1), new Map<string, number>());
+  } catch {
+    // The media studio remains usable while an older environment awaits migration 0021.
+  }
+
   return NextResponse.json({
     characters: characterRows
-      .map((row) => ({ id: row.id, name: asDefinition(row.definition).name || "Untitled companion", hasScene: Boolean(row.hasScene) }))
+      .map((row) => ({ id: row.id, name: asDefinition(row.definition).name || "Untitled companion", hasScene: Boolean(row.hasScene), postCount: postCounts.get(row.id) ?? 0 }))
       .sort((a, b) => a.name.localeCompare(b.name)),
     stories: storyRows.map((row) => ({
       id: row.id,
@@ -72,6 +81,13 @@ export async function POST(req: Request) {
   const action = typeof body.action === "string" ? body.action : "";
 
   try {
+    if (action === "companion_post") {
+      const characterId = typeof body.characterId === "string" ? body.characterId : "";
+      if (!characterId) return NextResponse.json({ error: "characterId required" }, { status: 400 });
+      const post = await publishCompanionPost(characterId, false);
+      return NextResponse.json({ ok: true, imageUrl: `/api/companion-posts/${post.id}/image?rev=${Date.now()}` });
+    }
+
     if (action === "character_scene") {
       const characterId = typeof body.characterId === "string" ? body.characterId : "";
       if (!characterId) return NextResponse.json({ error: "characterId required" }, { status: 400 });
