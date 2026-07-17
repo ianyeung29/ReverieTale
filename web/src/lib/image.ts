@@ -596,10 +596,21 @@ const HEADSHOT_NEGATIVE_ANIME =
 const KONTEXT_NEGATIVE =
   "different character, different face, different hairstyle, different outfit, portrait, headshot, character sheet, collage, text, watermark, logo, bad anatomy, low quality, blurry";
 
+function kontextStyleLock(style?: ArtStyle): string {
+  if (style === "anime") {
+    return "STYLE LOCK: The reference is a 2D anime illustration. Preserve its exact illustrated medium, line quality, facial proportions, color palette, cel shading, and lighting language. Never turn it into a photograph, a live-action person, or a 3D render.";
+  }
+  if (style === "realistic") {
+    return "STYLE LOCK: The reference is a realistic portrait. Preserve its exact photographic medium, facial proportions, color treatment, lens feel, and lighting language. Never turn it into anime, cartoon art, or a 3D render.";
+  }
+  return "STYLE LOCK: The supplied portrait is the source of truth for both identity and visual medium. Preserve its exact rendering style, facial proportions, shading, palette, and lighting language. Never convert an illustrated source into photography, or a photographic source into illustration.";
+}
+
 async function generateModelsLabKontextScene(
   initImageUrl: string,
   prompt: string,
   composition: "scene" | "pose" = "scene",
+  style?: ArtStyle,
 ): Promise<{ base64: string; mime: string }> {
   const key = process.env.MODELSLAB_API_KEY;
   if (!key) throw new Error("MODELSLAB_API_KEY is not set");
@@ -608,14 +619,19 @@ async function generateModelsLabKontextScene(
   const compositionInstruction = isPose
     ? "Create a tall, full- or upper-body companion cutout. Preserve the supplied portrait's exact face, hairstyle, outfit, proportions, skin tone, artwork or photo rendering, and lighting treatment. Do not invent a different character or a different visual style. Keep a simple plain studio backdrop and a clean silhouette for background removal."
     : "Compose a cinematic 16:9 story moment with a clear environment and action drawn from the chapter. Keep the character in the scene, but do not create a portrait, character sheet, collage, or isolated full-body pose.";
-  const negative = isPose
+  const compositionNegative = isPose
     ? "different character, different face, different hairstyle, different outfit, different art style, scenery, furniture, props, text, watermark, logo, collage, cropped head, cropped hands, bad anatomy, low quality, blurry"
     : KONTEXT_NEGATIVE;
+  const negative = style === "anime"
+    ? `${compositionNegative}, ${HEADSHOT_NEGATIVE_ANIME}`
+    : style === "realistic"
+      ? `${compositionNegative}, ${HEADSHOT_NEGATIVE_REALISTIC}`
+      : compositionNegative;
   const payload: Record<string, string | number | null> = {
     key,
     model_id: process.env.MODELSLAB_KONTEXT_MODEL || "flux-kontext-dev",
     init_image: initImageUrl,
-    prompt: `Use the supplied portrait as the exact visual reference. ${compositionInstruction} ${prompt}`,
+    prompt: `${kontextStyleLock(style)} Use the supplied portrait as the exact visual reference. ${compositionInstruction} ${prompt}`,
     negative_prompt: negative,
     strength: Number(isPose ? (process.env.MODELSLAB_KONTEXT_POSE_STRENGTH || 0.28) : (process.env.MODELSLAB_KONTEXT_STRENGTH || 0.45)),
     guidance: Number(process.env.MODELSLAB_KONTEXT_GUIDANCE || 2.5),
@@ -807,13 +823,13 @@ export async function generateSceneWithIdentity(
   prompt: string,
   portraitBase64?: string | null,
   portraitUrl?: string | null,
-  style: ArtStyle = "realistic",
+  style?: ArtStyle,
 ): Promise<{ base64: string; mime: string }> {
   // Use an image-to-image editor rather than a headshot generator whenever a
   // public canonical portrait is available. This preserves visual identity
   // while still allowing a wide chapter composition.
   if (portraitUrl && (process.env.IMAGE_PROVIDER || "grok") === "modelslab") {
-    return generateModelsLabKontextScene(portraitUrl, prompt);
+    return generateModelsLabKontextScene(portraitUrl, prompt, "scene", style);
   }
   // Flux Headshot is the identity-preserving path. It needs a public portrait
   // URL; never silently replace it with a generic scene, which would depict a
@@ -822,7 +838,7 @@ export async function generateSceneWithIdentity(
     if (!portraitUrl) {
       throw new Error("Flux Headshot requires a public portrait URL. Set APP_URL or PUBLIC_IMAGE_BASE to the deployed site URL.");
     }
-    return generateModelsLabHeadshot(portraitUrl, prompt, style);
+    return generateModelsLabHeadshot(portraitUrl, prompt, style ?? "realistic");
   }
   if (portraitBase64 && identityScenesEnabled()) {
     try {
@@ -878,13 +894,24 @@ export function buildCompanionSelfiePrompt(
   const look = def.look ? `, ${def.look}` : "";
   const outfit = def.outfit ? ` Wearing ${def.outfit}.` : "";
   const moment = replyText.replace(/\([^()\n]{1,320}\)/g, "").trim().replace(/\s+/g, " ").slice(0, 300);
-  const { lead, tail } = sceneStyle(normalizeStyle(def.style));
+  const style = def.style ? normalizeStyle(def.style) : undefined;
+  const framing = style === "anime"
+    ? "vertical candid anime companion snapshot, with the same illustrated character and visual language as the source portrait"
+    : style === "realistic"
+      ? "vertical candid smartphone selfie of the exact same companion"
+      : "vertical candid companion snapshot rendered in the exact same visual medium as the source portrait";
+  const capture = style === "anime"
+    ? "Friendly spontaneous expression, an illustrated personal moment, and environmental context visible behind them."
+    : style === "realistic"
+      ? "Natural phone-camera framing, friendly spontaneous expression, authentic personal snapshot, and environmental context visible behind them."
+      : "Friendly spontaneous expression, personal-snapshot framing, and environmental context visible behind them, all in the portrait's existing visual style.";
+  const styleTail = style ? sceneStyle(style).tail : "Match the source portrait's rendering style exactly, with no change of medium.";
   return (
-    `${lead}, vertical candid smartphone selfie of the exact same ${who}${look}.${outfit} ` +
+    `${framing} of ${who}${look}.${outfit} ` +
     `They are fully clothed in a safe, everyday setting inspired by this moment: ${moment} ` +
-    "Natural phone-camera framing, friendly spontaneous expression, authentic personal snapshot, environmental context visible behind them. " +
+    `${capture} ` +
     "No bedroom, bathroom, mirror pose, lingerie, swimsuit, revealing clothes, adult themes, text, logo, collage, or extra people. " +
-    `${tail}`
+    `${styleTail}`
   );
 }
 
@@ -894,13 +921,17 @@ export async function generateCompanionSelfie(
   portraitBase64?: string | null,
   portraitUrl?: string | null,
 ): Promise<{ base64: string; mime: string }> {
+  const explicitStyle = def.style ? normalizeStyle(def.style) : undefined;
   const selfie = await generateSceneWithIdentity(
     buildCompanionSelfiePrompt(def, replyText),
     portraitBase64,
     portraitUrl,
-    normalizeStyle(def.style),
+    explicitStyle,
   );
-  return withFaceSwap(selfie, portraitBase64);
+  // Kontext already receives the canonical portrait as its reference. Avoid a
+  // later face-swap because that API may change an illustrated render into a
+  // photographic one, defeating the companion's established art style.
+  return selfie;
 }
 
 // ---- Character scene art (the companion in their world) ---------------------
