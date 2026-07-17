@@ -20,7 +20,7 @@ import { getCurrentUserId } from "@/lib/session";
 import { publishCompanionPost } from "@/lib/companionPosts";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 const CHAPTER_SPLIT = /\n{2,}(?:·|Â·)\s*(?:·|Â·)\s*(?:·|Â·)\n{2,}/;
 
@@ -125,7 +125,11 @@ export async function POST(req: Request) {
 
       const image = await generateChatPose(definition, characterImageUrl(row.id));
       const imageKey = await storeImage({ scope: "characters", ownerId: `${row.id}/chat-pose`, base64: image.base64, mime: image.mime });
-      await db.update(characters).set({ chatPoseImageKey: imageKey, chatPoseImageMime: image.mime }).where(eq(characters.id, row.id));
+      const saved = await db.update(characters)
+        .set({ chatPoseImageKey: imageKey, chatPoseImageMime: image.mime })
+        .where(eq(characters.id, row.id))
+        .returning({ imageKey: characters.chatPoseImageKey });
+      if (!saved[0]?.imageKey) throw new Error("Chat pose uploaded to R2 but the companion record was not updated");
       return NextResponse.json({ ok: true, imageUrl: `/api/characters/${row.id}/chat-pose?rev=${Date.now()}` });
     }
 

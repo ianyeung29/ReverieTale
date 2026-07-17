@@ -904,7 +904,7 @@ export async function generateChatPose(
   portraitUrl?: string | null,
 ): Promise<{ base64: string; mime: string }> {
   if ((process.env.IMAGE_PROVIDER || "grok") !== "modelslab") {
-    throw new Error("Transparent chat poses require IMAGE_PROVIDER=modelslab");
+    throw new Error("Chat poses require IMAGE_PROVIDER=modelslab");
   }
   if (!portraitUrl) {
     throw new Error("Transparent chat poses require a public character portrait URL. Set APP_URL or PUBLIC_IMAGE_BASE to the deployed site URL.");
@@ -912,9 +912,10 @@ export async function generateChatPose(
   // Use the same Kontext image-to-image model as story scenes. Unlike a
   // headshot endpoint it conditions on the complete source composition, which
   // gives the pose a much better chance of retaining the portrait's visual
-  // identity and art treatment before the background-removal pass.
-  const generated = await generateModelsLabKontextScene(portraitUrl, buildChatPosePrompt(def), "pose");
-  return removeModelsLabBackground(generated.base64);
+  // identity and art treatment. Store this successful first pass immediately:
+  // background removal is an optional cosmetic enhancement, not a reason to
+  // lose an otherwise valid pose when the provider takes too long.
+  return generateModelsLabKontextScene(portraitUrl, buildChatPosePrompt(def), "pose");
 }
 
 export async function generateCharacterScene(

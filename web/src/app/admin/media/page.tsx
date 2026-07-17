@@ -85,9 +85,9 @@ export default function AdminMediaPage() {
           </button>
 
           <h2 style={{ ...S.h2, marginTop: 12 }}>Chat stage pose</h2>
-          <p style={S.cardSub}>A separate transparent full- or upper-body cutout used beside desktop chat. It preserves the companion&apos;s portrait identity and is not used as a story scene.</p>
+          <p style={S.cardSub}>A separate full- or upper-body studio pose used beside desktop chat. It uses the portrait as its exact visual reference and is not used as a story scene.</p>
           <button onClick={() => run("chat_pose")} disabled={!characterId || Boolean(busy)} style={{ ...S.primary, opacity: busy ? 0.55 : 1 }}>
-            {busy === "chat_pose" ? "Generating transparent chat pose..." : "Generate transparent chat pose"}
+            {busy === "chat_pose" ? "Generating chat pose..." : "Generate chat pose"}
           </button>
         </section>
 
