@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { CharacterAvatar } from "@/components/CharacterAvatar";
-import { splitChatMessage } from "@/components/ChatMessageText";
+import { splitChatBubbles, splitChatMessage } from "@/components/ChatMessageText";
 import { EntryGate } from "@/components/EntryGate";
 import { StoryMemoryCard, type StoryMemory } from "@/components/StoryMemoryCard";
 import { getChatWelcome } from "@/lib/chatWelcome";
@@ -20,11 +20,13 @@ function waitForReplyBeat() {
 function CharacterMessage({ content }: { content: string }) {
   return (
     <div style={S.characterMessage}>
-      {splitChatMessage(content).map((part, index) =>
-        part.kind === "narrative" ? (
-          <p key={`${part.content}-${index}`} style={S.narrative}>{part.content}</p>
-        ) : (
-          <div key={`${part.content}-${index}`} style={{ ...S.bubble, ...S.bot, ...S.characterSpeech }}>{part.content}</div>
+      {splitChatBubbles(content).flatMap((bubble, bubbleIndex) =>
+        splitChatMessage(bubble).map((part, partIndex) =>
+          part.kind === "narrative" ? (
+            <p key={`${bubbleIndex}-${partIndex}-${part.content}`} style={S.narrative}>{part.content}</p>
+          ) : (
+            <div key={`${bubbleIndex}-${partIndex}-${part.content}`} style={{ ...S.bubble, ...S.bot, ...S.characterSpeech }}>{part.content}</div>
+          ),
         ),
       )}
     </div>

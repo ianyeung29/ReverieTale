@@ -22,7 +22,13 @@ function speechText(content: string): string {
   }
   // Remove any previous audio-direction notation too. It should never be read
   // out, and ElevenLabs gets fresh directions derived from this exact reply.
-  return text.replace(/\[[^\]]{1,100}\]/g, " ").replace(/\s+/g, " ").trim().slice(0, MAX_TTS_CHARS);
+  return text
+    .replace(/\n\s*---\s*\n/g, " ")
+    .replace(/\[[^\]]{1,100}\]/g, " ")
+    .replace(/\*+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, MAX_TTS_CHARS);
 }
 
 async function elevenLabsSpeech({ key, text, definition, characterId, messageId }: {

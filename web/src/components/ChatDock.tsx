@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { CharacterAvatar } from "./CharacterAvatar";
-import { splitChatMessage } from "./ChatMessageText";
+import { splitChatBubbles, splitChatMessage } from "./ChatMessageText";
 import { getChatWelcome } from "@/lib/chatWelcome";
 import { pickExpression } from "@/lib/expression";
 import { pickStatusLine } from "@/lib/status";
@@ -18,11 +18,13 @@ function waitForReplyBeat() {
 function CharacterMessage({ content }: { content: string }) {
   return (
     <div style={D.characterMessage}>
-      {splitChatMessage(content).map((part, index) =>
-        part.kind === "narrative" ? (
-          <p key={`${part.content}-${index}`} style={D.narrative}>{part.content}</p>
-        ) : (
-          <div key={`${part.content}-${index}`} style={{ ...D.bubble, ...D.bot, ...D.characterSpeech }}>{part.content}</div>
+      {splitChatBubbles(content).flatMap((bubble, bubbleIndex) =>
+        splitChatMessage(bubble).map((part, partIndex) =>
+          part.kind === "narrative" ? (
+            <p key={`${bubbleIndex}-${partIndex}-${part.content}`} style={D.narrative}>{part.content}</p>
+          ) : (
+            <div key={`${bubbleIndex}-${partIndex}-${part.content}`} style={{ ...D.bubble, ...D.bot, ...D.characterSpeech }}>{part.content}</div>
+          ),
         ),
       )}
     </div>
