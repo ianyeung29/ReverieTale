@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { CharacterAvatar } from "./CharacterAvatar";
+import { ChatMessageText } from "./ChatMessageText";
 import { getChatWelcome } from "@/lib/chatWelcome";
 import { pickExpression } from "@/lib/expression";
 import { pickStatusLine } from "@/lib/status";
@@ -216,7 +217,9 @@ export function ChatDock({
             <div key={i} style={D.sys}>{m.content}</div>
           ) : (
             <div key={i} style={{ ...D.row, flexDirection: "column", alignItems: m.role === "user" ? "flex-end" : "flex-start" }}>
-              <div style={{ ...D.bubble, ...(m.role === "user" ? D.user : D.bot) }}>{m.content}</div>
+              <div style={{ ...D.bubble, ...(m.role === "user" ? D.user : D.bot) }}>
+                {m.role === "character" ? <ChatMessageText content={m.content} /> : m.content}
+              </div>
               {m.role === "character" && m.id ? (
                 <div style={D.actions}>
                   <button style={D.actionBtn} onClick={() => listen(m.id!, m.content)}>
@@ -246,7 +249,7 @@ export function ChatDock({
         {authChecked && showWelcome ? (
           <div style={{ ...D.row, flexDirection: "column", alignItems: "flex-start" }}>
             <p style={D.welcomeLabel}>{characterName} started the conversation - free</p>
-            <div style={{ ...D.bubble, ...D.bot }}>{welcome.text}</div>
+            <div style={{ ...D.bubble, ...D.bot }}><ChatMessageText content={welcome.text} /></div>
             {!needAuth ? (
               <div style={D.welcomeReplies}>
                 {welcome.suggestions.map((suggestion) => <button key={suggestion} style={D.welcomeReply} onClick={() => setInput(suggestion)}>{suggestion}</button>)}

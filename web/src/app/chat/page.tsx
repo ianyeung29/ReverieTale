@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { CharacterAvatar } from "@/components/CharacterAvatar";
+import { ChatMessageText } from "@/components/ChatMessageText";
 import { EntryGate } from "@/components/EntryGate";
 import { StoryMemoryCard, type StoryMemory } from "@/components/StoryMemoryCard";
 import { getChatWelcome } from "@/lib/chatWelcome";
@@ -341,7 +342,7 @@ export default function ChatPage() {
               <div style={{ ...S.row, justifyContent: "flex-start" }}>
                 <div>
                   <p style={S.welcomeLabel}>{active?.name} started the conversation - free</p>
-                  <div style={{ ...S.bubble, ...S.bot }}>{welcome.text}</div>
+                  <div style={{ ...S.bubble, ...S.bot }}><ChatMessageText content={welcome.text} /></div>
                 </div>
               </div>
             ) : (
@@ -359,7 +360,9 @@ export default function ChatPage() {
             <div key={i} style={S.sys}>{m.content}</div>
           ) : (
             <div key={i} style={{ ...S.row, flexDirection: "column", alignItems: m.role === "user" ? "flex-end" : "flex-start" }}>
-              <div style={{ ...S.bubble, ...(m.role === "user" ? S.user : S.bot) }}>{m.content}</div>
+              <div style={{ ...S.bubble, ...(m.role === "user" ? S.user : S.bot) }}>
+                {m.role === "character" ? <ChatMessageText content={m.content} /> : m.content}
+              </div>
               {m.role === "character" && m.id ? (
                 <div style={S.actions}>
                   <button style={S.actionBtn} onClick={() => listen(m.id!, m.content)}>
@@ -386,7 +389,7 @@ export default function ChatPage() {
         {welcome && showWelcome && !(messages.length === 0 && !busy) ? (
           <div style={{ ...S.row, flexDirection: "column", alignItems: "flex-start" }}>
             <p style={S.welcomeLabel}>{active?.name} started the conversation - free</p>
-            <div style={{ ...S.bubble, ...S.bot }}>{welcome.text}</div>
+            <div style={{ ...S.bubble, ...S.bot }}><ChatMessageText content={welcome.text} /></div>
             <div style={S.welcomeReplies}>
               {welcome.suggestions.map((suggestion) => <button key={suggestion} style={S.welcomeReply} onClick={() => setInput(suggestion)}>{suggestion}</button>)}
             </div>
