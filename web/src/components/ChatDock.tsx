@@ -10,11 +10,16 @@ import { speakReply, stopSpeaking } from "@/lib/speech";
 
 type Msg = { role: "user" | "character" | "system"; content: string; id?: string; hasImage?: boolean; sequence?: boolean };
 const REPLY_TYPING_DELAY_MS = 2_000;
+const REPLY_QUIET_DELAY_MS = 2_500;
 const NEXT_MESSAGE_QUIET_MS = 2_000;
 const NEXT_MESSAGE_TYPING_MS = 3_000;
 
 function waitForReplyBeat() {
   return new Promise<void>((resolve) => window.setTimeout(resolve, REPLY_TYPING_DELAY_MS));
+}
+
+function waitBeforeTyping() {
+  return new Promise<void>((resolve) => window.setTimeout(resolve, REPLY_QUIET_DELAY_MS));
 }
 
 function CharacterMessage({ content, sequence = false }: { content: string; sequence?: boolean }) {
@@ -99,6 +104,7 @@ export function ChatDock({
   const [threadId, setThreadId] = useState<string | undefined>();
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showInitialTyping, setShowInitialTyping] = useState(false);
   const [needAuth, setNeedAuth] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [broke, setBroke] = useState(false);
@@ -177,7 +183,10 @@ export function ChatDock({
       { role: "user" as const, content: text },
     ]);
     setBusy(true); setBroke(false);
+    setShowInitialTyping(false);
     try {
+      await waitBeforeTyping();
+      setShowInitialTyping(true);
       await waitForReplyBeat();
       const body: Record<string, unknown> = { characterId, threadId, message: text };
       // Send the story + current chapter every turn so her memory refreshes (and
@@ -201,6 +210,7 @@ export function ChatDock({
       setMessages((m) => [...m, { role: "system", content: "[network error]" }]);
     } finally {
       setBusy(false);
+      setShowInitialTyping(false);
     }
   }
 
@@ -321,7 +331,7 @@ export function ChatDock({
             </div>
           ),
         ) : null}
-        {busy ? <div style={{ ...D.row, justifyContent: "flex-start" }}><div className="rv-typing-indicator" style={{ ...D.bubble, ...D.bot, ...D.typing }}>typing...</div></div> : null}
+        {busy && showInitialTyping ? <div style={{ ...D.row, justifyContent: "flex-start" }}><div className="rv-typing-indicator" style={{ ...D.bubble, ...D.bot, ...D.typing }}>typing...</div></div> : null}
         {authChecked && needAuth ? <a href={`/chat?characterId=${characterId}${storyId ? `&fromStory=${storyId}` : ""}`} style={D.signin}>Sign in to talk to {characterName} →</a> : null}
         {broke ? <a href="/credits" style={D.signin}>Get more credits →</a> : null}
         {authChecked && showWelcome && messages.length === 0 ? (

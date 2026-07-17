@@ -12,11 +12,16 @@ import { speakReply, stopSpeaking } from "@/lib/speech";
 
 type Msg = { role: "user" | "character" | "system"; content: string; id?: string; hasImage?: boolean; sequence?: boolean };
 const REPLY_TYPING_DELAY_MS = 2_000;
+const REPLY_QUIET_DELAY_MS = 2_500;
 const NEXT_MESSAGE_QUIET_MS = 2_000;
 const NEXT_MESSAGE_TYPING_MS = 3_000;
 
 function waitForReplyBeat() {
   return new Promise<void>((resolve) => window.setTimeout(resolve, REPLY_TYPING_DELAY_MS));
+}
+
+function waitBeforeTyping() {
+  return new Promise<void>((resolve) => window.setTimeout(resolve, REPLY_QUIET_DELAY_MS));
 }
 
 function CharacterMessage({ content, sequence = false }: { content: string; sequence?: boolean }) {
@@ -95,6 +100,7 @@ export default function ChatPage() {
   const [threadId, setThreadId] = useState<string | undefined>();
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showInitialTyping, setShowInitialTyping] = useState(false);
   const [credits, setCredits] = useState<number | null>(null);
   const [earned, setEarned] = useState(0);
   const [chatPrice, setChatPrice] = useState(1);
@@ -285,7 +291,10 @@ export default function ChatPage() {
       { role: "user" as const, content: text },
     ]);
     setBusy(true);
+    setShowInitialTyping(false);
     try {
+      await waitBeforeTyping();
+      setShowInitialTyping(true);
       await waitForReplyBeat();
       const res = await fetch("/api/chat/stream", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -348,7 +357,7 @@ export default function ChatPage() {
       }
     } catch {
       setMessages((m) => [...m, { role: "system", content: "[network error]" }]);
-    } finally { setBusy(false); }
+    } finally { setBusy(false); setShowInitialTyping(false); }
   }
 
   if (authEmail === undefined) return <div style={S.center}>Loading…</div>;
@@ -498,7 +507,7 @@ export default function ChatPage() {
             </div>
           ),
         )}
-        {busy && (messages.length === 0 || messages[messages.length - 1].role !== "character") ? (
+        {busy && showInitialTyping && (messages.length === 0 || messages[messages.length - 1].role !== "character") ? (
           <div style={{ ...S.row, justifyContent: "flex-start" }}><div className="rv-typing-indicator" style={{ ...S.bubble, ...S.bot, ...S.typing }}>typing...</div></div>
         ) : null}
         <div ref={endRef} />

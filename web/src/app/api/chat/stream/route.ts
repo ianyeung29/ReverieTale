@@ -55,7 +55,7 @@ export async function POST(req: Request) {
       let full = "";
       try {
         try {
-          for await (const delta of chatStream(prep.msgs, { temperature: 0.9, maxTokens: 350 })) {
+          for await (const delta of chatStream(prep.msgs, { temperature: 0.9, maxTokens: 240 })) {
             full += delta;
             controller.enqueue(encoder.encode(sse({ delta })));
           }
@@ -65,7 +65,7 @@ export async function POST(req: Request) {
           // a dead-end to the reader, retry once through that established path.
           console.error("[chat/stream] upstream stream failed", { threadId: prep.threadId, error: error instanceof Error ? error.message : error });
           if (!full) {
-            const fallback = await chat(prep.msgs, { temperature: 0.9, maxTokens: 350 });
+            const fallback = await chat(prep.msgs, { temperature: 0.9, maxTokens: 240 });
             full = fallback.text?.trim() || "...";
             controller.enqueue(encoder.encode(sse({ delta: full })));
           }

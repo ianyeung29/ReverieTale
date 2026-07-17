@@ -10,8 +10,8 @@ import { getConversationStarter } from "./chatWelcome";
 const CHAT_PRICE = Number(process.env.CHAT_PRICE || 1);
 const MESSAGE_BREAK = /\n\s*---\s*\n/g;
 const ACTION_AT_START = /^\s*(\*?\s*\([^()\n]{1,320}\)\s*\*?)(?:\s*\n+)?/;
-const MAX_BUBBLE_CHARS = 280;
-const MAX_BUBBLE_SENTENCES = 2;
+const MAX_BUBBLE_CHARS = 180;
+const MAX_BUBBLE_SENTENCES = 1;
 // First N messages a reader sends to any one companion are free, across all of
 // their threads with that companion (a fresh story thread doesn't reset it).
 const FREE_CHAT_MESSAGES = Number(process.env.FREE_CHAT_MESSAGES || 5);
@@ -61,10 +61,10 @@ export function compactChatReply(reply: string): string {
     .map((part) => part.trim())
     .filter(Boolean)
     .flatMap((part) => {
-      if (part.length <= MAX_BUBBLE_CHARS) return [part];
       const action = part.match(ACTION_AT_START);
       const actionText = action?.[1]?.trim();
       const speech = part.slice(action?.[0].length ?? 0).trim();
+      if (actionText && !speech) return [actionText];
       const speechChunks = splitTextBeat(speech || part);
       return speechChunks.map((chunk, index) => index === 0 && actionText ? `${actionText}\n${chunk}` : chunk);
     });
@@ -297,7 +297,7 @@ export async function handleChat(params: Params): Promise<ChatResult> {
   if (prep.status === "blocked") return { status: "blocked", reason: prep.reason };
   if (prep.status === "paywall") return { status: "paywall", balance: prep.balance };
 
-  const res = await modelChat(prep.msgs, { temperature: 0.9, maxTokens: 350 });
+  const res = await modelChat(prep.msgs, { temperature: 0.9, maxTokens: 240 });
   let reply = compactChatReply(res.text || "...");
   if (screen(reply).blocked) reply = "I can't go there - let's talk about something else.";
 
