@@ -868,6 +868,41 @@ export async function generateMomentImage(
   return withFaceSwap(scene, portraitBase64);
 }
 
+/** A private, safe everyday snapshot a companion can share in a conversation. */
+export function buildCompanionSelfiePrompt(
+  def: { name?: string; gender?: string; look?: string; outfit?: string; style?: string },
+  replyText: string,
+): string {
+  const g = genderWord(def.gender);
+  const who = def.name ? (g ? `${g} named ${def.name}` : def.name) : g || "person";
+  const look = def.look ? `, ${def.look}` : "";
+  const outfit = def.outfit ? ` Wearing ${def.outfit}.` : "";
+  const moment = replyText.replace(/\([^()\n]{1,320}\)/g, "").trim().replace(/\s+/g, " ").slice(0, 300);
+  const { lead, tail } = sceneStyle(normalizeStyle(def.style));
+  return (
+    `${lead}, vertical candid smartphone selfie of the exact same ${who}${look}.${outfit} ` +
+    `They are fully clothed in a safe, everyday setting inspired by this moment: ${moment} ` +
+    "Natural phone-camera framing, friendly spontaneous expression, authentic personal snapshot, environmental context visible behind them. " +
+    "No bedroom, bathroom, mirror pose, lingerie, swimsuit, revealing clothes, adult themes, text, logo, collage, or extra people. " +
+    `${tail}`
+  );
+}
+
+export async function generateCompanionSelfie(
+  def: { name?: string; gender?: string; look?: string; outfit?: string; style?: string },
+  replyText: string,
+  portraitBase64?: string | null,
+  portraitUrl?: string | null,
+): Promise<{ base64: string; mime: string }> {
+  const selfie = await generateSceneWithIdentity(
+    buildCompanionSelfiePrompt(def, replyText),
+    portraitBase64,
+    portraitUrl,
+    normalizeStyle(def.style),
+  );
+  return withFaceSwap(selfie, portraitBase64);
+}
+
 // ---- Character scene art (the companion in their world) ---------------------
 // A wide establishing image - the character within their backstory setting
 // (e.g. Sable at the piano in a closed club) - used behind the profile hero.

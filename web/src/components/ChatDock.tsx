@@ -9,6 +9,11 @@ import { pickStatusLine } from "@/lib/status";
 import { speakReply, stopSpeaking } from "@/lib/speech";
 
 type Msg = { role: "user" | "character" | "system"; content: string; id?: string; hasImage?: boolean };
+const REPLY_TYPING_DELAY_MS = 2_000;
+
+function waitForReplyBeat() {
+  return new Promise<void>((resolve) => window.setTimeout(resolve, REPLY_TYPING_DELAY_MS));
+}
 
 function CharacterMessage({ content }: { content: string }) {
   return (
@@ -65,6 +70,7 @@ export function ChatDock({
   const [broke, setBroke] = useState(false);
   const [resumedHistory, setResumedHistory] = useState(false);
   const [visualizing, setVisualizing] = useState<Set<string>>(new Set());
+  const [sharingSelfies, setSharingSelfies] = useState<Set<string>>(new Set());
   const [saved, setSaved] = useState<Set<string>>(new Set());
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [speaking, setSpeaking] = useState<string | null>(null);
@@ -162,6 +168,7 @@ export function ChatDock({
     ]);
     setBusy(true); setBroke(false);
     try {
+      await waitForReplyBeat();
       const body: Record<string, unknown> = { characterId, threadId, message: text };
       // Send the story + current chapter every turn so her memory refreshes (and
       // stays spoiler-bounded) as the reader advances through the story.
@@ -171,6 +178,7 @@ export function ChatDock({
       if (res.ok && data.reply) {
         setThreadId(data.threadId);
         setMessages((m) => [...m, { role: "character", content: data.reply, id: data.messageId }]);
+        void shareSelfie(data.messageId);
       } else if (res.status === 401) {
         setNeedAuth(true);
       } else if (res.status === 402) {
@@ -225,6 +233,21 @@ export function ChatDock({
     if (!started) setSpeaking((current) => (current === id ? null : current));
   }
 
+  async function shareSelfie(id: string) {
+    setSharingSelfies((current) => new Set(current).add(id));
+    try {
+      const response = await fetch(`/api/messages/${id}/share-selfie`, { method: "POST" });
+      const data = await response.json().catch(() => ({}));
+      if (response.ok && data.shared) {
+        setMessages((current) => current.map((message) => message.id === id ? { ...message, hasImage: true } : message));
+      }
+    } catch {
+      // Keep the conversation moving if a non-essential photo share fails.
+    } finally {
+      setSharingSelfies((current) => { const next = new Set(current); next.delete(id); return next; });
+    }
+  }
+
   const lastReply = [...messages].reverse().find((m) => m.role === "character");
   const expr = pickExpression(lastReply?.content);
   const status = pickStatusLine({ tags: characterTags, expr, isReturning: resumedHistory && messages.length > 0 });
@@ -270,6 +293,8 @@ export function ChatDock({
                   </button>
                   {m.hasImage ? (
                     <button style={D.actionBtn} onClick={() => setLightbox(`/api/messages/${m.id}/image`)}>🖼 View</button>
+                  ) : sharingSelfies.has(m.id) ? (
+                    <span style={D.sharingSelfie}>sharing a selfie...</span>
                   ) : (
                     <button style={D.actionBtn} onClick={() => visualize(m.id!)} disabled={visualizing.has(m.id)}>
                       {visualizing.has(m.id) ? "Visualizing…" : `✨ Visualize · ${sceneImagePrice} credits`}
@@ -286,7 +311,7 @@ export function ChatDock({
             </div>
           ),
         ) : null}
-        {busy ? <div style={{ ...D.row, justifyContent: "flex-start" }}><div style={{ ...D.bubble, ...D.bot, color: "#8A7A90" }}>…</div></div> : null}
+        {busy ? <div style={{ ...D.row, justifyContent: "flex-start" }}><div className="rv-typing-indicator" style={{ ...D.bubble, ...D.bot, ...D.typing }}>typing...</div></div> : null}
         {authChecked && needAuth ? <a href={`/chat?characterId=${characterId}${storyId ? `&fromStory=${storyId}` : ""}`} style={D.signin}>Sign in to talk to {characterName} →</a> : null}
         {broke ? <a href="/credits" style={D.signin}>Get more credits →</a> : null}
         {authChecked && showWelcome ? (
@@ -344,6 +369,8 @@ const D: Record<string, React.CSSProperties> = {
   send: { border: 0, cursor: "pointer", color: "#1A1220", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", borderRadius: 10, padding: "0 14px", fontWeight: 700, fontSize: 16 },
   actions: { display: "flex", gap: 6, marginTop: 4 },
   actionBtn: { background: "transparent", border: "1px solid #3A2E44", color: "#AC9CB0", borderRadius: 8, padding: "3px 8px", fontSize: 11.5, cursor: "pointer" },
+  sharingSelfie: { color: "#D88EAD", fontFamily: '"Palatino Linotype", Georgia, serif', fontSize: 11.5, fontStyle: "italic", padding: "3px 1px" },
+  typing: { color: "#AC9CB0", fontStyle: "italic" },
   thumb: { maxWidth: "70%", borderRadius: 10, marginTop: 6, cursor: "zoom-in", border: "1px solid #3A2E44" },
   lightboxWrap: { position: "absolute", inset: 0, background: "rgba(0,0,0,.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, cursor: "zoom-out" },
   lightboxImg: { maxWidth: "92%", maxHeight: "92%", borderRadius: 10 },

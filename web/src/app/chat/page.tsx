@@ -11,6 +11,11 @@ import { pickStatusLine } from "@/lib/status";
 import { speakReply, stopSpeaking } from "@/lib/speech";
 
 type Msg = { role: "user" | "character" | "system"; content: string; id?: string; hasImage?: boolean };
+const REPLY_TYPING_DELAY_MS = 2_000;
+
+function waitForReplyBeat() {
+  return new Promise<void>((resolve) => window.setTimeout(resolve, REPLY_TYPING_DELAY_MS));
+}
 
 function CharacterMessage({ content }: { content: string }) {
   return (
@@ -68,6 +73,7 @@ export default function ChatPage() {
   const [showHistory, setShowHistory] = useState(false);
   const [resumedHistory, setResumedHistory] = useState(false);
   const [visualizing, setVisualizing] = useState<Set<string>>(new Set());
+  const [sharingSelfies, setSharingSelfies] = useState<Set<string>>(new Set());
   const [saved, setSaved] = useState<Set<string>>(new Set());
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [speaking, setSpeaking] = useState<string | null>(null);
@@ -251,6 +257,21 @@ export default function ChatPage() {
     if (!started) setSpeaking((current) => (current === id ? null : current));
   }
 
+  async function shareSelfie(id: string) {
+    setSharingSelfies((current) => new Set(current).add(id));
+    try {
+      const response = await fetch(`/api/messages/${id}/share-selfie`, { method: "POST" });
+      const data = await response.json().catch(() => ({}));
+      if (response.ok && data.shared) {
+        setMessages((current) => current.map((message) => message.id === id ? { ...message, hasImage: true } : message));
+      }
+    } catch {
+      // A photo share is a bonus moment; the reply remains useful on its own.
+    } finally {
+      setSharingSelfies((current) => { const next = new Set(current); next.delete(id); return next; });
+    }
+  }
+
   async function send() {
     const text = input.trim();
     if (!text || !charId || busy) return;
@@ -266,6 +287,7 @@ export default function ChatPage() {
     ]);
     setBusy(true);
     try {
+      await waitForReplyBeat();
       const res = await fetch("/api/chat/stream", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ characterId: charId, threadId, message: text, storyId: threadId ? undefined : storyId ?? undefined, storyTitle: threadId ? undefined : storyMemory?.title, chapter: threadId || !storyId ? undefined : storyChapter }),
@@ -309,6 +331,7 @@ export default function ChatPage() {
           } else if (ev.done) {
             if (!started) setMessages((m) => [...m, { role: "character", content: ev.replace || "…", id: ev.messageId }]);
             else { if (ev.replace) setLast(ev.replace); if (ev.messageId) setLastId(ev.messageId); }
+            if (ev.messageId) void shareSelfie(ev.messageId);
             if (ev.threadId) setThreadId(ev.threadId);
             if (ev.balance) setCredits(ev.balance.total);
             void loadConvos().then((list) => {
@@ -457,6 +480,8 @@ export default function ChatPage() {
                   </button>
                   {m.hasImage ? (
                     <button style={S.actionBtn} onClick={() => setLightbox(`/api/messages/${m.id}/image`)}>🖼 View</button>
+                  ) : sharingSelfies.has(m.id) ? (
+                    <span style={S.sharingSelfie}>sharing a selfie...</span>
                   ) : (
                     <button style={S.actionBtn} onClick={() => visualize(m.id!)} disabled={visualizing.has(m.id)}>
                       {visualizing.has(m.id) ? "Visualizing…" : `✨ Visualize · ${sceneImagePrice} credits`}
@@ -483,7 +508,7 @@ export default function ChatPage() {
           </div>
         ) : null}
         {busy && (messages.length === 0 || messages[messages.length - 1].role !== "character") ? (
-          <div style={{ ...S.row, justifyContent: "flex-start" }}><div style={{ ...S.bubble, ...S.bot, color: "#8A7A90" }}>typing…</div></div>
+          <div style={{ ...S.row, justifyContent: "flex-start" }}><div className="rv-typing-indicator" style={{ ...S.bubble, ...S.bot, ...S.typing }}>typing...</div></div>
         ) : null}
         <div ref={endRef} />
       </div>
@@ -564,6 +589,8 @@ const S: Record<string, React.CSSProperties> = {
   characterSpeech: { maxWidth: "100%", fontFamily: 'ui-rounded, "Avenir Next Rounded", "Avenir Next", "Trebuchet MS", system-ui, sans-serif', fontSize: 15.5, lineHeight: 1.56, letterSpacing: ".005em" },
   actions: { display: "flex", gap: 6, marginTop: 5 },
   actionBtn: { background: "transparent", border: "1px solid #3A2E44", color: "#AC9CB0", borderRadius: 8, padding: "3px 9px", fontSize: 12, cursor: "pointer" },
+  sharingSelfie: { color: "#D88EAD", fontFamily: '"Palatino Linotype", Georgia, serif', fontSize: 12, fontStyle: "italic", padding: "4px 2px" },
+  typing: { color: "#AC9CB0", fontStyle: "italic", padding: "8px 13px" },
   thumb: { maxWidth: 260, borderRadius: 12, marginTop: 8, cursor: "zoom-in", border: "1px solid #3A2E44" },
   lightboxWrap: { position: "fixed", inset: 0, background: "rgba(0,0,0,.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, cursor: "zoom-out" },
   lightboxImg: { maxWidth: "92vw", maxHeight: "92vh", borderRadius: 12 },

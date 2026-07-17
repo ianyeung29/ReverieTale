@@ -48,6 +48,8 @@ export const metadata: Metadata = {
 const GLOBAL_CSS = `
 @keyframes rvShimmer { to { background-position: 200% center; } }
 @keyframes rvUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes rvTypingBlink { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
+.rv-typing-indicator { animation: rvTypingBlink 1s ease-in-out infinite; }
 .rv-title { background: linear-gradient(100deg,#F4EAF0 8%,#E9A06B 38%,#D46A8B 58%,#F4EAF0 88%); background-size: 200% auto; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent; animation: rvShimmer 7s linear infinite; }
 .rv-reveal { animation: rvUp .6s cubic-bezier(.2,.7,.2,1) both; }
 .rv-d1 { animation-delay: .06s; } .rv-d2 { animation-delay: .14s; } .rv-d3 { animation-delay: .22s; }

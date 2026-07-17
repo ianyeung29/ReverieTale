@@ -286,9 +286,8 @@ export const messages = pgTable(
     // NOTE: exec-3 sec 9 requires encryption at rest for this column in production.
     content: text("content").notNull(),
     tokenCount: integer("token_count").notNull().default(0),
-    // "Visualize this moment" - an on-demand illustration of a character reply,
-    // generated once and cached here (never automatic, costs credits). Only
-    // ever set on role="character" rows.
+    // A reply illustration, whether reader-requested or a companion's occasional
+    // safe photo share. Generated once and cached here on role="character" rows.
     imageKey: text("image_key"),
     imageMime: text("image_mime"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
