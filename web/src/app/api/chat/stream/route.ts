@@ -16,6 +16,7 @@ const Body = z.object({
   threadId: z.string().uuid().optional(),
   message: z.string().min(1).max(4000),
   storyId: z.string().uuid().optional(),
+  storyTitle: z.string().trim().min(1).max(200).optional(),
   chapter: z.number().int().positive().max(1000).optional(),
 });
 
@@ -40,7 +41,7 @@ export async function POST(req: Request) {
   // paywall come back as plain JSON the client handles like the non-stream path.
   let prep;
   try {
-    prep = await prepareChat({ userId, characterId: body.characterId, threadId: body.threadId, message: body.message, storyId: body.storyId, chapter: body.chapter });
+    prep = await prepareChat({ userId, characterId: body.characterId, threadId: body.threadId, message: body.message, storyId: body.storyId, storyTitle: body.storyTitle, chapter: body.chapter });
   } catch (e) {
     console.error("[chat/stream] failed:", e instanceof Error ? e.message : e);
     return NextResponse.json({ error: "chat failed" }, { status: 500 });

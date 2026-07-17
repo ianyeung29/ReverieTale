@@ -5,6 +5,7 @@ import { chat as modelChat, type ChatMessage } from "./model";
 import { screen } from "./moderation";
 import { extractAndStoreMemory, maybeUpdateSummary, retrieveMemory } from "./memory";
 import { rewardCreatorShare, spend, userBalance, type Balance, type SpendResult } from "./ledger";
+import { getConversationStarter } from "./chatWelcome";
 
 const CHAT_PRICE = Number(process.env.CHAT_PRICE || 1);
 // First N messages a reader sends to any one companion are free, across all of
@@ -20,7 +21,7 @@ async function freeMessagesUsed(userId: string, characterId: string): Promise<nu
   return row?.n ?? 0;
 }
 
-type Params = { userId: string; characterId: string; threadId?: string; message: string; storyId?: string; chapter?: number };
+type Params = { userId: string; characterId: string; threadId?: string; message: string; storyId?: string; storyTitle?: string; chapter?: number };
 type CharRow = typeof characters.$inferSelect;
 type OkSpend = Extract<SpendResult, { ok: true }>;
 
@@ -97,15 +98,11 @@ export async function prepareChat(params: Params): Promise<Prep> {
   const def = (char.definition ?? {}) as Record<string, string>;
 
   let threadId = params.threadId;
+  let createdThread = false;
   if (!threadId) {
     const [t] = await db.insert(threads).values({ userId, characterId, characterVersion: char.version }).returning({ id: threads.id });
     threadId = t.id;
-    // The character opens the conversation, for real: persisted as message #1
-    // (not just a decorative empty-state bubble), so it survives a reload and
-    // the model sees its own opening line as context on the very first reply.
-    if (def.greeting?.trim()) {
-      await db.insert(messages).values({ threadId, role: "character", content: def.greeting.trim() });
-    }
+    createdThread = true;
   }
 
   // Seed / refresh the durable story memory, bounded to the chapters read so far.
@@ -117,6 +114,22 @@ export async function prepareChat(params: Params): Promise<Prep> {
     }
   }
 
+  const [tRow] = await db.select({ sc: threads.storyContext, chapter: threads.storyContextChapter }).from(threads).where(eq(threads.id, threadId)).limit(1);
+  // A companion opener is never a paid turn. It is persisted before charging,
+  // while `freeMessagesUsed` only counts the reader's own messages below.
+  if (createdThread) {
+    const opener = getConversationStarter({
+      name: def.name,
+      greeting: def.greeting,
+      backstory: def.backstory,
+      tags: Array.isArray(def.tags) ? def.tags as string[] : [],
+      storyTitle: params.storyTitle,
+      storyContext: tRow?.sc,
+      storyChapter: tRow?.chapter,
+    });
+    await db.insert(messages).values({ threadId, role: "character", content: opener.text });
+  }
+
   const used = await freeMessagesUsed(userId, characterId);
   const isFreeMessage = used < FREE_CHAT_MESSAGES;
   const spendResult: SpendResult = isFreeMessage
@@ -126,7 +139,6 @@ export async function prepareChat(params: Params): Promise<Prep> {
   const charge = spendResult;
 
   await db.insert(messages).values({ threadId, role: "user", content: message });
-  const [tRow] = await db.select({ sc: threads.storyContext }).from(threads).where(eq(threads.id, threadId)).limit(1);
   const mem = await retrieveMemory(threadId, userId, characterId, message);
   const recent = (
     await db

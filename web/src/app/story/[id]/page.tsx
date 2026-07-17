@@ -588,7 +588,7 @@ export default function StoryReadPage() {
         </div>
       ) : null}
 
-      <ChatDock characterId={story.characterId} characterName={story.characterName} characterTags={story.characterTags} storyId={story.id} chapter={idx + 1} open={chatOpen} onOpenChange={setChatOpen} />
+      <ChatDock characterId={story.characterId} characterName={story.characterName} characterTags={story.characterTags} characterTagline={story.characterTagline} storyId={story.id} storyTitle={story.title} chapter={idx + 1} open={chatOpen} onOpenChange={setChatOpen} />
     </main>
   );
 }

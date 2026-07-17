@@ -19,7 +19,9 @@ export function ChatDock({
   characterId,
   characterName,
   characterTags,
+  characterTagline,
   storyId,
+  storyTitle,
   chapter,
   open: openProp,
   onOpenChange,
@@ -27,7 +29,9 @@ export function ChatDock({
   characterId: string;
   characterName: string;
   characterTags?: string[];
+  characterTagline?: string;
   storyId?: string;
+  storyTitle?: string;
   chapter?: number;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -108,13 +112,18 @@ export function ChatDock({
     if (!text || busy) return;
     setInput("");
     setShowWelcome(false);
-    setMessages((m) => [...m, { role: "user", content: text }]);
+    // The server persists this same free opener when it creates the thread.
+    setMessages((m) => [
+      ...m,
+      ...(!threadId && m.length === 0 ? [{ role: "character" as const, content: welcome.text }] : []),
+      { role: "user" as const, content: text },
+    ]);
     setBusy(true); setBroke(false);
     try {
       const body: Record<string, unknown> = { characterId, threadId, message: text };
       // Send the story + current chapter every turn so her memory refreshes (and
       // stays spoiler-bounded) as the reader advances through the story.
-      if (storyId) { body.storyId = storyId; if (chapter) body.chapter = chapter; }
+      if (storyId) { body.storyId = storyId; if (storyTitle) body.storyTitle = storyTitle; if (chapter) body.chapter = chapter; }
       const res = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const data = await res.json();
       if (res.ok && data.reply) {
@@ -177,7 +186,7 @@ export function ChatDock({
   const lastReply = [...messages].reverse().find((m) => m.role === "character");
   const expr = pickExpression(lastReply?.content);
   const status = pickStatusLine({ tags: characterTags, expr, isReturning: resumedHistory && messages.length > 0 });
-  const welcome = getChatWelcome({ tags: characterTags, isReturning: resumedHistory && messages.length > 0, visit: welcomeVisit });
+  const welcome = getChatWelcome({ name: characterName, tags: characterTags, backstory: characterTagline, storyTitle, storyChapter: chapter, isReturning: resumedHistory && messages.length > 0, visit: welcomeVisit });
 
   if (!open) {
     return (
@@ -201,7 +210,7 @@ export function ChatDock({
         <button style={D.close} onClick={() => setOpen(false)} aria-label="Close">×</button>
       </div>
       <div style={D.feed}>
-        {authChecked && messages.length === 0 && !needAuth ? <div style={D.hint}>Say hi to {characterName}.</div> : null}
+        {authChecked && messages.length === 0 && !needAuth ? <div style={D.hint}>A first hello from {characterName} is always free.</div> : null}
         {authChecked ? messages.map((m, i) =>
           m.role === "system" ? (
             <div key={i} style={D.sys}>{m.content}</div>
@@ -236,7 +245,7 @@ export function ChatDock({
         {broke ? <a href="/credits" style={D.signin}>Get more credits →</a> : null}
         {authChecked && showWelcome ? (
           <div style={{ ...D.row, flexDirection: "column", alignItems: "flex-start" }}>
-            <p style={D.welcomeLabel}>{characterName} started the conversation</p>
+            <p style={D.welcomeLabel}>{characterName} started the conversation - free</p>
             <div style={{ ...D.bubble, ...D.bot }}>{welcome.text}</div>
             {!needAuth ? (
               <div style={D.welcomeReplies}>

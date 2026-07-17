@@ -211,12 +211,18 @@ export default function ChatPage() {
     setInput("");
     setShowWelcome(false);
     const wasNew = !threadId;
-    setMessages((m) => [...m, { role: "user", content: text }]);
+    // Mirror the free persisted opener immediately, so it remains part of the
+    // visible transcript after the reader sends their first reply.
+    setMessages((m) => [
+      ...m,
+      ...(wasNew && m.length === 0 && welcome ? [{ role: "character" as const, content: welcome.text }] : []),
+      { role: "user" as const, content: text },
+    ]);
     setBusy(true);
     try {
       const res = await fetch("/api/chat/stream", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ characterId: charId, threadId, message: text, storyId: threadId ? undefined : storyId ?? undefined, chapter: threadId || !storyId ? undefined : storyChapter }),
+        body: JSON.stringify({ characterId: charId, threadId, message: text, storyId: threadId ? undefined : storyId ?? undefined, storyTitle: threadId ? undefined : storyMemory?.title, chapter: threadId || !storyId ? undefined : storyChapter }),
       });
 
       const ct = res.headers.get("content-type") || "";
@@ -286,7 +292,7 @@ export default function ChatPage() {
   const lastReply = [...messages].reverse().find((m) => m.role === "character");
   const expr = pickExpression(lastReply?.content);
   const status = pickStatusLine({ tags: active?.tags, expr, isReturning: resumedHistory && messages.length > 0 });
-  const welcome = active ? getChatWelcome({ tags: active.tags, greeting: active.greeting, isReturning: resumedHistory && messages.length > 0, visit: welcomeVisit }) : null;
+  const welcome = active ? getChatWelcome({ name: active.name, tags: active.tags, greeting: active.greeting, backstory: active.tagline, storyTitle: storyMemory?.title, storyContext: storyMemory?.summary, storyChapter: storyMemory?.chapter, isReturning: resumedHistory && messages.length > 0, visit: welcomeVisit }) : null;
 
   return (
     <div style={S.wrap}>
@@ -331,15 +337,18 @@ export default function ChatPage() {
           <div style={S.empty}>
             {active ? <CharacterAvatar characterId={active.id} name={active.name} size={60} variant={expr} /> : null}
             <p style={S.emptyName}>{active?.name ?? "your companion"}</p>
-            {active?.greeting ? (
+            {welcome ? (
               <div style={{ ...S.row, justifyContent: "flex-start" }}>
-                <div style={{ ...S.bubble, ...S.bot }}>{active.greeting}</div>
+                <div>
+                  <p style={S.welcomeLabel}>{active?.name} started the conversation - free</p>
+                  <div style={{ ...S.bubble, ...S.bot }}>{welcome.text}</div>
+                </div>
               </div>
             ) : (
               <p style={S.emptyHint}>Say hello — they&apos;ll remember what you share.</p>
             )}
             <div style={S.openers}>
-              {OPENERS.map((o) => (
+              {(welcome?.suggestions ?? OPENERS).map((o) => (
                 <button key={o} style={S.opener} onClick={() => setInput(o)}>{o}</button>
               ))}
             </div>
@@ -376,7 +385,7 @@ export default function ChatPage() {
         )}
         {welcome && showWelcome && !(messages.length === 0 && !busy) ? (
           <div style={{ ...S.row, flexDirection: "column", alignItems: "flex-start" }}>
-            <p style={S.welcomeLabel}>{active?.name} started the conversation</p>
+            <p style={S.welcomeLabel}>{active?.name} started the conversation - free</p>
             <div style={{ ...S.bubble, ...S.bot }}>{welcome.text}</div>
             <div style={S.welcomeReplies}>
               {welcome.suggestions.map((suggestion) => <button key={suggestion} style={S.welcomeReply} onClick={() => setInput(suggestion)}>{suggestion}</button>)}
