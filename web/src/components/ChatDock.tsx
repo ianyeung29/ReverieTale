@@ -109,12 +109,10 @@ export function ChatDock({
   const [authChecked, setAuthChecked] = useState(false);
   const [broke, setBroke] = useState(false);
   const [resumedHistory, setResumedHistory] = useState(false);
-  const [visualizing, setVisualizing] = useState<Set<string>>(new Set());
   const [sharingSelfies, setSharingSelfies] = useState<Set<string>>(new Set());
   const [saved, setSaved] = useState<Set<string>>(new Set());
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [speaking, setSpeaking] = useState<string | null>(null);
-  const [sceneImagePrice, setSceneImagePrice] = useState(8);
   const [welcomeVisit, setWelcomeVisit] = useState(0);
   const [showWelcome, setShowWelcome] = useState(true);
   const endRef = useRef<HTMLDivElement>(null);
@@ -126,10 +124,6 @@ export function ChatDock({
     if (!open) return;
     setWelcomeVisit((visit) => visit + 1);
     if (messages.length > 0) setShowWelcome(false);
-    fetch("/api/config")
-      .then((r) => r.json())
-      .then((d) => { if (d.pricing?.sceneImage) setSceneImagePrice(d.pricing.sceneImage); })
-      .catch(() => {});
   }, [open]);
 
   // Check sign-in status as soon as the panel opens, so an anonymous visitor
@@ -211,24 +205,6 @@ export function ChatDock({
     } finally {
       setBusy(false);
       setShowInitialTyping(false);
-    }
-  }
-
-  async function visualize(id: string) {
-    if (visualizing.has(id)) return;
-    setVisualizing((s) => new Set(s).add(id));
-    try {
-      const res = await fetch(`/api/messages/${id}/visualize`, { method: "POST" });
-      const data = await res.json();
-      if (res.ok && data.ok) {
-        setMessages((m) => m.map((mm) => (mm.id === id ? { ...mm, hasImage: true } : mm)));
-      } else if (res.status === 402) {
-        setBroke(true);
-      }
-    } catch {
-      /* best-effort - the reply still reads fine without an illustration */
-    } finally {
-      setVisualizing((s) => { const n = new Set(s); n.delete(id); return n; });
     }
   }
 
@@ -315,11 +291,7 @@ export function ChatDock({
                     <button style={D.actionBtn} onClick={() => setLightbox(`/api/messages/${m.id}/image`)}>🖼 View</button>
                   ) : sharingSelfies.has(m.id) ? (
                     <span style={D.sharingSelfie}>sharing a selfie...</span>
-                  ) : (
-                    <button style={D.actionBtn} onClick={() => visualize(m.id!)} disabled={visualizing.has(m.id)}>
-                      {visualizing.has(m.id) ? "Visualizing…" : `✨ Visualize · ${sceneImagePrice} credits`}
-                    </button>
-                  )}
+                  ) : null}
                   <button style={D.actionBtn} onClick={() => saveMoment(m.id!)} disabled={saved.has(m.id)}>
                     {saved.has(m.id) ? "★ Saved" : "☆ Save"}
                   </button>

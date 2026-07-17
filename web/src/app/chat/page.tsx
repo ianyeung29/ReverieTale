@@ -104,7 +104,6 @@ export default function ChatPage() {
   const [credits, setCredits] = useState<number | null>(null);
   const [earned, setEarned] = useState(0);
   const [chatPrice, setChatPrice] = useState(1);
-  const [sceneImagePrice, setSceneImagePrice] = useState(8);
   const [broke, setBroke] = useState(false);
   const [storyId, setStoryId] = useState<string | null>(null);
   const [storyChapter, setStoryChapter] = useState<number | undefined>();
@@ -112,7 +111,6 @@ export default function ChatPage() {
   const [convos, setConvos] = useState<Convo[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [resumedHistory, setResumedHistory] = useState(false);
-  const [visualizing, setVisualizing] = useState<Set<string>>(new Set());
   const [sharingSelfies, setSharingSelfies] = useState<Set<string>>(new Set());
   const [saved, setSaved] = useState<Set<string>>(new Set());
   const [lightbox, setLightbox] = useState<string | null>(null);
@@ -170,7 +168,6 @@ export default function ChatPage() {
       fetch("/api/credits").then((r) => r.json()).then((d) => { setCredits(d.balance?.total ?? 0); setEarned(d.earnedFromReaders ?? 0); }).catch(() => {});
       fetch("/api/config").then((r) => r.json()).then((d) => {
         if (d.pricing?.chat) setChatPrice(d.pricing.chat);
-        if (d.pricing?.sceneImage) setSceneImagePrice(d.pricing.sceneImage);
       }).catch(() => {});
 
       const cv: Convo[] = await fetch("/api/threads").then((r) => r.json()).catch(() => []);
@@ -221,24 +218,6 @@ export default function ChatPage() {
       const rows: Msg[] = await fetch(`/api/messages?threadId=${c.id}`).then((r) => r.json());
       setMessages(Array.isArray(rows) ? rows : []); setThreadId(c.id); setResumedHistory(Array.isArray(rows) && rows.length > 0); setShowWelcome(false);
     } catch { setMessages([]); }
-  }
-
-  async function visualize(id: string) {
-    if (visualizing.has(id)) return;
-    setVisualizing((s) => new Set(s).add(id));
-    try {
-      const res = await fetch(`/api/messages/${id}/visualize`, { method: "POST" });
-      const data = await res.json();
-      if (res.ok && data.ok) {
-        setMessages((m) => m.map((mm) => (mm.id === id ? { ...mm, hasImage: true } : mm)));
-      } else if (res.status === 402) {
-        setBroke(true);
-      }
-    } catch {
-      /* best-effort - the reply still reads fine without an illustration */
-    } finally {
-      setVisualizing((s) => { const n = new Set(s); n.delete(id); return n; });
-    }
   }
 
   async function saveMoment(id: string) {
@@ -491,11 +470,7 @@ export default function ChatPage() {
                     <button style={S.actionBtn} onClick={() => setLightbox(`/api/messages/${m.id}/image`)}>🖼 View</button>
                   ) : sharingSelfies.has(m.id) ? (
                     <span style={S.sharingSelfie}>sharing a selfie...</span>
-                  ) : (
-                    <button style={S.actionBtn} onClick={() => visualize(m.id!)} disabled={visualizing.has(m.id)}>
-                      {visualizing.has(m.id) ? "Visualizing…" : `✨ Visualize · ${sceneImagePrice} credits`}
-                    </button>
-                  )}
+                  ) : null}
                   <button style={S.actionBtn} onClick={() => saveMoment(m.id!)} disabled={saved.has(m.id)}>
                     {saved.has(m.id) ? "★ Saved" : "☆ Save"}
                   </button>
