@@ -118,9 +118,11 @@ export async function POST(req: Request) {
       if (!row) return NextResponse.json({ error: "companion not found" }, { status: 404 });
       if (!row.portraitKey) return NextResponse.json({ error: "Generate the companion portrait first" }, { status: 422 });
 
-      const portrait = await readImageBase64(row.portraitKey);
-      if (!portrait) return NextResponse.json({ error: "Could not read the companion portrait from R2" }, { status: 500 });
-      const image = await cutOutPortraitForChat(portrait);
+      const portraitUrl = characterImageUrl(row.id);
+      if (!portraitUrl) {
+        return NextResponse.json({ error: "Set APP_URL or PUBLIC_IMAGE_BASE to a public site URL before creating chat portraits" }, { status: 422 });
+      }
+      const image = await cutOutPortraitForChat(portraitUrl);
       const imageKey = await storeImage({ scope: "characters", ownerId: `${row.id}/chat-pose`, base64: image.base64, mime: image.mime });
       const saved = await db.update(characters)
         .set({ chatPoseImageKey: imageKey, chatPoseImageMime: image.mime })

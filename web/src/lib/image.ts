@@ -763,14 +763,16 @@ async function generateModelsLabChatPose(faceImage: string, prompt: string, styl
   return image;
 }
 
-async function removeModelsLabBackground(imageBase64: string): Promise<{ base64: string; mime: string }> {
+async function removeModelsLabBackground(imageUrl: string): Promise<{ base64: string; mime: string }> {
   const key = process.env.MODELSLAB_API_KEY;
   if (!key) throw new Error("MODELSLAB_API_KEY is not set");
   const url = process.env.MODELSLAB_REMOVEBG_URL || "https://modelslab.com/api/v6/image_editing/removebg_mask";
   const payload = {
     key,
-    image: imageBase64,
-    base64: "no",
+    // This endpoint accepts a public URL. Sending the canonical portrait URL
+    // keeps the request small and avoids malformed large base64 payloads.
+    image: imageUrl,
+    base64: false,
     alpha_matting: true,
     post_process_mask: true,
     only_mask: false,
@@ -789,7 +791,7 @@ async function removeModelsLabBackground(imageBase64: string): Promise<{ base64:
   const fetchUrl = data.id != null
     ? `https://modelslab.com/api/v6/images/fetch/${encodeURIComponent(String(data.id))}`
     : data.fetch_result;
-  if (data.status === "processing" && fetchUrl) data = await pollModelsLab(fetchUrl, key);
+  if (!data.output?.[0] && !data.proxy_links?.[0] && fetchUrl) data = await pollModelsLab(fetchUrl, key);
   const output = data.output?.[0] || data.proxy_links?.[0];
   if (!output) throw new Error(`modelslab remove background: ${String(data.message || data.messege || data.status || "no image in response").trim()}`);
   const result = await outputToImage(output);
@@ -899,17 +901,17 @@ export function buildChatPosePrompt(def: { name?: string; gender?: string; look?
   );
 }
 
-export async function cutOutPortraitForChat(portraitBase64: string): Promise<{ base64: string; mime: string }> {
+export async function cutOutPortraitForChat(portraitUrl: string): Promise<{ base64: string; mime: string }> {
   if ((process.env.IMAGE_PROVIDER || "grok") !== "modelslab") {
     throw new Error("Portrait cutouts require IMAGE_PROVIDER=modelslab");
   }
-  if (!portraitBase64) {
-    throw new Error("A portrait is required before its background can be removed");
+  if (!/^https?:\/\//i.test(portraitUrl)) {
+    throw new Error("A public portrait URL is required before its background can be removed");
   }
   // Preserve the exact canonical portrait. Background removal is the only
   // transformation, so the chat-stage figure cannot drift in identity, outfit,
   // or visual style the way a newly generated pose can.
-  return removeModelsLabBackground(portraitBase64);
+  return removeModelsLabBackground(portraitUrl);
 }
 
 export async function generateCharacterScene(
