@@ -116,7 +116,6 @@ export default function ChatPage() {
   const [conversationQuery, setConversationQuery] = useState("");
   const [chatPoseUnavailable, setChatPoseUnavailable] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
-  const followUpBuckets = useRef(new Set<string>());
 
   async function loadConvos(): Promise<Convo[]> {
     try {
@@ -190,33 +189,6 @@ export default function ChatPage() {
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, busy]);
   useEffect(() => () => stopSpeaking(), []);
   useEffect(() => { setChatPoseUnavailable(false); }, [charId]);
-
-  // A companion checks in after a quiet, established exchange. The server
-  // owns the durable rate limit; this ref only prevents needless repeat calls
-  // while this tab remains open.
-  useEffect(() => {
-    if (!threadId || busy) return;
-    const readerMessages = messages.filter((message) => message.role === "user").length;
-    if (readerMessages < 10 || readerMessages % 10 !== 0 || messages.at(-1)?.role !== "character") return;
-    const key = `${threadId}:${readerMessages / 10}`;
-    if (followUpBuckets.current.has(key)) return;
-
-    const timer = window.setTimeout(async () => {
-      followUpBuckets.current.add(key);
-      try {
-        const response = await fetch(`/api/threads/${threadId}/follow-up`, { method: "POST" });
-        const data = await response.json().catch(() => ({}));
-        if (response.ok && data.ok && data.message) {
-          setMessages((current) => current.some((message) => message.id === data.message.id)
-            ? current
-            : [...current, { role: "character", content: data.message.content, id: data.message.id, sequence: true }]);
-        }
-      } catch {
-        // The next qualifying exchange remains unaffected if a follow-up call fails.
-      }
-    }, 20_000);
-    return () => window.clearTimeout(timer);
-  }, [threadId, messages, busy]);
 
   async function signOut() {
     await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});

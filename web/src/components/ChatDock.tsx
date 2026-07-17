@@ -112,34 +112,9 @@ export function ChatDock({
   const [welcomeVisit, setWelcomeVisit] = useState(0);
   const [showWelcome, setShowWelcome] = useState(true);
   const endRef = useRef<HTMLDivElement>(null);
-  const followUpBuckets = useRef(new Set<string>());
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, busy, open]);
   useEffect(() => () => stopSpeaking(), []);
-
-  useEffect(() => {
-    if (!open || !threadId || !authChecked || needAuth || busy) return;
-    const readerMessages = messages.filter((message) => message.role === "user").length;
-    if (readerMessages < 10 || readerMessages % 10 !== 0 || messages.at(-1)?.role !== "character") return;
-    const key = `${threadId}:${readerMessages / 10}`;
-    if (followUpBuckets.current.has(key)) return;
-
-    const timer = window.setTimeout(async () => {
-      followUpBuckets.current.add(key);
-      try {
-        const response = await fetch(`/api/threads/${threadId}/follow-up`, { method: "POST" });
-        const data = await response.json().catch(() => ({}));
-        if (response.ok && data.ok && data.message) {
-          setMessages((current) => current.some((message) => message.id === data.message.id)
-            ? current
-            : [...current, { role: "character", content: data.message.content, id: data.message.id, sequence: true }]);
-        }
-      } catch {
-        // A temporary network error should not interrupt the reader's chat.
-      }
-    }, 20_000);
-    return () => window.clearTimeout(timer);
-  }, [open, threadId, authChecked, needAuth, busy, messages]);
 
   useEffect(() => {
     if (!open) return;
