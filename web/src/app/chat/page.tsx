@@ -60,6 +60,7 @@ export default function ChatPage() {
   const [welcomeVisit, setWelcomeVisit] = useState(0);
   const [showWelcome, setShowWelcome] = useState(true);
   const [conversationQuery, setConversationQuery] = useState("");
+  const [chatPoseUnavailable, setChatPoseUnavailable] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const followUpBuckets = useRef(new Set<string>());
 
@@ -134,6 +135,7 @@ export default function ChatPage() {
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, busy]);
   useEffect(() => () => stopSpeaking(), []);
+  useEffect(() => { setChatPoseUnavailable(false); }, [charId]);
 
   // A companion checks in after a quiet, established exchange. The server
   // owns the durable rate limit; this ref only prevents needless repeat calls
@@ -352,7 +354,15 @@ export default function ChatPage() {
         </div>
       </aside>
       <main className="rv-chat-main" style={S.main}>
-        {active ? <div className="rv-chat-stage-art" aria-hidden><CharacterAvatar characterId={active.id} name={active.name} shape="rect" variant={expr} /></div> : null}
+        {active && !chatPoseUnavailable ? (
+          <div className="rv-chat-stage-art" aria-hidden>
+            <img
+              src={`/api/characters/${active.id}/chat-pose`}
+              alt=""
+              onError={() => setChatPoseUnavailable(true)}
+            />
+          </div>
+        ) : null}
       <div className="rv-chat-head" style={S.head}>
         <div style={S.headLeft}>
           <button style={S.iconBtn} onClick={newChat} title="New conversation">＋ New</button>
@@ -477,8 +487,8 @@ export default function ChatPage() {
 }
 
 const S: Record<string, React.CSSProperties> = {
-  wrap: { width: "100%", height: "calc(100dvh - 52px)", display: "flex", flexDirection: "column" },
-  main: { position: "relative", minWidth: 0, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" },
+  wrap: { width: "100%", minHeight: "calc(100dvh - 52px)", display: "flex", flexDirection: "column" },
+  main: { position: "relative", minWidth: 0, flex: 1, display: "flex", flexDirection: "column", overflow: "visible" },
   center: { minHeight: "calc(100dvh - 52px)", display: "grid", placeItems: "center", padding: 24, color: "#AC9CB0" },
   gate: { display: "flex", flexDirection: "column", gap: 12, width: "100%", maxWidth: 360, background: "#231A2B", border: "1px solid #3A2E44", borderRadius: 18, padding: "30px 26px", textAlign: "center" },
   gateMk: { fontSize: 12, letterSpacing: ".2em", textTransform: "uppercase", color: "#E9A06B", fontWeight: 700, margin: 0 },
@@ -514,7 +524,7 @@ const S: Record<string, React.CSSProperties> = {
   histItem: { display: "flex", justifyContent: "space-between", background: "transparent", color: "#F4EAF0", border: 0, borderBottom: "1px solid #241a2b", padding: "12px 18px", cursor: "pointer", fontSize: 14, textAlign: "left" },
   histActive: { background: "#231A2B" },
   histDate: { color: "#8A7A90", fontSize: 12 },
-  feed: { flex: 1, overflowY: "auto", padding: "20px", display: "flex", flexDirection: "column", gap: 12 },
+  feed: { flex: "0 0 auto", overflowY: "visible", padding: "20px", display: "flex", flexDirection: "column", gap: 12 },
   empty: { display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", margin: "auto", padding: 20, gap: 4 },
   emptyName: { fontFamily: "Georgia, serif", fontSize: 22, color: "#F4EAF0", margin: "12px 0 0" },
   emptyHint: { color: "#8A7A90", fontSize: 14, margin: "2px 0 16px" },

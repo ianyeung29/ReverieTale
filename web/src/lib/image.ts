@@ -234,6 +234,7 @@ function looksLikeImage(base64: string): boolean {
 type MlResp = {
   status?: string;
   output?: string[];
+  proxy_links?: string[];
   fetch_result?: string;
   id?: number | string;
   message?: string;
@@ -704,6 +705,66 @@ async function generateModelsLabHeadshot(faceImage: string, prompt: string, styl
   throw new Error(`modelslab headshot: the model kept warming up (${lastMsg || "Try Again"}) — wait a moment and retry`);
 }
 
+// The chat stage needs a different asset from a portrait: a tall, readable
+// figure that can sit alongside messages without bringing its own background.
+// We first use the portrait as a face reference, then remove the generated
+// studio background in a second ModelsLab pass.
+async function generateModelsLabChatPose(faceImage: string, prompt: string, style: ArtStyle): Promise<{ base64: string; mime: string }> {
+  const key = process.env.MODELSLAB_API_KEY;
+  if (!key) throw new Error("MODELSLAB_API_KEY is not set");
+  const url = process.env.MODELSLAB_HEADSHOT_URL || "https://modelslab.com/api/v8/images/flux-headshot";
+  const imageField = process.env.MODELSLAB_HEADSHOT_IMAGE_FIELD || "face_image";
+  const styleLock = style === "anime"
+    ? "MANDATORY RENDER STYLE: polished 2D anime illustration with the same linework, cel shading, colors, and visual identity as the supplied reference. Do not render photography or live action."
+    : "MANDATORY RENDER STYLE: photorealistic cinematic photography with the same visual identity as the supplied reference. Do not render anime, cartoon, or illustration.";
+  const payload: Record<string, string> = {
+    key,
+    model_id: process.env.MODELSLAB_HEADSHOT_MODEL || "flux_headshot",
+    prompt: `${styleLock}\n\n${prompt}`,
+    negative_prompt: style === "anime" ? HEADSHOT_NEGATIVE_ANIME : HEADSHOT_NEGATIVE_REALISTIC,
+    [imageField]: faceImage,
+    width: "768",
+    height: "1024",
+    num_inference_steps: process.env.MODELSLAB_HEADSHOT_STEPS || "21",
+    guidance_scale: process.env.MODELSLAB_HEADSHOT_GUIDANCE || "7.5",
+    safety_checker: process.env.IMAGE_SAFETY_CHECKER || "yes",
+  };
+
+  const res = await imageFetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+  if (!res.ok) throw new Error(`modelslab chat pose ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
+
+  let data = (await res.json()) as MlResp;
+  if (data.status === "processing" && data.fetch_result) data = await pollModelsLab(data.fetch_result, key);
+  const output = data.output?.[0] || data.proxy_links?.[0];
+  if (!output) throw new Error(`modelslab chat pose: ${String(data.message || data.messege || data.status || "no image in response").trim()}`);
+  const image = await outputToImage(output);
+  if (!looksLikeImage(image.base64)) throw new Error("modelslab chat pose returned non-image output");
+  return image;
+}
+
+async function removeModelsLabBackground(imageBase64: string): Promise<{ base64: string; mime: string }> {
+  const key = process.env.MODELSLAB_API_KEY;
+  if (!key) throw new Error("MODELSLAB_API_KEY is not set");
+  const url = process.env.MODELSLAB_REMOVEBG_URL || "https://modelslab.com/api/v6/image_editing/removebg_mask";
+  const payload = {
+    key,
+    image: imageBase64,
+    alpha_matting: true,
+    post_process_mask: true,
+    only_mask: false,
+  };
+  const res = await imageFetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+  if (!res.ok) throw new Error(`modelslab remove background ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
+
+  let data = (await res.json()) as MlResp;
+  if (data.status === "processing" && data.fetch_result) data = await pollModelsLab(data.fetch_result, key);
+  const output = data.output?.[0] || data.proxy_links?.[0];
+  if (!output) throw new Error(`modelslab remove background: ${String(data.message || data.messege || data.status || "no image in response").trim()}`);
+  const result = await outputToImage(output);
+  if (!looksLikeImage(result.base64)) throw new Error("modelslab remove background returned non-image output");
+  return result;
+}
+
 // Generate a scene from `prompt`, conditioned on the character's portrait when
 // identity scenes are enabled and a portrait is available. Falls back to a plain
 // text2img scene if conditioning is off or the reference generation fails, so an
@@ -790,6 +851,34 @@ export function buildCharacterScenePrompt(def: { name?: string; gender?: string;
     `The character is present in the scene, environmental and atmospheric.${genre} ` +
     `${tail} Depth of field, moody lighting.`
   );
+}
+
+export function buildChatPosePrompt(def: { name?: string; gender?: string; look?: string; outfit?: string; style?: string }): string {
+  const g = genderWord(def.gender);
+  const who = def.name ? (g ? `${g} named ${def.name}` : def.name) : g || "person";
+  const look = def.look ? `, ${def.look}` : "";
+  const outfit = def.outfit ? ` Wearing ${def.outfit}.` : "";
+  const { lead, tail } = sceneStyle(normalizeStyle(def.style));
+  return (
+    `${lead} of the exact same ${who}${look}.${outfit} ` +
+    "Three-quarter to full-body standing pose, facing slightly left with relaxed natural hands, centered in a tall frame. " +
+    "Plain studio backdrop only, no scenery, props, text, logo, frame, or collage. Leave clean silhouette edges for background removal. " +
+    `${tail}`
+  );
+}
+
+export async function generateChatPose(
+  def: { name?: string; gender?: string; look?: string; outfit?: string; style?: string },
+  portraitUrl?: string | null,
+): Promise<{ base64: string; mime: string }> {
+  if ((process.env.IMAGE_PROVIDER || "grok") !== "modelslab") {
+    throw new Error("Transparent chat poses require IMAGE_PROVIDER=modelslab");
+  }
+  if (!portraitUrl) {
+    throw new Error("Transparent chat poses require a public character portrait URL. Set APP_URL or PUBLIC_IMAGE_BASE to the deployed site URL.");
+  }
+  const generated = await generateModelsLabChatPose(portraitUrl, buildChatPosePrompt(def), normalizeStyle(def.style));
+  return removeModelsLabBackground(generated.base64);
 }
 
 export async function generateCharacterScene(

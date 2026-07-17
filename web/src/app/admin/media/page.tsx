@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-type Companion = { id: string; name: string; hasScene: boolean; postCount: number };
+type Companion = { id: string; name: string; hasScene: boolean; hasChatPose: boolean; postCount: number };
 type Story = { id: string; title: string; characterName: string; chapters: number; hasBackground: boolean };
 type Catalogue = { characters: Companion[]; stories: Story[] };
-type Job = "companion_post" | "character_scene" | "chapter_scene" | "story_background";
+type Job = "companion_post" | "character_scene" | "chat_pose" | "chapter_scene" | "story_background";
 
 export default function AdminMediaPage() {
   const [catalogue, setCatalogue] = useState<Catalogue | null>(null);
@@ -82,6 +82,12 @@ export default function AdminMediaPage() {
           <p style={S.cardSub}>A wide, setting-led image used behind the companion profile header.</p>
           <button onClick={() => run("character_scene")} disabled={!characterId || Boolean(busy)} style={{ ...S.primary, opacity: busy ? 0.55 : 1 }}>
             {busy === "character_scene" ? "Generating companion scene..." : "Generate companion scene"}
+          </button>
+
+          <h2 style={{ ...S.h2, marginTop: 12 }}>Chat stage pose</h2>
+          <p style={S.cardSub}>A separate transparent full- or upper-body cutout used beside desktop chat. It preserves the companion&apos;s portrait identity and is not used as a story scene.</p>
+          <button onClick={() => run("chat_pose")} disabled={!characterId || Boolean(busy)} style={{ ...S.primary, opacity: busy ? 0.55 : 1 }}>
+            {busy === "chat_pose" ? "Generating transparent chat pose..." : "Generate transparent chat pose"}
           </button>
         </section>
 

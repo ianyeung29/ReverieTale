@@ -94,6 +94,10 @@ export const characters = pgTable("characters", {
   // via /api/characters/:id/scene.
   sceneImageKey: text("scene_image_key"),
   sceneImageMime: text("scene_image_mime"),
+  // A separate transparent cutout for the desktop chat stage. This is never
+  // substituted with the canonical portrait, which keeps chat visually clean.
+  chatPoseImageKey: text("chat_pose_image_key"),
+  chatPoseImageMime: text("chat_pose_image_mime"),
   // Portrait generations for this character: first is free, regens cost credits.
   portraitGens: integer("portrait_gens").notNull().default(0),
   // { name, persona, look, backstory, voice, greeting, tags }

@@ -5,10 +5,12 @@ import { characters, chapterScenes, companionPosts, stories } from "@/db/schema"
 import { isAdmin } from "@/lib/admin";
 import {
   buildChapterScenePrompt,
+  buildChatPosePrompt,
   buildCharacterScenePrompt,
   buildScenePrompt,
   characterImageUrl,
   generateChapterScene,
+  generateChatPose,
   generateCharacterScene,
   generateImage,
 } from "@/lib/image";
@@ -38,7 +40,7 @@ export async function GET() {
   if (!(await isAdmin(userId))) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
   const [characterRows, storyRows] = await Promise.all([
-    db.select({ id: characters.id, definition: characters.definition, hasScene: characters.sceneImageKey })
+    db.select({ id: characters.id, definition: characters.definition, hasScene: characters.sceneImageKey, hasChatPose: characters.chatPoseImageKey })
       .from(characters)
       .where(eq(characters.status, "published")),
     db.select({ id: stories.id, title: stories.title, characterName: characters.definition, content: stories.content, hasBackground: stories.imageKey, createdAt: stories.createdAt })
@@ -58,7 +60,7 @@ export async function GET() {
 
   return NextResponse.json({
     characters: characterRows
-      .map((row) => ({ id: row.id, name: asDefinition(row.definition).name || "Untitled companion", hasScene: Boolean(row.hasScene), postCount: postCounts.get(row.id) ?? 0 }))
+      .map((row) => ({ id: row.id, name: asDefinition(row.definition).name || "Untitled companion", hasScene: Boolean(row.hasScene), hasChatPose: Boolean(row.hasChatPose), postCount: postCounts.get(row.id) ?? 0 }))
       .sort((a, b) => a.name.localeCompare(b.name)),
     stories: storyRows.map((row) => ({
       id: row.id,
@@ -106,6 +108,25 @@ export async function POST(req: Request) {
       const imageKey = await storeImage({ scope: "characters", ownerId: `${row.id}/scene`, base64: image.base64, mime: image.mime });
       await db.update(characters).set({ sceneImageKey: imageKey, sceneImageMime: image.mime }).where(eq(characters.id, row.id));
       return NextResponse.json({ ok: true, imageUrl: `/api/characters/${row.id}/scene?rev=${Date.now()}` });
+    }
+
+    if (action === "chat_pose") {
+      const characterId = typeof body.characterId === "string" ? body.characterId : "";
+      if (!characterId) return NextResponse.json({ error: "characterId required" }, { status: 400 });
+
+      const [row] = await db.select({ id: characters.id, definition: characters.definition, portraitKey: characters.imageKey })
+        .from(characters).where(eq(characters.id, characterId)).limit(1);
+      if (!row) return NextResponse.json({ error: "companion not found" }, { status: 404 });
+      if (!row.portraitKey) return NextResponse.json({ error: "Generate the companion portrait first" }, { status: 422 });
+
+      const definition = asDefinition(row.definition);
+      const prompt = buildChatPosePrompt(definition);
+      if (screenImagePrompt(prompt).blocked) return NextResponse.json({ error: "blocked", reason: "safety" }, { status: 422 });
+
+      const image = await generateChatPose(definition, characterImageUrl(row.id));
+      const imageKey = await storeImage({ scope: "characters", ownerId: `${row.id}/chat-pose`, base64: image.base64, mime: image.mime });
+      await db.update(characters).set({ chatPoseImageKey: imageKey, chatPoseImageMime: image.mime }).where(eq(characters.id, row.id));
+      return NextResponse.json({ ok: true, imageUrl: `/api/characters/${row.id}/chat-pose?rev=${Date.now()}` });
     }
 
     const storyId = typeof body.storyId === "string" ? body.storyId : "";

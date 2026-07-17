@@ -175,12 +175,12 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .rv-chat-rail, .rv-chat-stage-art { display: none; }
 @media (min-width: 920px) {
   .rv-chat-shell { display: grid !important; grid-template-columns: 286px minmax(0, 1fr); max-width: none !important; }
-  .rv-chat-rail { display: flex; min-height: 0; flex-direction: column; gap: 14px; padding: 18px 14px; background: #120D16; border-right: 1px solid #2A2033; }
-  .rv-chat-main { min-width: 0; }
+  .rv-chat-rail { display: flex; position: sticky; top: 52px; align-self: start; height: calc(100dvh - 52px); box-sizing: border-box; min-height: 0; flex-direction: column; gap: 14px; padding: 18px 14px; background: #120D16; border-right: 1px solid #2A2033; }
+  .rv-chat-main { min-width: 0; min-height: calc(100dvh - 52px); overflow: visible !important; }
   .rv-chat-head > div:first-child > button + button, .rv-chat-history { display: none !important; }
-  .rv-chat-stage-art { display: block; position: absolute; right: 0; bottom: -42px; z-index: 0; width: min(42vw, 520px); opacity: .48; pointer-events: none; filter: saturate(.9) contrast(.94); }
+  .rv-chat-stage-art { display: block; position: fixed; top: 72px; right: 0; bottom: 0; z-index: 0; width: min(42vw, 520px); opacity: .56; pointer-events: none; filter: saturate(.92) contrast(.96); }
   .rv-chat-stage-art::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, #150F1A 0%, rgba(21,15,26,.78) 28%, rgba(21,15,26,.1) 72%, #150F1A 100%); }
-  .rv-chat-stage-art > div { border-radius: 0 !important; }
+  .rv-chat-stage-art > img { width: 100%; height: 100%; object-fit: contain; object-position: right bottom; display: block; }
   .rv-chat-head { position: relative; z-index: 1; background: rgba(21,15,26,.82); backdrop-filter: blur(12px); }
   .rv-chat-feed { position: relative; z-index: 1; width: min(720px, 66%) !important; max-width: none !important; align-self: flex-start; margin-left: clamp(22px, 6vw, 104px); box-sizing: border-box; }
   .rv-chat-bar-wrap { position: relative; z-index: 1; width: min(760px, 70%); margin-left: clamp(22px, 6vw, 104px); box-sizing: border-box; background: linear-gradient(90deg, rgba(21,15,26,.95), rgba(21,15,26,.72)); }
