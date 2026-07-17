@@ -10,8 +10,8 @@ function cleanSpeechFragment(part: string): string {
     .replace(/^\*+\s*|\s*\*+$/g, "")
     // If a model has doubled or misplaced the wrapper around an action, do not
     // surface its orphan punctuation as a separate chat bubble.
-    .replace(/^[*)\s]+/, "")
-    .replace(/[*(\s]+$/, "")
+    .replace(/^[*)"“”‘’\s]+/, "")
+    .replace(/[*("“”‘’\s]+$/, "")
     .trim();
 }
 
@@ -43,5 +43,5 @@ export function splitChatMessage(content: string): ChatMessagePart[] {
           : cleanSpeechFragment(trimmed),
       };
     })
-    .filter((part) => part.content.length > 0 && !/^[*()\s]+$/.test(part.content));
+    .filter((part) => part.content.length > 0 && !/^[*()"“”‘’\s]+$/.test(part.content));
 }
