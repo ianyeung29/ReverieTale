@@ -4,6 +4,17 @@ const ACTION_PART = /(\*?\s*\([^()\n]{1,320}\)\s*\*?)/g;
 const ACTION_ONLY = /^\*?\s*\([^()\n]{1,320}\)\s*\*?$/;
 const MESSAGE_BREAK = /\n\s*---\s*\n/g;
 
+function cleanSpeechFragment(part: string): string {
+  return part
+    .trim()
+    .replace(/^\*+\s*|\s*\*+$/g, "")
+    // If a model has doubled or misplaced the wrapper around an action, do not
+    // surface its orphan punctuation as a separate chat bubble.
+    .replace(/^[*)\s]+/, "")
+    .replace(/[*(\s]+$/, "")
+    .trim();
+}
+
 export type ChatMessagePart = {
   kind: "narrative" | "speech";
   content: string;
@@ -29,8 +40,8 @@ export function splitChatMessage(content: string): ChatMessagePart[] {
         kind: isNarrative ? "narrative" as const : "speech" as const,
         content: isNarrative
           ? trimmed.replace(/^\*+|\*+$/g, "").trim()
-          : trimmed.replace(/^\*+\s*|\s*\*+$/g, "").trim(),
+          : cleanSpeechFragment(trimmed),
       };
     })
-    .filter((part) => part.content.length > 0 && !/^\*+$/.test(part.content));
+    .filter((part) => part.content.length > 0 && !/^[*()\s]+$/.test(part.content));
 }
