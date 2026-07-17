@@ -2,13 +2,27 @@
 
 import { useEffect, useRef, useState } from "react";
 import { CharacterAvatar } from "./CharacterAvatar";
-import { ChatMessageText } from "./ChatMessageText";
+import { splitChatMessage } from "./ChatMessageText";
 import { getChatWelcome } from "@/lib/chatWelcome";
 import { pickExpression } from "@/lib/expression";
 import { pickStatusLine } from "@/lib/status";
 import { speakReply, stopSpeaking } from "@/lib/speech";
 
 type Msg = { role: "user" | "character" | "system"; content: string; id?: string; hasImage?: boolean };
+
+function CharacterMessage({ content }: { content: string }) {
+  return (
+    <div style={D.characterMessage}>
+      {splitChatMessage(content).map((part, index) =>
+        part.kind === "narrative" ? (
+          <p key={`${part.content}-${index}`} style={D.narrative}>{part.content}</p>
+        ) : (
+          <div key={`${part.content}-${index}`} style={{ ...D.bubble, ...D.bot, ...D.characterSpeech }}>{part.content}</div>
+        ),
+      )}
+    </div>
+  );
+}
 
 /**
  * Floating chat bubble (bottom-right on desktop, a full-width sticky bar on
@@ -244,9 +258,11 @@ export function ChatDock({
             <div key={i} style={D.sys}>{m.content}</div>
           ) : (
             <div key={i} style={{ ...D.row, flexDirection: "column", alignItems: m.role === "user" ? "flex-end" : "flex-start" }}>
-              <div style={{ ...D.bubble, ...(m.role === "user" ? D.user : D.bot) }}>
-                {m.role === "character" ? <ChatMessageText content={m.content} /> : m.content}
-              </div>
+              {m.role === "character" ? (
+                <CharacterMessage content={m.content} />
+              ) : (
+                <div style={{ ...D.bubble, ...D.user }}>{m.content}</div>
+              )}
               {m.role === "character" && m.id ? (
                 <div style={D.actions}>
                   <button style={D.actionBtn} onClick={() => listen(m.id!, m.content)}>
@@ -276,7 +292,7 @@ export function ChatDock({
         {authChecked && showWelcome ? (
           <div style={{ ...D.row, flexDirection: "column", alignItems: "flex-start" }}>
             <p style={D.welcomeLabel}>{characterName} started the conversation - free</p>
-            <div style={{ ...D.bubble, ...D.bot }}><ChatMessageText content={welcome.text} /></div>
+            <CharacterMessage content={welcome.text} />
             {!needAuth ? (
               <div style={D.welcomeReplies}>
                 {welcome.suggestions.map((suggestion) => <button key={suggestion} style={D.welcomeReply} onClick={() => setInput(suggestion)}>{suggestion}</button>)}
@@ -319,6 +335,9 @@ const D: Record<string, React.CSSProperties> = {
   bubble: { maxWidth: "82%", padding: "9px 12px", borderRadius: 14, fontSize: 14, lineHeight: 1.45, whiteSpace: "pre-wrap", wordBreak: "break-word" },
   user: { background: "linear-gradient(100deg,#E9A06B,#D46A8B)", color: "#1A1220", borderBottomRightRadius: 3 },
   bot: { background: "#231A2B", border: "1px solid #3A2E44", color: "#F4EAF0", borderBottomLeftRadius: 3 },
+  characterMessage: { display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6, maxWidth: "82%" },
+  narrative: { maxWidth: "100%", margin: "0 1px", padding: "1px 0 1px 8px", borderLeft: "2px solid rgba(216,142,173,.62)", color: "#D88EAD", fontFamily: '"Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif', fontSize: 12.5, fontStyle: "italic", lineHeight: 1.42, whiteSpace: "pre-wrap" },
+  characterSpeech: { maxWidth: "100%", fontFamily: 'ui-rounded, "Avenir Next Rounded", "Avenir Next", "Trebuchet MS", system-ui, sans-serif', fontSize: 14, lineHeight: 1.5, letterSpacing: ".005em" },
   signin: { color: "#E9A06B", textAlign: "center", textDecoration: "none", fontSize: 14, marginTop: 10 },
   bar: { display: "flex", gap: 8, padding: 12, borderTop: "1px solid #3A2E44" },
   input: { flex: 1, background: "#1A121F", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 10, padding: "10px 12px", fontSize: 14 },

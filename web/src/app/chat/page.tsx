@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { CharacterAvatar } from "@/components/CharacterAvatar";
-import { ChatMessageText } from "@/components/ChatMessageText";
+import { splitChatMessage } from "@/components/ChatMessageText";
 import { EntryGate } from "@/components/EntryGate";
 import { StoryMemoryCard, type StoryMemory } from "@/components/StoryMemoryCard";
 import { getChatWelcome } from "@/lib/chatWelcome";
@@ -11,6 +11,20 @@ import { pickStatusLine } from "@/lib/status";
 import { speakReply, stopSpeaking } from "@/lib/speech";
 
 type Msg = { role: "user" | "character" | "system"; content: string; id?: string; hasImage?: boolean };
+
+function CharacterMessage({ content }: { content: string }) {
+  return (
+    <div style={S.characterMessage}>
+      {splitChatMessage(content).map((part, index) =>
+        part.kind === "narrative" ? (
+          <p key={`${part.content}-${index}`} style={S.narrative}>{part.content}</p>
+        ) : (
+          <div key={`${part.content}-${index}`} style={{ ...S.bubble, ...S.bot, ...S.characterSpeech }}>{part.content}</div>
+        ),
+      )}
+    </div>
+  );
+}
 type Char = { id: string; name: string; tagline: string; persona?: string; greeting?: string; tags?: string[] };
 type Convo = {
   id: string; characterId: string; name: string; lastActiveAt: string;
@@ -413,7 +427,7 @@ export default function ChatPage() {
               <div style={{ ...S.row, justifyContent: "flex-start" }}>
                 <div>
                   <p style={S.welcomeLabel}>{active?.name} started the conversation - free</p>
-                  <div style={{ ...S.bubble, ...S.bot }}><ChatMessageText content={welcome.text} /></div>
+                  <CharacterMessage content={welcome.text} />
                 </div>
               </div>
             ) : (
@@ -431,9 +445,11 @@ export default function ChatPage() {
             <div key={i} style={S.sys}>{m.content}</div>
           ) : (
             <div key={i} style={{ ...S.row, flexDirection: "column", alignItems: m.role === "user" ? "flex-end" : "flex-start" }}>
-              <div style={{ ...S.bubble, ...(m.role === "user" ? S.user : S.bot) }}>
-                {m.role === "character" ? <ChatMessageText content={m.content} /> : m.content}
-              </div>
+              {m.role === "character" ? (
+                <CharacterMessage content={m.content} />
+              ) : (
+                <div style={{ ...S.bubble, ...S.user }}>{m.content}</div>
+              )}
               {m.role === "character" && m.id ? (
                 <div style={S.actions}>
                   <button style={S.actionBtn} onClick={() => listen(m.id!, m.content)}>
@@ -460,7 +476,7 @@ export default function ChatPage() {
         {welcome && showWelcome && !(messages.length === 0 && !busy) ? (
           <div style={{ ...S.row, flexDirection: "column", alignItems: "flex-start" }}>
             <p style={S.welcomeLabel}>{active?.name} started the conversation - free</p>
-            <div style={{ ...S.bubble, ...S.bot }}><ChatMessageText content={welcome.text} /></div>
+            <CharacterMessage content={welcome.text} />
             <div style={S.welcomeReplies}>
               {welcome.suggestions.map((suggestion) => <button key={suggestion} style={S.welcomeReply} onClick={() => setInput(suggestion)}>{suggestion}</button>)}
             </div>
@@ -543,6 +559,9 @@ const S: Record<string, React.CSSProperties> = {
   bubble: { maxWidth: "78%", padding: "11px 15px", borderRadius: 16, lineHeight: 1.5, whiteSpace: "pre-wrap", wordBreak: "break-word" },
   user: { background: "linear-gradient(100deg,#E9A06B,#D46A8B)", color: "#1A1220", borderBottomRightRadius: 4 },
   bot: { background: "#231A2B", border: "1px solid #3A2E44", color: "#F4EAF0", borderBottomLeftRadius: 4 },
+  characterMessage: { display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 7, maxWidth: "78%" },
+  narrative: { maxWidth: "100%", margin: "0 2px", padding: "1px 0 1px 10px", borderLeft: "2px solid rgba(216,142,173,.62)", color: "#D88EAD", fontFamily: '"Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif', fontSize: 14, fontStyle: "italic", lineHeight: 1.48, letterSpacing: ".01em", whiteSpace: "pre-wrap" },
+  characterSpeech: { maxWidth: "100%", fontFamily: 'ui-rounded, "Avenir Next Rounded", "Avenir Next", "Trebuchet MS", system-ui, sans-serif', fontSize: 15.5, lineHeight: 1.56, letterSpacing: ".005em" },
   actions: { display: "flex", gap: 6, marginTop: 5 },
   actionBtn: { background: "transparent", border: "1px solid #3A2E44", color: "#AC9CB0", borderRadius: 8, padding: "3px 9px", fontSize: 12, cursor: "pointer" },
   thumb: { maxWidth: 260, borderRadius: 12, marginTop: 8, cursor: "zoom-in", border: "1px solid #3A2E44" },
