@@ -14,12 +14,13 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   if (!userId) return new Response("unauthorized", { status: 401 });
 
   const [row] = await db
-    .select({ imageKey: messages.imageKey, mime: messages.imageMime, ownerId: threads.userId })
+    .select({ imageKey: messages.imageKey, mime: messages.imageMime, imageLocked: messages.imageLocked, ownerId: threads.userId })
     .from(messages)
     .innerJoin(threads, eq(messages.threadId, threads.id))
     .where(eq(messages.id, id))
     .limit(1);
   if (!row || row.ownerId !== userId) return new Response("not found", { status: 404 });
+  if (row.imageLocked) return Response.json({ error: "photo_locked" }, { status: 423 });
   if (!row.imageKey) return new Response("not found", { status: 404 });
   return imageResponse(row.imageKey, row.mime, "private, max-age=300");
 }

@@ -6,6 +6,7 @@ import { screen } from "./moderation";
 import { extractAndStoreMemory, maybeUpdateSummary, retrieveMemory } from "./memory";
 import { rewardCreatorShare, spend, userBalance, type Balance, type SpendResult } from "./ledger";
 import { getConversationStarter } from "./chatWelcome";
+import { isPrivatePhotoRequest, privatePhotoPrice } from "./privatePhoto";
 
 const CHAT_PRICE = Number(process.env.CHAT_PRICE || 1);
 const MESSAGE_BREAK = /\n\s*---\s*\n/g;
@@ -143,18 +144,19 @@ async function ensureStoryContext(threadId: string, storyId: string, chapter?: n
 export type Prep =
   | { status: "blocked"; reason?: string }
   | { status: "paywall"; balance: Balance }
-  | { status: "ready"; threadId: string; msgs: ChatMessage[]; char: CharRow; charge: OkSpend };
+  | { status: "ready"; threadId: string; msgs: ChatMessage[]; char: CharRow; charge: OkSpend; privatePhotoRequested: boolean };
 
 export type ChatResult =
   | { status: "blocked"; reason?: string }
   | { status: "paywall"; balance: Balance }
-  | { status: "ok"; threadId: string; reply: string; messageId: string; balance: Balance };
+  | { status: "ok"; threadId: string; reply: string; messageId: string; balance: Balance; privatePhotoRequested: boolean; privatePhotoPrice?: number };
 
 /** Everything up to (and including) charging + prompt assembly, before generation. */
 export async function prepareChat(params: Params): Promise<Prep> {
   const { userId, characterId, message } = params;
 
   if (screen(message).blocked) return { status: "blocked", reason: "safety_minor" };
+  const privatePhotoRequested = isPrivatePhotoRequest(message);
 
   const [char] = await db.select().from(characters).where(eq(characters.id, characterId)).limit(1);
   if (!char) throw new Error("character not found");
@@ -232,6 +234,9 @@ export async function prepareChat(params: Params): Promise<Prep> {
     hasCasualInternetVoice
       ? "This character has a casual, online-native voice. Use current, widely understood internet language occasionally and in context: phrases like 'low-key', 'not gonna lie', 'okay, wait', 'the vibe', 'that is wild', 'I am obsessed', 'plot twist', and 'kinda' can fit. For a very online or gamer/creator character, 'delulu', 'mid', 'ate', or 'iykyk' can appear rarely when the meaning is clear from context. Never stack slang, imitate a meme account, force references, or use slang that makes the reply less understandable. When a playful, quick reaction has several beats, split it into two or three short text messages by putting a line containing only --- between complete, replyable thoughts. Keep each message to one idea and no more than two short sentences. Use this selectively, especially for a reaction, reveal, or question. Do not use it for serious, sensitive, or story-dense moments, and never use more than three text messages."
       : "Keep language clear and natural for this character. Do not add trendy slang just because it is popular; their existing personality and voice should lead.",
+    privatePhotoRequested
+      ? "The reader asked you for a safe private photo. Reply with exactly two short, distinct text-message beats separated by a line containing only ---. Be warm and natural, acknowledge the request without describing the image, and make the second beat feel like a small tease about sending a candid moment soon. Keep it fully age-appropriate. Never mention credits, payment, unlocking, sexual content, or adult framing."
+      : "",
     tRow?.sc ? `A story you and them lived through together, as you remember it up to where they've read (do not reference anything beyond this): ${tRow.sc}` : "",
     mem.summary ? `What you remember from talking together: ${mem.summary}` : "",
     mem.items.length ? `Relevant memories:\n- ${mem.items.join("\n- ")}` : "",
@@ -244,7 +249,7 @@ export async function prepareChat(params: Params): Promise<Prep> {
     ...recent.map((m): ChatMessage => ({ role: m.role === "user" ? "user" : "assistant", content: m.content })),
   ];
 
-  return { status: "ready", threadId, msgs, char, charge };
+  return { status: "ready", threadId, msgs, char, charge, privatePhotoRequested };
 }
 
 /** Persist the reply, log cost, reward creator, run memory upkeep; returns new balance. */
@@ -257,12 +262,20 @@ export async function finalizeChat(args: {
   usage: { inputTokens: number; outputTokens: number };
   charge: OkSpend;
   recalled?: number;
+  privatePhotoRequested?: boolean;
 }): Promise<Balance & { messageId: string }> {
   const { userId, char, threadId, userMessage, reply, usage, charge } = args;
 
   const [inserted] = await db
     .insert(messages)
-    .values({ threadId, role: "character", content: reply, tokenCount: usage.outputTokens })
+    .values({
+      threadId,
+      role: "character",
+      content: reply,
+      tokenCount: usage.outputTokens,
+      imageLocked: Boolean(args.privatePhotoRequested),
+      imagePrice: args.privatePhotoRequested ? privatePhotoPrice() : null,
+    })
     .returning({ id: messages.id });
 
   console.log("[generation_turn]", {
@@ -309,7 +322,16 @@ export async function handleChat(params: Params): Promise<ChatResult> {
     reply,
     usage: res.usage,
     charge: prep.charge,
+    privatePhotoRequested: prep.privatePhotoRequested,
   });
 
-  return { status: "ok", threadId: prep.threadId, reply, messageId, balance };
+  return {
+    status: "ok",
+    threadId: prep.threadId,
+    reply,
+    messageId,
+    balance,
+    privatePhotoRequested: prep.privatePhotoRequested,
+    ...(prep.privatePhotoRequested ? { privatePhotoPrice: privatePhotoPrice() } : {}),
+  };
 }

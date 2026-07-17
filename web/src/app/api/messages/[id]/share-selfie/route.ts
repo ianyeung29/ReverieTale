@@ -26,6 +26,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
       role: messages.role,
       content: messages.content,
       imageKey: messages.imageKey,
+      imageLocked: messages.imageLocked,
       threadId: messages.threadId,
       characterId: threads.characterId,
       ownerId: threads.userId,
@@ -38,7 +39,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   if (!message) return NextResponse.json({ error: "not found" }, { status: 404 });
   if (message.ownerId !== userId) return NextResponse.json({ error: "forbidden" }, { status: 403 });
   if (message.role !== "character") return NextResponse.json({ error: "can only share a companion reply" }, { status: 400 });
-  if (message.imageKey) return NextResponse.json({ ok: true, shared: true });
+  if (message.imageKey || message.imageLocked) return NextResponse.json({ ok: true, shared: Boolean(message.imageKey) });
 
   const [usage] = await db
     .select({ total: count() })

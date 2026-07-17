@@ -44,7 +44,14 @@ export async function POST(req: Request) {
     if (result.status === "blocked") return NextResponse.json({ error: "blocked", reason: result.reason }, { status: 422 });
     if (result.status === "paywall")
       return NextResponse.json({ error: "out_of_credits", balance: result.balance }, { status: 402 });
-    return NextResponse.json({ threadId: result.threadId, reply: result.reply, messageId: result.messageId, balance: result.balance });
+    return NextResponse.json({
+      threadId: result.threadId,
+      reply: result.reply,
+      messageId: result.messageId,
+      balance: result.balance,
+      privatePhotoRequested: result.privatePhotoRequested,
+      privatePhotoPrice: result.privatePhotoPrice,
+    });
   } catch (e) {
     console.error("[chat] failed:", e instanceof Error ? e.message : e);
     return NextResponse.json({ error: "chat failed" }, { status: 500 });

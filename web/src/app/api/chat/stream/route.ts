@@ -86,9 +86,18 @@ export async function POST(req: Request) {
           reply,
           usage: { inputTokens: 0, outputTokens: Math.ceil(full.length / 4) },
           charge: prep.charge,
+          privatePhotoRequested: prep.privatePhotoRequested,
         });
 
-        controller.enqueue(encoder.encode(sse({ done: true, threadId: prep.threadId, messageId, balance, replace: reply })));
+        controller.enqueue(encoder.encode(sse({
+          done: true,
+          threadId: prep.threadId,
+          messageId,
+          balance,
+          replace: reply,
+          privatePhotoRequested: prep.privatePhotoRequested,
+          ...(prep.privatePhotoRequested ? { privatePhotoPrice: Number(process.env.PRIVATE_PHOTO_PRICE || 10) } : {}),
+        })));
       } catch (error) {
         console.error("[chat/stream] generation or persistence failed", { threadId: prep.threadId, error: error instanceof Error ? error.message : error });
         controller.enqueue(encoder.encode(sse({ error: "chat failed" })));

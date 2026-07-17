@@ -4,17 +4,19 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import { CharacterAvatar } from "@/components/CharacterAvatar";
 import { splitChatBubbles, splitChatMessage } from "@/components/ChatMessageText";
 import { EntryGate } from "@/components/EntryGate";
+import { PrivatePhotoCard } from "@/components/PrivatePhotoCard";
 import { StoryMemoryCard, type StoryMemory } from "@/components/StoryMemoryCard";
 import { getChatWelcome } from "@/lib/chatWelcome";
 import { pickExpression } from "@/lib/expression";
 import { pickStatusLine } from "@/lib/status";
 import { speakReply, stopSpeaking } from "@/lib/speech";
 
-type Msg = { role: "user" | "character" | "system"; content: string; id?: string; hasImage?: boolean; sequence?: boolean };
+type Msg = { role: "user" | "character" | "system"; content: string; id?: string; hasImage?: boolean; imageLocked?: boolean; imagePrice?: number | null; sequence?: boolean };
 const REPLY_TYPING_DELAY_MS = 2_000;
 const REPLY_QUIET_DELAY_MS = 2_500;
 const NEXT_MESSAGE_QUIET_MS = 2_000;
 const NEXT_MESSAGE_TYPING_MS = 3_000;
+const PRIVATE_PHOTO_REVEAL_DELAY_MS = 8_000;
 
 function waitForReplyBeat() {
   return new Promise<void>((resolve) => window.setTimeout(resolve, REPLY_TYPING_DELAY_MS));
@@ -112,6 +114,7 @@ export default function ChatPage() {
   const [showHistory, setShowHistory] = useState(false);
   const [resumedHistory, setResumedHistory] = useState(false);
   const [sharingSelfies, setSharingSelfies] = useState<Set<string>>(new Set());
+  const [revealingPhotoId, setRevealingPhotoId] = useState<string | null>(null);
   const [saved, setSaved] = useState<Set<string>>(new Set());
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [speaking, setSpeaking] = useState<string | null>(null);
@@ -256,6 +259,38 @@ export default function ChatPage() {
     }
   }
 
+  async function requestPrivatePhoto(id: string) {
+    try {
+      const response = await fetch(`/api/messages/${id}/request-private-photo`, { method: "POST" });
+      const data = await response.json().catch(() => ({}));
+      if (response.ok && data.ready) {
+        window.setTimeout(() => {
+          setMessages((current) => current.map((message) => message.id === id ? { ...message, hasImage: true, imageLocked: true, imagePrice: data.price ?? message.imagePrice ?? 10 } : message));
+        }, PRIVATE_PHOTO_REVEAL_DELAY_MS);
+      }
+    } catch {
+      // The conversation still works when an optional photo cannot be prepared.
+    }
+  }
+
+  async function revealPrivatePhoto(id: string) {
+    if (revealingPhotoId) return;
+    setRevealingPhotoId(id);
+    try {
+      const response = await fetch(`/api/messages/${id}/reveal-photo`, { method: "POST" });
+      const data = await response.json().catch(() => ({}));
+      if (response.ok) {
+        setMessages((current) => current.map((message) => message.id === id ? { ...message, imageLocked: false } : message));
+        if (data.balance) setCredits(data.balance.total);
+      } else if (response.status === 402) {
+        setBroke(true);
+        if (data.balance) setCredits(data.balance.total);
+      }
+    } finally {
+      setRevealingPhotoId(null);
+    }
+  }
+
   async function send() {
     const text = input.trim();
     if (!text || !charId || busy) return;
@@ -308,7 +343,7 @@ export default function ChatPage() {
         for (const part of parts) {
           const line = part.replace(/^data:\s?/, "").trim();
           if (!line) continue;
-          let ev: { delta?: string; done?: boolean; threadId?: string; messageId?: string; balance?: { total: number }; replace?: string; error?: string };
+          let ev: { delta?: string; done?: boolean; threadId?: string; messageId?: string; balance?: { total: number }; replace?: string; error?: string; privatePhotoRequested?: boolean; privatePhotoPrice?: number };
           try { ev = JSON.parse(line); } catch { continue; }
           if (ev.delta) {
             acc += ev.delta;
@@ -317,9 +352,14 @@ export default function ChatPage() {
               role: "character",
               content: ev.replace || acc || "…",
               id: ev.messageId,
+              imageLocked: Boolean(ev.privatePhotoRequested),
+              imagePrice: ev.privatePhotoPrice,
               sequence: true,
             }]);
-            if (ev.messageId) void shareSelfie(ev.messageId);
+            if (ev.messageId) {
+              if (ev.privatePhotoRequested) void requestPrivatePhoto(ev.messageId);
+              else void shareSelfie(ev.messageId);
+            }
             if (ev.threadId) setThreadId(ev.threadId);
             if (ev.balance) setCredits(ev.balance.total);
             void loadConvos().then((list) => {
@@ -466,7 +506,7 @@ export default function ChatPage() {
                   <button style={S.actionBtn} onClick={() => listen(m.id!, m.content)}>
                     {speaking === m.id ? "Stop" : "Listen"}
                   </button>
-                  {m.hasImage ? (
+                  {m.hasImage && !m.imageLocked ? (
                     <button style={S.actionBtn} onClick={() => setLightbox(`/api/messages/${m.id}/image`)}>🖼 View</button>
                   ) : sharingSelfies.has(m.id) ? (
                     <span style={S.sharingSelfie}>sharing a selfie...</span>
@@ -476,7 +516,15 @@ export default function ChatPage() {
                   </button>
                 </div>
               ) : null}
-              {m.hasImage && m.id ? (
+              {m.hasImage && m.id && m.imageLocked ? (
+                <PrivatePhotoCard
+                  characterId={active?.id || charId}
+                  characterName={active?.name || "Your companion"}
+                  price={m.imagePrice ?? 10}
+                  revealing={revealingPhotoId === m.id}
+                  onReveal={() => revealPrivatePhoto(m.id!)}
+                />
+              ) : m.hasImage && m.id ? (
                 <img src={`/api/messages/${m.id}/image`} alt="" style={S.thumb} onClick={() => setLightbox(`/api/messages/${m.id}/image`)} />
               ) : null}
             </div>

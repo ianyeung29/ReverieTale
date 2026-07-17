@@ -2,17 +2,19 @@
 
 import { Fragment, useEffect, useRef, useState } from "react";
 import { CharacterAvatar } from "./CharacterAvatar";
+import { PrivatePhotoCard } from "./PrivatePhotoCard";
 import { splitChatBubbles, splitChatMessage } from "./ChatMessageText";
 import { getChatWelcome } from "@/lib/chatWelcome";
 import { pickExpression } from "@/lib/expression";
 import { pickStatusLine } from "@/lib/status";
 import { speakReply, stopSpeaking } from "@/lib/speech";
 
-type Msg = { role: "user" | "character" | "system"; content: string; id?: string; hasImage?: boolean; sequence?: boolean };
+type Msg = { role: "user" | "character" | "system"; content: string; id?: string; hasImage?: boolean; imageLocked?: boolean; imagePrice?: number | null; sequence?: boolean };
 const REPLY_TYPING_DELAY_MS = 2_000;
 const REPLY_QUIET_DELAY_MS = 2_500;
 const NEXT_MESSAGE_QUIET_MS = 2_000;
 const NEXT_MESSAGE_TYPING_MS = 3_000;
+const PRIVATE_PHOTO_REVEAL_DELAY_MS = 8_000;
 
 function waitForReplyBeat() {
   return new Promise<void>((resolve) => window.setTimeout(resolve, REPLY_TYPING_DELAY_MS));
@@ -110,6 +112,7 @@ export function ChatDock({
   const [broke, setBroke] = useState(false);
   const [resumedHistory, setResumedHistory] = useState(false);
   const [sharingSelfies, setSharingSelfies] = useState<Set<string>>(new Set());
+  const [revealingPhotoId, setRevealingPhotoId] = useState<string | null>(null);
   const [saved, setSaved] = useState<Set<string>>(new Set());
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [speaking, setSpeaking] = useState<string | null>(null);
@@ -190,8 +193,16 @@ export function ChatDock({
       const data = await res.json();
       if (res.ok && data.reply) {
         setThreadId(data.threadId);
-        setMessages((m) => [...m, { role: "character", content: data.reply, id: data.messageId, sequence: true }]);
-        void shareSelfie(data.messageId);
+        setMessages((m) => [...m, {
+          role: "character",
+          content: data.reply,
+          id: data.messageId,
+          imageLocked: Boolean(data.privatePhotoRequested),
+          imagePrice: data.privatePhotoPrice,
+          sequence: true,
+        }]);
+        if (data.privatePhotoRequested) void requestPrivatePhoto(data.messageId);
+        else void shareSelfie(data.messageId);
       } else if (res.status === 401) {
         setNeedAuth(true);
       } else if (res.status === 402) {
@@ -244,6 +255,35 @@ export function ChatDock({
     }
   }
 
+  async function requestPrivatePhoto(id: string) {
+    try {
+      const response = await fetch(`/api/messages/${id}/request-private-photo`, { method: "POST" });
+      const data = await response.json().catch(() => ({}));
+      if (response.ok && data.ready) {
+        window.setTimeout(() => {
+          setMessages((current) => current.map((message) => message.id === id ? { ...message, hasImage: true, imageLocked: true, imagePrice: data.price ?? message.imagePrice ?? 10 } : message));
+        }, PRIVATE_PHOTO_REVEAL_DELAY_MS);
+      }
+    } catch {
+      // The text turn remains useful if the image provider is unavailable.
+    }
+  }
+
+  async function revealPrivatePhoto(id: string) {
+    if (revealingPhotoId) return;
+    setRevealingPhotoId(id);
+    try {
+      const response = await fetch(`/api/messages/${id}/reveal-photo`, { method: "POST" });
+      if (response.ok) {
+        setMessages((current) => current.map((message) => message.id === id ? { ...message, imageLocked: false } : message));
+      } else if (response.status === 402) {
+        setBroke(true);
+      }
+    } finally {
+      setRevealingPhotoId(null);
+    }
+  }
+
   const lastReply = [...messages].reverse().find((m) => m.role === "character");
   const expr = pickExpression(lastReply?.content);
   const status = pickStatusLine({ tags: characterTags, expr, isReturning: resumedHistory && messages.length > 0 });
@@ -287,7 +327,7 @@ export function ChatDock({
                   <button style={D.actionBtn} onClick={() => listen(m.id!, m.content)}>
                     {speaking === m.id ? "Stop" : "Listen"}
                   </button>
-                  {m.hasImage ? (
+                  {m.hasImage && !m.imageLocked ? (
                     <button style={D.actionBtn} onClick={() => setLightbox(`/api/messages/${m.id}/image`)}>🖼 View</button>
                   ) : sharingSelfies.has(m.id) ? (
                     <span style={D.sharingSelfie}>sharing a selfie...</span>
@@ -297,7 +337,16 @@ export function ChatDock({
                   </button>
                 </div>
               ) : null}
-              {m.hasImage && m.id ? (
+              {m.hasImage && m.id && m.imageLocked ? (
+                <PrivatePhotoCard
+                  compact
+                  characterId={characterId}
+                  characterName={characterName}
+                  price={m.imagePrice ?? 10}
+                  revealing={revealingPhotoId === m.id}
+                  onReveal={() => revealPrivatePhoto(m.id!)}
+                />
+              ) : m.hasImage && m.id ? (
                 <img src={`/api/messages/${m.id}/image`} alt="" style={D.thumb} onClick={() => setLightbox(`/api/messages/${m.id}/image`)} />
               ) : null}
             </div>

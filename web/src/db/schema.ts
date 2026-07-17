@@ -290,6 +290,10 @@ export const messages = pgTable(
     // safe photo share. Generated once and cached here on role="character" rows.
     imageKey: text("image_key"),
     imageMime: text("image_mime"),
+    // Direct companion photo requests are generated privately and revealed only
+    // once the reader chooses to spend the listed credits.
+    imageLocked: boolean("image_locked").notNull().default(false),
+    imagePrice: integer("image_price"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => ({ byThread: index("messages_thread_idx").on(t.threadId, t.createdAt) }),

@@ -934,6 +934,47 @@ export async function generateCompanionSelfie(
   return selfie;
 }
 
+/** A reader-requested photo is a little more deliberate than the occasional
+ * free snapshot, but remains fully clothed and age-appropriate. */
+export function buildRequestedPrivatePhotoPrompt(
+  def: { name?: string; gender?: string; look?: string; outfit?: string; style?: string },
+  replyText: string,
+): string {
+  const g = genderWord(def.gender);
+  const who = def.name ? (g ? `${g} named ${def.name}` : def.name) : g || "person";
+  const look = def.look ? `, ${def.look}` : "";
+  const outfit = def.outfit ? ` Wearing ${def.outfit}.` : "";
+  const moment = replyText.replace(/\([^()\n]{1,320}\)/g, "").trim().replace(/\s+/g, " ").slice(0, 300);
+  const style = def.style ? normalizeStyle(def.style) : undefined;
+  const framing = style === "anime"
+    ? "vertical polished anime companion snapshot in the exact same illustrated treatment as the source portrait"
+    : style === "realistic"
+      ? "vertical polished smartphone portrait of the exact same companion"
+      : "vertical polished companion snapshot in the exact same visual medium as the source portrait";
+  const styleTail = style ? sceneStyle(style).tail : "Match the source portrait's rendering style exactly, with no change of medium.";
+  return (
+    `${framing} of ${who}${look}.${outfit} ` +
+    `They are fully clothed, confident, and style-conscious in a safe personal moment inspired by: ${moment} ` +
+    "Use flattering natural light, an expressive candid pose, and a real place that fits their world. Keep it warm, charming, and personal without adult framing. " +
+    "No bedroom, bathroom, mirror pose, lingerie, swimsuit, revealing clothes, nudity, adult themes, text, logo, collage, or extra people. " +
+    `${styleTail}`
+  );
+}
+
+export async function generateRequestedPrivatePhoto(
+  def: { name?: string; gender?: string; look?: string; outfit?: string; style?: string },
+  replyText: string,
+  portraitBase64?: string | null,
+  portraitUrl?: string | null,
+): Promise<{ base64: string; mime: string }> {
+  return generateSceneWithIdentity(
+    buildRequestedPrivatePhotoPrompt(def, replyText),
+    portraitBase64,
+    portraitUrl,
+    def.style ? normalizeStyle(def.style) : undefined,
+  );
+}
+
 // ---- Character scene art (the companion in their world) ---------------------
 // A wide establishing image - the character within their backstory setting
 // (e.g. Sable at the piano in a closed club) - used behind the profile hero.

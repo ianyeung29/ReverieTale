@@ -19,7 +19,14 @@ export async function GET(req: Request) {
   if (!t || t.userId !== userId) return NextResponse.json({ error: "not found" }, { status: 404 });
 
   const rows = await db
-    .select({ id: messages.id, role: messages.role, content: messages.content, hasImage: sql<boolean>`(${messages.imageKey} is not null)` })
+    .select({
+      id: messages.id,
+      role: messages.role,
+      content: messages.content,
+      hasImage: sql<boolean>`(${messages.imageKey} is not null)`,
+      imageLocked: messages.imageLocked,
+      imagePrice: messages.imagePrice,
+    })
     .from(messages)
     .where(and(eq(messages.threadId, threadId)))
     .orderBy(asc(messages.createdAt));
