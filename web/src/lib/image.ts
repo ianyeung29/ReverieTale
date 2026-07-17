@@ -183,7 +183,10 @@ async function urlToImage(url: string, timeoutMs = IMAGE_REQUEST_TIMEOUT_MS): Pr
     return { base64: b64, mime: m && /^image\//.test(m[1]) ? m[1] : mimeFromBase64(b64) };
   }
   const buf = Buffer.from(await bin.arrayBuffer());
-  const mime = /\.jpe?g($|\?)/i.test(url) ? "image/jpeg" : "image/png";
+  const responseMime = bin.headers.get("content-type")?.split(";", 1)[0]?.trim().toLowerCase();
+  const mime = responseMime?.startsWith("image/")
+    ? responseMime
+    : /\.jpe?g($|\?)/i.test(url) ? "image/jpeg" : "image/png";
   return { base64: buf.toString("base64"), mime };
 }
 
@@ -374,7 +377,7 @@ async function pollModelsLab(
     }
     if (!res.ok) continue;
     last = (await res.json()) as MlResp;
-    if (last.output?.[0]) return last; // ready (regardless of exact status string)
+    if (last.output?.[0] || last.proxy_links?.[0]) return last; // ready (regardless of exact status string)
     if (last.status === "error" || last.status === "failed") return last;
     const message = String(last.message || last.messege || "").trim();
     if (/try again|rate limit|queue.*full/i.test(message)) {
@@ -653,23 +656,25 @@ async function generateModelsLabKontextScene(
 async function generateModelsLabHeadshot(faceImage: string, prompt: string, style: ArtStyle): Promise<{ base64: string; mime: string }> {
   const key = process.env.MODELSLAB_API_KEY;
   if (!key) throw new Error("MODELSLAB_API_KEY is not set");
-  const url = process.env.MODELSLAB_HEADSHOT_URL || "https://modelslab.com/api/v8/images/flux-headshot";
+  const url = process.env.MODELSLAB_HEADSHOT_URL || "https://modelslab.com/api/v6/image_editing/flux_headshot";
   const imageField = process.env.MODELSLAB_HEADSHOT_IMAGE_FIELD || "face_image";
   const isUrl = /^https?:\/\//i.test(faceImage);
   const styleLock = style === "anime"
     ? "MANDATORY RENDER STYLE: a polished 2D anime illustration with cel shading and clean linework. Keep the referenced character's anime visual identity. Do not render this as photography or live action."
     : "MANDATORY RENDER STYLE: photorealistic cinematic photography. Keep the referenced character's realistic visual identity.";
-  const payload: Record<string, string> = {
+  const payload: Record<string, string | number | null> = {
     key,
-    model_id: process.env.MODELSLAB_HEADSHOT_MODEL || "flux_headshot",
     prompt: `${styleLock}\n\n${prompt}`,
     negative_prompt: style === "anime" ? HEADSHOT_NEGATIVE_ANIME : HEADSHOT_NEGATIVE_REALISTIC,
     [imageField]: faceImage,
-    width: "1024",
-    height: "1024",
-    num_inference_steps: process.env.MODELSLAB_HEADSHOT_STEPS || "21",
-    guidance_scale: process.env.MODELSLAB_HEADSHOT_GUIDANCE || "7.5",
+    width: 1024,
+    height: 1024,
+    num_inference_steps: Number(process.env.MODELSLAB_HEADSHOT_STEPS || 21),
+    guidance_scale: Number(process.env.MODELSLAB_HEADSHOT_GUIDANCE || 7.5),
     safety_checker: process.env.IMAGE_SAFETY_CHECKER || "yes",
+    seed: null,
+    webhook: null,
+    track_id: null,
     // Only relevant when the face image is base64 (not a URL).
     ...(isUrl ? {} : { base64: "yes" }),
   };
@@ -685,12 +690,15 @@ async function generateModelsLabHeadshot(faceImage: string, prompt: string, styl
       if (!looksLikeImage(img.base64)) throw new Error(`headshot returned non-image output: ${String(v).slice(0, 160)}`);
       return img;
     };
-    if (data.output?.[0]) return take(data.output[0]);
-    if (data.status === "processing" && data.fetch_result) {
+    if (data.output?.[0] || data.proxy_links?.[0]) return take(data.output?.[0] || data.proxy_links![0]);
+    const fetchUrl = data.id != null
+      ? `https://modelslab.com/api/v6/images/fetch/${encodeURIComponent(String(data.id))}`
+      : data.fetch_result;
+    if (data.status === "processing" && fetchUrl) {
       const jobId = data.id ?? "unknown";
       console.log(`[image] ModelsLab headshot job ${jobId} queued; polling for its result`);
-      data = await pollModelsLab(data.fetch_result, key);
-      if (data.output?.[0]) return take(data.output[0]);
+      data = await pollModelsLab(fetchUrl, key);
+      if (data.output?.[0] || data.proxy_links?.[0]) return take(data.output?.[0] || data.proxy_links![0]);
       const message = String(data.message || data.messege || data.status || "no result").trim();
       throw new Error(`modelslab headshot job ${jobId} did not complete: ${message}`);
     }
@@ -712,29 +720,34 @@ async function generateModelsLabHeadshot(faceImage: string, prompt: string, styl
 async function generateModelsLabChatPose(faceImage: string, prompt: string, style: ArtStyle): Promise<{ base64: string; mime: string }> {
   const key = process.env.MODELSLAB_API_KEY;
   if (!key) throw new Error("MODELSLAB_API_KEY is not set");
-  const url = process.env.MODELSLAB_HEADSHOT_URL || "https://modelslab.com/api/v8/images/flux-headshot";
+  const url = process.env.MODELSLAB_HEADSHOT_URL || "https://modelslab.com/api/v6/image_editing/flux_headshot";
   const imageField = process.env.MODELSLAB_HEADSHOT_IMAGE_FIELD || "face_image";
   const styleLock = style === "anime"
-    ? "MANDATORY RENDER STYLE: polished 2D anime illustration with the same linework, cel shading, colors, and visual identity as the supplied reference. Do not render photography or live action."
-    : "MANDATORY RENDER STYLE: photorealistic cinematic photography with the same visual identity as the supplied reference. Do not render anime, cartoon, or illustration.";
-  const payload: Record<string, string> = {
+    ? "REFERENCE LOCK: The supplied face_image is the definitive character sheet. Preserve the exact same character and the exact same anime treatment: facial proportions, eye shape and color, hair cut and color, body proportions, outfit design and palette, line quality, cel shading, and lighting language. Do not redesign the character or substitute a different anime style."
+    : "REFERENCE LOCK: The supplied face_image is the definitive character sheet. Preserve the exact same person and photographic treatment: facial proportions, eye color, hair cut and color, skin tone, body proportions, outfit design and palette, lens feel, and lighting language. Do not redesign the character or turn this into illustration, cartoon, or anime.";
+  const payload: Record<string, string | number | null> = {
     key,
-    model_id: process.env.MODELSLAB_HEADSHOT_MODEL || "flux_headshot",
     prompt: `${styleLock}\n\n${prompt}`,
     negative_prompt: style === "anime" ? HEADSHOT_NEGATIVE_ANIME : HEADSHOT_NEGATIVE_REALISTIC,
     [imageField]: faceImage,
-    width: "768",
-    height: "1024",
-    num_inference_steps: process.env.MODELSLAB_HEADSHOT_STEPS || "21",
-    guidance_scale: process.env.MODELSLAB_HEADSHOT_GUIDANCE || "7.5",
+    width: 768,
+    height: 1024,
+    num_inference_steps: Number(process.env.MODELSLAB_HEADSHOT_STEPS || 21),
+    guidance_scale: Number(process.env.MODELSLAB_HEADSHOT_GUIDANCE || 7.5),
     safety_checker: process.env.IMAGE_SAFETY_CHECKER || "yes",
+    seed: null,
+    webhook: null,
+    track_id: null,
   };
 
   const res = await imageFetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
   if (!res.ok) throw new Error(`modelslab chat pose ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
 
   let data = (await res.json()) as MlResp;
-  if (data.status === "processing" && data.fetch_result) data = await pollModelsLab(data.fetch_result, key);
+  const fetchUrl = data.id != null
+    ? `https://modelslab.com/api/v6/images/fetch/${encodeURIComponent(String(data.id))}`
+    : data.fetch_result;
+  if (data.status === "processing" && fetchUrl) data = await pollModelsLab(fetchUrl, key);
   const output = data.output?.[0] || data.proxy_links?.[0];
   if (!output) throw new Error(`modelslab chat pose: ${String(data.message || data.messege || data.status || "no image in response").trim()}`);
   const image = await outputToImage(output);
@@ -749,15 +762,26 @@ async function removeModelsLabBackground(imageBase64: string): Promise<{ base64:
   const payload = {
     key,
     image: imageBase64,
+    base64: "no",
     alpha_matting: true,
     post_process_mask: true,
     only_mask: false,
+    inverse_mask: false,
+    alpha_matting_foreground_threshold: 240,
+    alpha_matting_background_threshold: 20,
+    alpha_matting_erode_size: 5,
+    seed: null,
+    webhook: null,
+    track_id: null,
   };
   const res = await imageFetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
   if (!res.ok) throw new Error(`modelslab remove background ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
 
   let data = (await res.json()) as MlResp;
-  if (data.status === "processing" && data.fetch_result) data = await pollModelsLab(data.fetch_result, key);
+  const fetchUrl = data.id != null
+    ? `https://modelslab.com/api/v6/images/fetch/${encodeURIComponent(String(data.id))}`
+    : data.fetch_result;
+  if (data.status === "processing" && fetchUrl) data = await pollModelsLab(fetchUrl, key);
   const output = data.output?.[0] || data.proxy_links?.[0];
   if (!output) throw new Error(`modelslab remove background: ${String(data.message || data.messege || data.status || "no image in response").trim()}`);
   const result = await outputToImage(output);
@@ -861,8 +885,8 @@ export function buildChatPosePrompt(def: { name?: string; gender?: string; look?
   const { lead, tail } = sceneStyle(normalizeStyle(def.style));
   return (
     `${lead} of the exact same ${who}${look}.${outfit} ` +
-    "Three-quarter to full-body standing pose, facing slightly left with relaxed natural hands, centered in a tall frame. " +
-    "Plain studio backdrop only, no scenery, props, text, logo, frame, or collage. Leave clean silhouette edges for background removal. " +
+    "Create a tall companion cutout for a chat stage: show the complete head, torso, arms, and at least to the knees when the reference permits. Keep the original outfit, hairstyle, and styling rather than inventing a new look. " +
+    "Use a three-quarter standing pose facing slightly left with relaxed, natural hands. Plain flat studio backdrop only; no scenery, furniture, props, text, logo, frame, or collage. Leave a clean, unoccluded silhouette edge for background removal. " +
     `${tail}`
   );
 }
