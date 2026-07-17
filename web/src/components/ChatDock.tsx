@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { CharacterAvatar } from "./CharacterAvatar";
 import { splitChatBubbles, splitChatMessage } from "./ChatMessageText";
 import { getChatWelcome } from "@/lib/chatWelcome";
@@ -8,25 +8,57 @@ import { pickExpression } from "@/lib/expression";
 import { pickStatusLine } from "@/lib/status";
 import { speakReply, stopSpeaking } from "@/lib/speech";
 
-type Msg = { role: "user" | "character" | "system"; content: string; id?: string; hasImage?: boolean };
+type Msg = { role: "user" | "character" | "system"; content: string; id?: string; hasImage?: boolean; sequence?: boolean };
 const REPLY_TYPING_DELAY_MS = 2_000;
+const NEXT_MESSAGE_QUIET_MS = 2_000;
+const NEXT_MESSAGE_TYPING_MS = 3_000;
 
 function waitForReplyBeat() {
   return new Promise<void>((resolve) => window.setTimeout(resolve, REPLY_TYPING_DELAY_MS));
 }
 
-function CharacterMessage({ content }: { content: string }) {
+function CharacterMessage({ content, sequence = false }: { content: string; sequence?: boolean }) {
+  const bubbles = splitChatBubbles(content);
+  const [visibleBubbles, setVisibleBubbles] = useState(sequence ? 1 : bubbles.length);
+  const [showTyping, setShowTyping] = useState(false);
+
+  useEffect(() => {
+    if (!sequence || bubbles.length < 2) {
+      setVisibleBubbles(bubbles.length);
+      setShowTyping(false);
+      return;
+    }
+
+    setVisibleBubbles(1);
+    setShowTyping(false);
+    const timers: number[] = [];
+    for (let index = 1; index < bubbles.length; index += 1) {
+      const offset = (index - 1) * (NEXT_MESSAGE_QUIET_MS + NEXT_MESSAGE_TYPING_MS);
+      timers.push(window.setTimeout(() => setShowTyping(true), offset + NEXT_MESSAGE_QUIET_MS));
+      timers.push(window.setTimeout(() => {
+        setVisibleBubbles(index + 1);
+        setShowTyping(false);
+      }, offset + NEXT_MESSAGE_QUIET_MS + NEXT_MESSAGE_TYPING_MS));
+    }
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
+  }, [content, sequence, bubbles.length]);
+
   return (
     <div style={D.characterMessage}>
-      {splitChatBubbles(content).flatMap((bubble, bubbleIndex) =>
-        splitChatMessage(bubble).map((part, partIndex) =>
-          part.kind === "narrative" ? (
-            <p key={`${bubbleIndex}-${partIndex}-${part.content}`} style={D.narrative}>{part.content}</p>
-          ) : (
-            <div key={`${bubbleIndex}-${partIndex}-${part.content}`} style={{ ...D.bubble, ...D.bot, ...D.characterSpeech }}>{part.content}</div>
-          ),
-        ),
-      )}
+      {bubbles.slice(0, visibleBubbles).map((bubble, bubbleIndex) => (
+        <Fragment key={`${bubbleIndex}-${bubble}`}>
+          {splitChatMessage(bubble).map((part, partIndex) =>
+            part.kind === "narrative" ? (
+              <p key={`${bubbleIndex}-${partIndex}-${part.content}`} style={D.narrative}>{part.content}</p>
+            ) : (
+              <div key={`${bubbleIndex}-${partIndex}-${part.content}`} style={{ ...D.bubble, ...D.bot, ...D.characterSpeech }}>{part.content}</div>
+            ),
+          )}
+          {showTyping && bubbleIndex === visibleBubbles - 1 && visibleBubbles < bubbles.length ? (
+            <div className="rv-typing-indicator" style={{ ...D.bubble, ...D.bot, ...D.typing }}>typing...</div>
+          ) : null}
+        </Fragment>
+      ))}
     </div>
   );
 }
@@ -100,7 +132,7 @@ export function ChatDock({
         if (response.ok && data.ok && data.message) {
           setMessages((current) => current.some((message) => message.id === data.message.id)
             ? current
-            : [...current, { role: "character", content: data.message.content, id: data.message.id }]);
+            : [...current, { role: "character", content: data.message.content, id: data.message.id, sequence: true }]);
         }
       } catch {
         // A temporary network error should not interrupt the reader's chat.
@@ -179,7 +211,7 @@ export function ChatDock({
       const data = await res.json();
       if (res.ok && data.reply) {
         setThreadId(data.threadId);
-        setMessages((m) => [...m, { role: "character", content: data.reply, id: data.messageId }]);
+        setMessages((m) => [...m, { role: "character", content: data.reply, id: data.messageId, sequence: true }]);
         void shareSelfie(data.messageId);
       } else if (res.status === 401) {
         setNeedAuth(true);
@@ -284,7 +316,7 @@ export function ChatDock({
           ) : (
             <div key={i} style={{ ...D.row, flexDirection: "column", alignItems: m.role === "user" ? "flex-end" : "flex-start" }}>
               {m.role === "character" ? (
-                <CharacterMessage content={m.content} />
+                <CharacterMessage content={m.content} sequence={m.sequence} />
               ) : (
                 <div style={{ ...D.bubble, ...D.user }}>{m.content}</div>
               )}

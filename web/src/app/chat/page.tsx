@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { CharacterAvatar } from "@/components/CharacterAvatar";
 import { splitChatBubbles, splitChatMessage } from "@/components/ChatMessageText";
 import { EntryGate } from "@/components/EntryGate";
@@ -10,25 +10,57 @@ import { pickExpression } from "@/lib/expression";
 import { pickStatusLine } from "@/lib/status";
 import { speakReply, stopSpeaking } from "@/lib/speech";
 
-type Msg = { role: "user" | "character" | "system"; content: string; id?: string; hasImage?: boolean };
+type Msg = { role: "user" | "character" | "system"; content: string; id?: string; hasImage?: boolean; sequence?: boolean };
 const REPLY_TYPING_DELAY_MS = 2_000;
+const NEXT_MESSAGE_QUIET_MS = 2_000;
+const NEXT_MESSAGE_TYPING_MS = 3_000;
 
 function waitForReplyBeat() {
   return new Promise<void>((resolve) => window.setTimeout(resolve, REPLY_TYPING_DELAY_MS));
 }
 
-function CharacterMessage({ content }: { content: string }) {
+function CharacterMessage({ content, sequence = false }: { content: string; sequence?: boolean }) {
+  const bubbles = splitChatBubbles(content);
+  const [visibleBubbles, setVisibleBubbles] = useState(sequence ? 1 : bubbles.length);
+  const [showTyping, setShowTyping] = useState(false);
+
+  useEffect(() => {
+    if (!sequence || bubbles.length < 2) {
+      setVisibleBubbles(bubbles.length);
+      setShowTyping(false);
+      return;
+    }
+
+    setVisibleBubbles(1);
+    setShowTyping(false);
+    const timers: number[] = [];
+    for (let index = 1; index < bubbles.length; index += 1) {
+      const offset = (index - 1) * (NEXT_MESSAGE_QUIET_MS + NEXT_MESSAGE_TYPING_MS);
+      timers.push(window.setTimeout(() => setShowTyping(true), offset + NEXT_MESSAGE_QUIET_MS));
+      timers.push(window.setTimeout(() => {
+        setVisibleBubbles(index + 1);
+        setShowTyping(false);
+      }, offset + NEXT_MESSAGE_QUIET_MS + NEXT_MESSAGE_TYPING_MS));
+    }
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
+  }, [content, sequence, bubbles.length]);
+
   return (
     <div style={S.characterMessage}>
-      {splitChatBubbles(content).flatMap((bubble, bubbleIndex) =>
-        splitChatMessage(bubble).map((part, partIndex) =>
-          part.kind === "narrative" ? (
-            <p key={`${bubbleIndex}-${partIndex}-${part.content}`} style={S.narrative}>{part.content}</p>
-          ) : (
-            <div key={`${bubbleIndex}-${partIndex}-${part.content}`} style={{ ...S.bubble, ...S.bot, ...S.characterSpeech }}>{part.content}</div>
-          ),
-        ),
-      )}
+      {bubbles.slice(0, visibleBubbles).map((bubble, bubbleIndex) => (
+        <Fragment key={`${bubbleIndex}-${bubble}`}>
+          {splitChatMessage(bubble).map((part, partIndex) =>
+            part.kind === "narrative" ? (
+              <p key={`${bubbleIndex}-${partIndex}-${part.content}`} style={S.narrative}>{part.content}</p>
+            ) : (
+              <div key={`${bubbleIndex}-${partIndex}-${part.content}`} style={{ ...S.bubble, ...S.bot, ...S.characterSpeech }}>{part.content}</div>
+            ),
+          )}
+          {showTyping && bubbleIndex === visibleBubbles - 1 && visibleBubbles < bubbles.length ? (
+            <div className="rv-typing-indicator" style={{ ...S.bubble, ...S.bot, ...S.typing }}>typing...</div>
+          ) : null}
+        </Fragment>
+      ))}
     </div>
   );
 }
@@ -177,7 +209,7 @@ export default function ChatPage() {
         if (response.ok && data.ok && data.message) {
           setMessages((current) => current.some((message) => message.id === data.message.id)
             ? current
-            : [...current, { role: "character", content: data.message.content, id: data.message.id }]);
+            : [...current, { role: "character", content: data.message.content, id: data.message.id, sequence: true }]);
         }
       } catch {
         // The next qualifying exchange remains unaffected if a follow-up call fails.
@@ -211,13 +243,6 @@ export default function ChatPage() {
       const rows: Msg[] = await fetch(`/api/messages?threadId=${c.id}`).then((r) => r.json());
       setMessages(Array.isArray(rows) ? rows : []); setThreadId(c.id); setResumedHistory(Array.isArray(rows) && rows.length > 0);
     } catch { setMessages([]); }
-  }
-
-  function setLast(content: string, role: Msg["role"] = "character") {
-    setMessages((m) => { const c = m.slice(); c[c.length - 1] = { ...c[c.length - 1], role, content }; return c; });
-  }
-  function setLastId(id: string) {
-    setMessages((m) => { const c = m.slice(); const last = c[c.length - 1]; if (last) c[c.length - 1] = { ...last, id }; return c; });
   }
 
   async function visualize(id: string) {
@@ -314,7 +339,6 @@ export default function ChatPage() {
       const dec = new TextDecoder();
       let buf = "";
       let acc = "";
-      let started = false;
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
@@ -328,11 +352,13 @@ export default function ChatPage() {
           try { ev = JSON.parse(line); } catch { continue; }
           if (ev.delta) {
             acc += ev.delta;
-            if (!started) { started = true; setMessages((m) => [...m, { role: "character", content: acc }]); }
-            else setLast(acc);
           } else if (ev.done) {
-            if (!started) setMessages((m) => [...m, { role: "character", content: ev.replace || "…", id: ev.messageId }]);
-            else { if (ev.replace) setLast(ev.replace); if (ev.messageId) setLastId(ev.messageId); }
+            setMessages((m) => [...m, {
+              role: "character",
+              content: ev.replace || acc || "…",
+              id: ev.messageId,
+              sequence: true,
+            }]);
             if (ev.messageId) void shareSelfie(ev.messageId);
             if (ev.threadId) setThreadId(ev.threadId);
             if (ev.balance) setCredits(ev.balance.total);
@@ -344,7 +370,7 @@ export default function ChatPage() {
               }
             });
           } else if (ev.error) {
-            if (started) setLast("[chat failed]", "system"); else setMessages((m) => [...m, { role: "system", content: "[chat failed]" }]);
+            setMessages((m) => [...m, { role: "system", content: "[chat failed]" }]);
           }
         }
       }
@@ -471,7 +497,7 @@ export default function ChatPage() {
           ) : (
             <div key={i} style={{ ...S.row, flexDirection: "column", alignItems: m.role === "user" ? "flex-end" : "flex-start" }}>
               {m.role === "character" ? (
-                <CharacterMessage content={m.content} />
+                <CharacterMessage content={m.content} sequence={m.sequence} />
               ) : (
                 <div style={{ ...S.bubble, ...S.user }}>{m.content}</div>
               )}
