@@ -54,6 +54,25 @@ const GLOBAL_CSS = `
 .rv-reveal { animation: rvUp .6s cubic-bezier(.2,.7,.2,1) both; }
 .rv-d1 { animation-delay: .06s; } .rv-d2 { animation-delay: .14s; } .rv-d3 { animation-delay: .22s; }
 
+/* Scrollbars are part of the interface on desktop: keep their contrast useful
+   while carrying the same dark-plum and warm-accent palette as the app. */
+:root { scrollbar-color: #8B5B74 #120D16; scrollbar-width: thin; }
+* { scrollbar-color: #8B5B74 #120D16; scrollbar-width: thin; }
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-track { background: #120D16; border: 1px solid #241A2B; }
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #B67481, #7A506B);
+  border: 3px solid #120D16;
+  border-radius: 999px;
+  min-height: 40px;
+}
+::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, #E9A06B, #D46A8B); }
+::-webkit-scrollbar-corner { background: #120D16; }
+@media (pointer: coarse) {
+  ::-webkit-scrollbar { width: 7px; height: 7px; }
+  ::-webkit-scrollbar-thumb { border-width: 2px; }
+}
+
 /* Cards: raised at rest (not just on hover), lift further + brighten border on hover. */
 .rv-card { box-shadow: 0 1px 0 rgba(255,255,255,.02) inset, 0 10px 24px rgba(0,0,0,.22); transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease; }
 .rv-card:hover { transform: translateY(-4px); border-color: #5a4560; box-shadow: 0 1px 0 rgba(255,255,255,.03) inset, 0 16px 40px rgba(0,0,0,.45); }
