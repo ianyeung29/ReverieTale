@@ -11,7 +11,7 @@ import { pickStatusLine } from "@/lib/status";
 import { speakReply, stopSpeaking } from "@/lib/speech";
 
 type Msg = { role: "user" | "character" | "system"; content: string; id?: string; hasImage?: boolean };
-type Char = { id: string; name: string; tagline: string; greeting?: string; tags?: string[] };
+type Char = { id: string; name: string; tagline: string; persona?: string; greeting?: string; tags?: string[] };
 type Convo = {
   id: string; characterId: string; name: string; lastActiveAt: string;
   storyId?: string | null; storyContext?: string | null; storyContextChapter?: number; storyTitle?: string | null; preview?: string | null;
@@ -324,7 +324,7 @@ export default function ChatPage() {
   const lastReply = [...messages].reverse().find((m) => m.role === "character");
   const expr = pickExpression(lastReply?.content);
   const status = pickStatusLine({ tags: active?.tags, expr, isReturning: resumedHistory && messages.length > 0 });
-  const welcome = active ? getChatWelcome({ name: active.name, tags: active.tags, greeting: active.greeting, backstory: active.tagline, storyTitle: storyMemory?.title, storyContext: storyMemory?.summary, storyChapter: storyMemory?.chapter, isReturning: resumedHistory && messages.length > 0, visit: welcomeVisit }) : null;
+  const welcome = active ? getChatWelcome({ name: active.name, tags: active.tags, greeting: active.greeting, persona: active.persona, backstory: active.tagline, storyTitle: storyMemory?.title, storyContext: storyMemory?.summary, storyChapter: storyMemory?.chapter, isReturning: resumedHistory && messages.length > 0, visit: welcomeVisit }) : null;
   const filteredConvos = convos.filter((convo) => {
     const needle = conversationQuery.trim().toLowerCase();
     return !needle || convo.name.toLowerCase().includes(needle) || convo.preview?.toLowerCase().includes(needle);

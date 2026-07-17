@@ -121,6 +121,7 @@ export async function prepareChat(params: Params): Promise<Prep> {
     const opener = getConversationStarter({
       name: def.name,
       greeting: def.greeting,
+      persona: def.persona,
       backstory: def.backstory,
       tags: Array.isArray(def.tags) ? def.tags as string[] : [],
       storyTitle: params.storyTitle,

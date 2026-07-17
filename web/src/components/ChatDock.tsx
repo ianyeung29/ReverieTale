@@ -21,6 +21,7 @@ export function ChatDock({
   characterName,
   characterTags,
   characterTagline,
+  characterPersona,
   storyId,
   storyTitle,
   chapter,
@@ -31,6 +32,7 @@ export function ChatDock({
   characterName: string;
   characterTags?: string[];
   characterTagline?: string;
+  characterPersona?: string;
   storyId?: string;
   storyTitle?: string;
   chapter?: number;
@@ -212,7 +214,7 @@ export function ChatDock({
   const lastReply = [...messages].reverse().find((m) => m.role === "character");
   const expr = pickExpression(lastReply?.content);
   const status = pickStatusLine({ tags: characterTags, expr, isReturning: resumedHistory && messages.length > 0 });
-  const welcome = getChatWelcome({ name: characterName, tags: characterTags, backstory: characterTagline, storyTitle, storyChapter: chapter, isReturning: resumedHistory && messages.length > 0, visit: welcomeVisit });
+  const welcome = getChatWelcome({ name: characterName, tags: characterTags, persona: characterPersona, backstory: characterTagline, storyTitle, storyChapter: chapter, isReturning: resumedHistory && messages.length > 0, visit: welcomeVisit });
 
   if (!open) {
     return (

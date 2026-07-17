@@ -104,6 +104,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     characterId: row.characterId,
     characterName: def.name ?? "Unknown",
     characterTagline: def.backstory ?? "",
+    characterPersona: def.persona ?? "",
     characterTags: (row.definition as { tags?: string[] } | null)?.tags ?? [],
     tone: (row.elements as Record<string, string> | null)?.tone ?? "",
     createdAt: row.createdAt,

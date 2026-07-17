@@ -12,7 +12,7 @@ import { pickStatusLine } from "@/lib/status";
 import { intensityColor, intensityScore } from "@/lib/intensity";
 
 type Story = {
-  id: string; title: string; content: string; characterId: string; characterName: string; characterTagline: string; characterTags: string[]; tone: string;
+  id: string; title: string; content: string; characterId: string; characterName: string; characterTagline: string; characterPersona: string; characterTags: string[]; tone: string;
   isOwner: boolean; isPublic: boolean; hasBackup: boolean; hasBackground: boolean;
   reads: number; rating: number; ratingCount: number; myRating: number | null; canRate: boolean;
   isSaved: boolean; canSave: boolean;
@@ -588,7 +588,7 @@ export default function StoryReadPage() {
         </div>
       ) : null}
 
-      <ChatDock characterId={story.characterId} characterName={story.characterName} characterTags={story.characterTags} characterTagline={story.characterTagline} storyId={story.id} storyTitle={story.title} chapter={idx + 1} open={chatOpen} onOpenChange={setChatOpen} />
+      <ChatDock characterId={story.characterId} characterName={story.characterName} characterTags={story.characterTags} characterTagline={story.characterTagline} characterPersona={story.characterPersona} storyId={story.id} storyTitle={story.title} chapter={idx + 1} open={chatOpen} onOpenChange={setChatOpen} />
     </main>
   );
 }
