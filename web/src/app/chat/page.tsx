@@ -354,12 +354,17 @@ export default function ChatPage() {
         </div>
       </aside>
       <main className="rv-chat-main" style={S.main}>
-        {active && !chatPoseUnavailable ? (
+        {active ? (
           <div className="rv-chat-stage-art" aria-hidden>
             <img
-              src={`/api/characters/${active.id}/chat-pose`}
+              src={chatPoseUnavailable
+                ? `/api/characters/${active.id}/image`
+                : `/api/characters/${active.id}/chat-pose`}
               alt=""
-              onError={() => setChatPoseUnavailable(true)}
+              onError={(event) => {
+                if (!chatPoseUnavailable) setChatPoseUnavailable(true);
+                else event.currentTarget.style.display = "none";
+              }}
             />
           </div>
         ) : null}

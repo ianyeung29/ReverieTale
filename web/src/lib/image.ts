@@ -599,20 +599,28 @@ const KONTEXT_NEGATIVE =
 async function generateModelsLabKontextScene(
   initImageUrl: string,
   prompt: string,
+  composition: "scene" | "pose" = "scene",
 ): Promise<{ base64: string; mime: string }> {
   const key = process.env.MODELSLAB_API_KEY;
   if (!key) throw new Error("MODELSLAB_API_KEY is not set");
   const url = process.env.MODELSLAB_KONTEXT_URL || "https://modelslab.com/api/v6/images/img2img";
+  const isPose = composition === "pose";
+  const compositionInstruction = isPose
+    ? "Create a tall, full- or upper-body companion cutout. Preserve the supplied portrait's exact face, hairstyle, outfit, proportions, skin tone, artwork or photo rendering, and lighting treatment. Do not invent a different character or a different visual style. Keep a simple plain studio backdrop and a clean silhouette for background removal."
+    : "Compose a cinematic 16:9 story moment with a clear environment and action drawn from the chapter. Keep the character in the scene, but do not create a portrait, character sheet, collage, or isolated full-body pose.";
+  const negative = isPose
+    ? "different character, different face, different hairstyle, different outfit, different art style, scenery, furniture, props, text, watermark, logo, collage, cropped head, cropped hands, bad anatomy, low quality, blurry"
+    : KONTEXT_NEGATIVE;
   const payload: Record<string, string | number | null> = {
     key,
     model_id: process.env.MODELSLAB_KONTEXT_MODEL || "flux-kontext-dev",
     init_image: initImageUrl,
-    prompt: `Use the supplied portrait as the exact visual reference. Preserve the same character, facial features, hair, outfit, and illustration rendering style. Compose a cinematic 16:9 story moment with a clear environment and action drawn from the chapter. Keep the character in the scene, but do not create a portrait, character sheet, collage, or isolated full-body pose. ${prompt}`,
-    negative_prompt: KONTEXT_NEGATIVE,
-    strength: Number(process.env.MODELSLAB_KONTEXT_STRENGTH || 0.45),
+    prompt: `Use the supplied portrait as the exact visual reference. ${compositionInstruction} ${prompt}`,
+    negative_prompt: negative,
+    strength: Number(isPose ? (process.env.MODELSLAB_KONTEXT_POSE_STRENGTH || 0.28) : (process.env.MODELSLAB_KONTEXT_STRENGTH || 0.45)),
     guidance: Number(process.env.MODELSLAB_KONTEXT_GUIDANCE || 2.5),
-    width: 1024,
-    height: 576,
+    width: isPose ? 768 : 1024,
+    height: isPose ? 1024 : 576,
     samples: 1,
     num_inference_steps: Number(process.env.MODELSLAB_KONTEXT_STEPS || 28),
     safety_checker: process.env.IMAGE_SAFETY_CHECKER || "yes",
@@ -638,14 +646,14 @@ async function generateModelsLabKontextScene(
   if (!res.ok) throw new Error(`modelslab kontext ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
 
   let data = (await res.json()) as MlResp;
-  if (data.output?.[0]) return take(data.output[0]);
+  if (data.output?.[0] || data.proxy_links?.[0]) return take(data.output?.[0] || data.proxy_links![0]);
   const fetchUrl = data.id != null
     ? `https://modelslab.com/api/v6/images/fetch/${encodeURIComponent(String(data.id))}`
     : data.fetch_result;
   if (data.status === "processing" && fetchUrl) {
     console.log(`[image] ModelsLab Kontext job ${data.id ?? "unknown"} queued; polling for its result`);
     data = await pollModelsLab(fetchUrl, key, deadline);
-    if (data.output?.[0]) return take(data.output[0]);
+    if (data.output?.[0] || data.proxy_links?.[0]) return take(data.output?.[0] || data.proxy_links![0]);
   }
   throw new Error(`modelslab kontext: ${String(data.message || data.messege || data.status || "no image in response").trim()}`);
 }
@@ -901,7 +909,11 @@ export async function generateChatPose(
   if (!portraitUrl) {
     throw new Error("Transparent chat poses require a public character portrait URL. Set APP_URL or PUBLIC_IMAGE_BASE to the deployed site URL.");
   }
-  const generated = await generateModelsLabChatPose(portraitUrl, buildChatPosePrompt(def), normalizeStyle(def.style));
+  // Use the same Kontext image-to-image model as story scenes. Unlike a
+  // headshot endpoint it conditions on the complete source composition, which
+  // gives the pose a much better chance of retaining the portrait's visual
+  // identity and art treatment before the background-removal pass.
+  const generated = await generateModelsLabKontextScene(portraitUrl, buildChatPosePrompt(def), "pose");
   return removeModelsLabBackground(generated.base64);
 }
 
