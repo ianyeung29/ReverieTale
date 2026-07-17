@@ -5,12 +5,11 @@ import { characters, chapterScenes, companionPosts, stories } from "@/db/schema"
 import { isAdmin } from "@/lib/admin";
 import {
   buildChapterScenePrompt,
-  buildChatPosePrompt,
   buildCharacterScenePrompt,
   buildScenePrompt,
   characterImageUrl,
   generateChapterScene,
-  generateChatPose,
+  cutOutPortraitForChat,
   generateCharacterScene,
   generateImage,
 } from "@/lib/image";
@@ -119,11 +118,9 @@ export async function POST(req: Request) {
       if (!row) return NextResponse.json({ error: "companion not found" }, { status: 404 });
       if (!row.portraitKey) return NextResponse.json({ error: "Generate the companion portrait first" }, { status: 422 });
 
-      const definition = asDefinition(row.definition);
-      const prompt = buildChatPosePrompt(definition);
-      if (screenImagePrompt(prompt).blocked) return NextResponse.json({ error: "blocked", reason: "safety" }, { status: 422 });
-
-      const image = await generateChatPose(definition, characterImageUrl(row.id));
+      const portrait = await readImageBase64(row.portraitKey);
+      if (!portrait) return NextResponse.json({ error: "Could not read the companion portrait from R2" }, { status: 500 });
+      const image = await cutOutPortraitForChat(portrait);
       const imageKey = await storeImage({ scope: "characters", ownerId: `${row.id}/chat-pose`, base64: image.base64, mime: image.mime });
       const saved = await db.update(characters)
         .set({ chatPoseImageKey: imageKey, chatPoseImageMime: image.mime })

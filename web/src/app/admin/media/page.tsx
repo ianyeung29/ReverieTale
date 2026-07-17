@@ -84,10 +84,10 @@ export default function AdminMediaPage() {
             {busy === "character_scene" ? "Generating companion scene..." : "Generate companion scene"}
           </button>
 
-          <h2 style={{ ...S.h2, marginTop: 12 }}>Chat stage pose</h2>
-          <p style={S.cardSub}>A separate full- or upper-body studio pose used beside desktop chat. It uses the portrait as its exact visual reference and is not used as a story scene.</p>
+          <h2 style={{ ...S.h2, marginTop: 12 }}>Chat stage portrait</h2>
+          <p style={S.cardSub}>Remove the existing portrait&apos;s background for use beside desktop chat. This preserves the companion&apos;s exact face, clothes, and artwork.</p>
           <button onClick={() => run("chat_pose")} disabled={!characterId || Boolean(busy)} style={{ ...S.primary, opacity: busy ? 0.55 : 1 }}>
-            {busy === "chat_pose" ? "Generating chat pose..." : "Generate chat pose"}
+            {busy === "chat_pose" ? "Removing background..." : "Create transparent chat portrait"}
           </button>
         </section>
 

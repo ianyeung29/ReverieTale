@@ -899,23 +899,17 @@ export function buildChatPosePrompt(def: { name?: string; gender?: string; look?
   );
 }
 
-export async function generateChatPose(
-  def: { name?: string; gender?: string; look?: string; outfit?: string; style?: string },
-  portraitUrl?: string | null,
-): Promise<{ base64: string; mime: string }> {
+export async function cutOutPortraitForChat(portraitBase64: string): Promise<{ base64: string; mime: string }> {
   if ((process.env.IMAGE_PROVIDER || "grok") !== "modelslab") {
-    throw new Error("Chat poses require IMAGE_PROVIDER=modelslab");
+    throw new Error("Portrait cutouts require IMAGE_PROVIDER=modelslab");
   }
-  if (!portraitUrl) {
-    throw new Error("Transparent chat poses require a public character portrait URL. Set APP_URL or PUBLIC_IMAGE_BASE to the deployed site URL.");
+  if (!portraitBase64) {
+    throw new Error("A portrait is required before its background can be removed");
   }
-  // Use the same Kontext image-to-image model as story scenes. Unlike a
-  // headshot endpoint it conditions on the complete source composition, which
-  // gives the pose a much better chance of retaining the portrait's visual
-  // identity and art treatment. Store this successful first pass immediately:
-  // background removal is an optional cosmetic enhancement, not a reason to
-  // lose an otherwise valid pose when the provider takes too long.
-  return generateModelsLabKontextScene(portraitUrl, buildChatPosePrompt(def), "pose");
+  // Preserve the exact canonical portrait. Background removal is the only
+  // transformation, so the chat-stage figure cannot drift in identity, outfit,
+  // or visual style the way a newly generated pose can.
+  return removeModelsLabBackground(portraitBase64);
 }
 
 export async function generateCharacterScene(
