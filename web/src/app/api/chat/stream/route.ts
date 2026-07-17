@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { chat, chatStream } from "@/lib/model";
-import { finalizeChat, prepareChat } from "@/lib/chat";
+import { compactChatReply, finalizeChat, prepareChat } from "@/lib/chat";
 import { screen } from "@/lib/moderation";
 import { ensureDailyDrip } from "@/lib/ledger";
 import { getCurrentUserId } from "@/lib/session";
@@ -55,7 +55,7 @@ export async function POST(req: Request) {
       let full = "";
       try {
         try {
-          for await (const delta of chatStream(prep.msgs, { temperature: 0.9, maxTokens: 600 })) {
+          for await (const delta of chatStream(prep.msgs, { temperature: 0.9, maxTokens: 350 })) {
             full += delta;
             controller.enqueue(encoder.encode(sse({ delta })));
           }
@@ -65,19 +65,17 @@ export async function POST(req: Request) {
           // a dead-end to the reader, retry once through that established path.
           console.error("[chat/stream] upstream stream failed", { threadId: prep.threadId, error: error instanceof Error ? error.message : error });
           if (!full) {
-            const fallback = await chat(prep.msgs, { temperature: 0.9, maxTokens: 600 });
+            const fallback = await chat(prep.msgs, { temperature: 0.9, maxTokens: 350 });
             full = fallback.text?.trim() || "...";
             controller.enqueue(encoder.encode(sse({ delta: full })));
           }
         }
 
-        let reply = full || "...";
-        let replaced = false;
+        let reply = compactChatReply(full || "...");
         // Output safety re-check on the completed text (streaming moderation is
         // best-effort; the exec-2 classifier would be streaming-aware).
         if (screen(reply).blocked) {
           reply = "I can't go there - let's talk about something else.";
-          replaced = true;
         }
 
         const { messageId, ...balance } = await finalizeChat({
@@ -90,7 +88,7 @@ export async function POST(req: Request) {
           charge: prep.charge,
         });
 
-        controller.enqueue(encoder.encode(sse({ done: true, threadId: prep.threadId, messageId, balance, replace: replaced ? reply : undefined })));
+        controller.enqueue(encoder.encode(sse({ done: true, threadId: prep.threadId, messageId, balance, replace: reply })));
       } catch (error) {
         console.error("[chat/stream] generation or persistence failed", { threadId: prep.threadId, error: error instanceof Error ? error.message : error });
         controller.enqueue(encoder.encode(sse({ error: "chat failed" })));

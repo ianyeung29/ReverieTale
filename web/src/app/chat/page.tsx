@@ -179,7 +179,7 @@ export default function ChatPage() {
         if (latest) {
           const rows: Msg[] = await fetch(`/api/messages?threadId=${latest.id}`).then((r) => r.json()).catch(() => []);
           if (Array.isArray(rows)) {
-            setMessages(rows); setThreadId(latest.id); setResumedHistory(rows.length > 0);
+            setMessages(rows); setThreadId(latest.id); setResumedHistory(rows.length > 0); setShowWelcome(rows.length === 0);
             setStoryMemory(memoryFromConvo(latest));
           }
         }
@@ -197,8 +197,8 @@ export default function ChatPage() {
   useEffect(() => {
     if (!threadId || busy) return;
     const readerMessages = messages.filter((message) => message.role === "user").length;
-    if (readerMessages < 5 || readerMessages % 5 !== 0 || messages.at(-1)?.role !== "character") return;
-    const key = `${threadId}:${readerMessages / 5}`;
+    if (readerMessages < 10 || readerMessages % 10 !== 0 || messages.at(-1)?.role !== "character") return;
+    const key = `${threadId}:${readerMessages / 10}`;
     if (followUpBuckets.current.has(key)) return;
 
     const timer = window.setTimeout(async () => {
@@ -231,7 +231,7 @@ export default function ChatPage() {
     const latest = convos.find((c) => c.characterId === id);
     if (latest) {
       const rows: Msg[] = await fetch(`/api/messages?threadId=${latest.id}`).then((r) => r.json()).catch(() => []);
-      setMessages(Array.isArray(rows) ? rows : []); setThreadId(latest.id); setStoryMemory(memoryFromConvo(latest)); setResumedHistory(Array.isArray(rows) && rows.length > 0);
+      setMessages(Array.isArray(rows) ? rows : []); setThreadId(latest.id); setStoryMemory(memoryFromConvo(latest)); setResumedHistory(Array.isArray(rows) && rows.length > 0); setShowWelcome(!(Array.isArray(rows) && rows.length > 0));
     } else {
       setMessages([]); setThreadId(undefined); setResumedHistory(false);
     }
@@ -241,7 +241,7 @@ export default function ChatPage() {
     setShowHistory(false); setCharId(c.characterId); setStoryId(null); setStoryMemory(memoryFromConvo(c)); setBroke(false); setWelcomeVisit((visit) => visit + 1); setShowWelcome(true);
     try {
       const rows: Msg[] = await fetch(`/api/messages?threadId=${c.id}`).then((r) => r.json());
-      setMessages(Array.isArray(rows) ? rows : []); setThreadId(c.id); setResumedHistory(Array.isArray(rows) && rows.length > 0);
+      setMessages(Array.isArray(rows) ? rows : []); setThreadId(c.id); setResumedHistory(Array.isArray(rows) && rows.length > 0); setShowWelcome(false);
     } catch { setMessages([]); }
   }
 
@@ -526,15 +526,6 @@ export default function ChatPage() {
             </div>
           ),
         )}
-        {welcome && showWelcome && !(messages.length === 0 && !busy) ? (
-          <div style={{ ...S.row, flexDirection: "column", alignItems: "flex-start" }}>
-            <p style={S.welcomeLabel}>{active?.name} started the conversation - free</p>
-            <CharacterMessage content={welcome.text} />
-            <div style={S.welcomeReplies}>
-              {welcome.suggestions.map((suggestion) => <button key={suggestion} style={S.welcomeReply} onClick={() => setInput(suggestion)}>{suggestion}</button>)}
-            </div>
-          </div>
-        ) : null}
         {busy && (messages.length === 0 || messages[messages.length - 1].role !== "character") ? (
           <div style={{ ...S.row, justifyContent: "flex-start" }}><div className="rv-typing-indicator" style={{ ...S.bubble, ...S.bot, ...S.typing }}>typing...</div></div>
         ) : null}

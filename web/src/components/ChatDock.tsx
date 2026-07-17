@@ -120,8 +120,8 @@ export function ChatDock({
   useEffect(() => {
     if (!open || !threadId || !authChecked || needAuth || busy) return;
     const readerMessages = messages.filter((message) => message.role === "user").length;
-    if (readerMessages < 5 || readerMessages % 5 !== 0 || messages.at(-1)?.role !== "character") return;
-    const key = `${threadId}:${readerMessages / 5}`;
+    if (readerMessages < 10 || readerMessages % 10 !== 0 || messages.at(-1)?.role !== "character") return;
+    const key = `${threadId}:${readerMessages / 10}`;
     if (followUpBuckets.current.has(key)) return;
 
     const timer = window.setTimeout(async () => {
@@ -144,7 +144,7 @@ export function ChatDock({
   useEffect(() => {
     if (!open) return;
     setWelcomeVisit((visit) => visit + 1);
-    setShowWelcome(true);
+    if (messages.length > 0) setShowWelcome(false);
     fetch("/api/config")
       .then((r) => r.json())
       .then((d) => { if (d.pricing?.sceneImage) setSceneImagePrice(d.pricing.sceneImage); })
@@ -182,6 +182,7 @@ export function ChatDock({
         setThreadId((cur) => cur ?? latest.id);
         setMessages((cur) => (cur.length ? cur : rows));
         setResumedHistory(true);
+        setShowWelcome(false);
       } catch {
         /* resuming history is best-effort; a fresh conversation still works */
       }
@@ -348,7 +349,7 @@ export function ChatDock({
         {busy ? <div style={{ ...D.row, justifyContent: "flex-start" }}><div className="rv-typing-indicator" style={{ ...D.bubble, ...D.bot, ...D.typing }}>typing...</div></div> : null}
         {authChecked && needAuth ? <a href={`/chat?characterId=${characterId}${storyId ? `&fromStory=${storyId}` : ""}`} style={D.signin}>Sign in to talk to {characterName} →</a> : null}
         {broke ? <a href="/credits" style={D.signin}>Get more credits →</a> : null}
-        {authChecked && showWelcome ? (
+        {authChecked && showWelcome && messages.length === 0 ? (
           <div style={{ ...D.row, flexDirection: "column", alignItems: "flex-start" }}>
             <p style={D.welcomeLabel}>{characterName} started the conversation - free</p>
             <CharacterMessage content={welcome.text} />

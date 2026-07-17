@@ -8,9 +8,72 @@ import { rewardCreatorShare, spend, userBalance, type Balance, type SpendResult 
 import { getConversationStarter } from "./chatWelcome";
 
 const CHAT_PRICE = Number(process.env.CHAT_PRICE || 1);
+const MESSAGE_BREAK = /\n\s*---\s*\n/g;
+const ACTION_AT_START = /^\s*(\*?\s*\([^()\n]{1,320}\)\s*\*?)(?:\s*\n+)?/;
+const MAX_BUBBLE_CHARS = 280;
+const MAX_BUBBLE_SENTENCES = 2;
 // First N messages a reader sends to any one companion are free, across all of
 // their threads with that companion (a fresh story thread doesn't reset it).
 const FREE_CHAT_MESSAGES = Number(process.env.FREE_CHAT_MESSAGES || 5);
+
+function splitLongSentence(sentence: string): string[] {
+  if (sentence.length <= MAX_BUBBLE_CHARS) return [sentence];
+  const words = sentence.split(/\s+/).filter(Boolean);
+  const chunks: string[] = [];
+  let current = "";
+  for (const word of words) {
+    const next = current ? `${current} ${word}` : word;
+    if (current && next.length > MAX_BUBBLE_CHARS) {
+      chunks.push(current);
+      current = word;
+    } else {
+      current = next;
+    }
+  }
+  if (current) chunks.push(current);
+  return chunks;
+}
+
+function splitTextBeat(text: string): string[] {
+  const sentences = text.match(/[^.!?]+(?:[.!?]+(?=\s|$)|$)/g)?.map((sentence) => sentence.trim()).filter(Boolean) ?? [text.trim()];
+  const chunks: string[] = [];
+  let current = "";
+  let sentenceCount = 0;
+  for (const sentence of sentences.flatMap(splitLongSentence)) {
+    const next = current ? `${current} ${sentence}` : sentence;
+    if (current && (sentenceCount >= MAX_BUBBLE_SENTENCES || next.length > MAX_BUBBLE_CHARS)) {
+      chunks.push(current);
+      current = sentence;
+      sentenceCount = 1;
+    } else {
+      current = next;
+      sentenceCount += 1;
+    }
+  }
+  if (current) chunks.push(current);
+  return chunks;
+}
+
+/** Keeps a companion turn readable even when a model ignores the short-text prompt. */
+export function compactChatReply(reply: string): string {
+  const candidates = reply
+    .split(MESSAGE_BREAK)
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .flatMap((part) => {
+      if (part.length <= MAX_BUBBLE_CHARS) return [part];
+      const action = part.match(ACTION_AT_START);
+      const actionText = action?.[1]?.trim();
+      const speech = part.slice(action?.[0].length ?? 0).trim();
+      const speechChunks = splitTextBeat(speech || part);
+      return speechChunks.map((chunk, index) => index === 0 && actionText ? `${actionText}\n${chunk}` : chunk);
+    });
+
+  if (candidates.length <= 3) return candidates.join("\n---\n");
+  // Preserve the whole answer rather than dropping a thought. The generation
+  // prompt keeps this fallback rare; it only combines the overflow into beat 3.
+  return [candidates[0], candidates[1], candidates.slice(2).join(" ")].filter(Boolean).join("\n---\n");
+}
 
 async function freeMessagesUsed(userId: string, characterId: string): Promise<number> {
   const [row] = await db
@@ -164,10 +227,10 @@ export async function prepareChat(params: Params): Promise<Prep> {
     def.voice ? `Voice and style: ${def.voice}` : "",
     "You are an AI companion, not a real person. If asked directly, do not claim to be human or sentient.",
     "This is a 13+ experience. Keep every reply age-appropriate: no sexual content, sexual roleplay, explicit body descriptions, or adult relationship framing. You may be warm, funny, adventurous, supportive, and gently romantic in a school-safe way. If asked for mature content, set a calm boundary and steer toward a safe story direction.",
-    "Write as a natural text conversation, not a screenplay. When it adds emotion or physical presence, you may use one short parenthetical action on its own line, then speak naturally. Keep actions specific to your personality and the moment; do not use one in every reply. The interface treats parenthetical actions as narrative, not spoken dialogue. Do not wrap actions or dialogue in Markdown asterisks.",
+    "Write as a natural text conversation, not a screenplay. Keep each text message compact: one idea and normally one or two sentences (roughly 40-240 characters). Do not write a monologue, list several unrelated details, or repeat yourself. When it adds emotion or physical presence, you may use one short parenthetical action on its own line, then speak naturally. Keep actions specific to your personality and the moment; do not use one in every reply. The interface treats parenthetical actions as narrative, not spoken dialogue. Do not wrap actions or dialogue in Markdown asterisks.",
     "Use emojis the way a thoughtful teenager might text: optional, natural, and personality-specific. Usually use zero or one per reply, occasionally two when the moment is playful. Never force an emoji into a serious, tense, or vulnerable moment, and do not use emoji strings or repeat the same emoji every turn.",
     hasCasualInternetVoice
-      ? "This character has a casual, online-native voice. Use current, widely understood internet language occasionally and in context: phrases like 'low-key', 'not gonna lie', 'okay, wait', 'the vibe', 'that is wild', 'I am obsessed', 'plot twist', and 'kinda' can fit. For a very online or gamer/creator character, 'delulu', 'mid', 'ate', or 'iykyk' can appear rarely when the meaning is clear from context. Never stack slang, imitate a meme account, force references, or use slang that makes the reply less understandable. When a playful, quick reaction has several beats, you may split it into two or three short text messages by putting a line containing only --- between complete, replyable thoughts. Use this selectively, especially for a reaction, reveal, or question. Do not use it for serious, sensitive, or story-dense moments, and never use more than three text messages."
+      ? "This character has a casual, online-native voice. Use current, widely understood internet language occasionally and in context: phrases like 'low-key', 'not gonna lie', 'okay, wait', 'the vibe', 'that is wild', 'I am obsessed', 'plot twist', and 'kinda' can fit. For a very online or gamer/creator character, 'delulu', 'mid', 'ate', or 'iykyk' can appear rarely when the meaning is clear from context. Never stack slang, imitate a meme account, force references, or use slang that makes the reply less understandable. When a playful, quick reaction has several beats, split it into two or three short text messages by putting a line containing only --- between complete, replyable thoughts. Keep each message to one idea and no more than two short sentences. Use this selectively, especially for a reaction, reveal, or question. Do not use it for serious, sensitive, or story-dense moments, and never use more than three text messages."
       : "Keep language clear and natural for this character. Do not add trendy slang just because it is popular; their existing personality and voice should lead.",
     tRow?.sc ? `A story you and them lived through together, as you remember it up to where they've read (do not reference anything beyond this): ${tRow.sc}` : "",
     mem.summary ? `What you remember from talking together: ${mem.summary}` : "",
@@ -234,8 +297,8 @@ export async function handleChat(params: Params): Promise<ChatResult> {
   if (prep.status === "blocked") return { status: "blocked", reason: prep.reason };
   if (prep.status === "paywall") return { status: "paywall", balance: prep.balance };
 
-  const res = await modelChat(prep.msgs, { temperature: 0.9, maxTokens: 600 });
-  let reply = res.text || "...";
+  const res = await modelChat(prep.msgs, { temperature: 0.9, maxTokens: 350 });
+  let reply = compactChatReply(res.text || "...");
   if (screen(reply).blocked) reply = "I can't go there - let's talk about something else.";
 
   const { messageId, ...balance } = await finalizeChat({
