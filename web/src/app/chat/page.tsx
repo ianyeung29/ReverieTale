@@ -14,7 +14,7 @@ type Msg = { role: "user" | "character" | "system"; content: string; id?: string
 type Char = { id: string; name: string; tagline: string; greeting?: string; tags?: string[] };
 type Convo = {
   id: string; characterId: string; name: string; lastActiveAt: string;
-  storyId?: string | null; storyContext?: string | null; storyContextChapter?: number; storyTitle?: string | null;
+  storyId?: string | null; storyContext?: string | null; storyContextChapter?: number; storyTitle?: string | null; preview?: string | null;
 };
 
 const OPENERS = [
@@ -59,6 +59,7 @@ export default function ChatPage() {
   const [speaking, setSpeaking] = useState<string | null>(null);
   const [welcomeVisit, setWelcomeVisit] = useState(0);
   const [showWelcome, setShowWelcome] = useState(true);
+  const [conversationQuery, setConversationQuery] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
   const followUpBuckets = useRef(new Set<string>());
 
@@ -294,13 +295,13 @@ export default function ChatPage() {
             else { if (ev.replace) setLast(ev.replace); if (ev.messageId) setLastId(ev.messageId); }
             if (ev.threadId) setThreadId(ev.threadId);
             if (ev.balance) setCredits(ev.balance.total);
-            if (wasNew) {
-              void loadConvos().then((list) => {
+            void loadConvos().then((list) => {
+              if (wasNew) {
                 const convo = list.find((item) => item.id === ev.threadId);
                 const memory = memoryFromConvo(convo);
                 if (memory) setStoryMemory(memory);
-              });
-            }
+              }
+            });
           } else if (ev.error) {
             if (started) setLast("[chat failed]", "system"); else setMessages((m) => [...m, { role: "system", content: "[chat failed]" }]);
           }
@@ -322,10 +323,37 @@ export default function ChatPage() {
   const expr = pickExpression(lastReply?.content);
   const status = pickStatusLine({ tags: active?.tags, expr, isReturning: resumedHistory && messages.length > 0 });
   const welcome = active ? getChatWelcome({ name: active.name, tags: active.tags, greeting: active.greeting, backstory: active.tagline, storyTitle: storyMemory?.title, storyContext: storyMemory?.summary, storyChapter: storyMemory?.chapter, isReturning: resumedHistory && messages.length > 0, visit: welcomeVisit }) : null;
+  const filteredConvos = convos.filter((convo) => {
+    const needle = conversationQuery.trim().toLowerCase();
+    return !needle || convo.name.toLowerCase().includes(needle) || convo.preview?.toLowerCase().includes(needle);
+  });
 
   return (
-    <div style={S.wrap}>
-      <div style={S.head}>
+    <div className="rv-chat-shell" style={S.wrap}>
+      <aside className="rv-chat-rail" aria-label="Recent conversations">
+        <a href="/browse" style={S.railBrowse}>Discover companions</a>
+        <button style={S.railNew} onClick={newChat}>+ New conversation</button>
+        <label style={S.railSearchWrap}>
+          <span>Search chats</span>
+          <input value={conversationQuery} onChange={(event) => setConversationQuery(event.target.value)} placeholder="Name or message" style={S.railSearch} />
+        </label>
+        <div style={S.railList}>
+          <p style={S.railLabel}>Recent chats</p>
+          {filteredConvos.length === 0 ? <p style={S.railEmpty}>Your conversations will appear here.</p> : null}
+          {filteredConvos.map((convo) => (
+            <button key={convo.id} className="rv-chat-rail-item" style={{ ...S.railItem, ...(convo.id === threadId ? S.railItemActive : {}) }} onClick={() => openConvo(convo)}>
+              <CharacterAvatar characterId={convo.characterId} name={convo.name} size={42} />
+              <span style={S.railCopy}>
+                <strong style={S.railName}>{convo.name}</strong>
+                <span style={S.railPreview}>{convo.preview || "Open the conversation"}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+      </aside>
+      <main className="rv-chat-main" style={S.main}>
+        {active ? <div className="rv-chat-stage-art" aria-hidden><CharacterAvatar characterId={active.id} name={active.name} shape="rect" variant={expr} /></div> : null}
+      <div className="rv-chat-head" style={S.head}>
         <div style={S.headLeft}>
           <button style={S.iconBtn} onClick={newChat} title="New conversation">＋ New</button>
           <button style={S.iconBtn} onClick={() => { setShowHistory((v) => !v); loadConvos(); }} title="Past conversations">History ▾</button>
@@ -350,7 +378,7 @@ export default function ChatPage() {
       </div>
 
       {showHistory ? (
-        <div style={S.history}>
+        <div className="rv-chat-history" style={S.history}>
           {convos.length === 0 ? <div style={S.histEmpty}>No past conversations yet.</div> : null}
           {convos.map((c) => (
             <button key={c.id} style={{ ...S.histItem, ...(c.id === threadId ? S.histActive : {}) }} onClick={() => openConvo(c)}>
@@ -360,7 +388,7 @@ export default function ChatPage() {
         </div>
       ) : null}
 
-      <div style={S.feed}>
+      <div className="rv-chat-feed" style={S.feed}>
         {storyMemory && active ? <StoryMemoryCard memory={storyMemory} characterId={active.id} characterName={active.name} /> : null}
         {messages.length === 0 && !busy ? (
           <div style={S.empty}>
@@ -434,7 +462,7 @@ export default function ChatPage() {
         </div>
       ) : null}
 
-      <div style={S.barWrap}>
+      <div className="rv-chat-bar-wrap" style={S.barWrap}>
         {broke ? <a href="/credits" style={S.topup}>Out of credits — get more →</a> : null}
         <div style={S.bar}>
           <input style={S.input} value={input} onChange={(e) => setInput(e.target.value)}
@@ -443,12 +471,14 @@ export default function ChatPage() {
           <button style={{ ...S.send, opacity: busy || !input.trim() ? 0.5 : 1 }} onClick={send} disabled={busy || !input.trim()}>Send</button>
         </div>
       </div>
+      </main>
     </div>
   );
 }
 
 const S: Record<string, React.CSSProperties> = {
-  wrap: { maxWidth: 720, margin: "0 auto", height: "calc(100dvh - 52px)", display: "flex", flexDirection: "column" },
+  wrap: { width: "100%", height: "calc(100dvh - 52px)", display: "flex", flexDirection: "column" },
+  main: { position: "relative", minWidth: 0, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" },
   center: { minHeight: "calc(100dvh - 52px)", display: "grid", placeItems: "center", padding: 24, color: "#AC9CB0" },
   gate: { display: "flex", flexDirection: "column", gap: 12, width: "100%", maxWidth: 360, background: "#231A2B", border: "1px solid #3A2E44", borderRadius: 18, padding: "30px 26px", textAlign: "center" },
   gateMk: { fontSize: 12, letterSpacing: ".2em", textTransform: "uppercase", color: "#E9A06B", fontWeight: 700, margin: 0 },
@@ -467,6 +497,18 @@ const S: Record<string, React.CSSProperties> = {
   perMsg: { color: "#8A7A90", fontWeight: 500, fontSize: 12 },
   earned: { color: "#D46A8B", fontWeight: 650, fontSize: 13, fontVariantNumeric: "tabular-nums" },
   select: { background: "#231A2B", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 8, padding: "7px 9px" },
+  railBrowse: { color: "#E9A06B", fontSize: 13, fontWeight: 700, textDecoration: "none", padding: "6px 3px 0" },
+  railNew: { width: "100%", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", color: "#1A1220", border: 0, borderRadius: 10, padding: "11px 12px", fontWeight: 750, fontSize: 13, cursor: "pointer", textAlign: "left" },
+  railSearchWrap: { display: "flex", flexDirection: "column", gap: 6, color: "#8A7A90", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase" },
+  railSearch: { width: "100%", boxSizing: "border-box", background: "#1A121F", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 9, padding: "9px 11px", fontSize: 13, letterSpacing: 0, textTransform: "none" },
+  railList: { display: "flex", flexDirection: "column", gap: 5, overflowY: "auto", minHeight: 0 },
+  railLabel: { color: "#8A7A90", fontSize: 11, fontWeight: 750, letterSpacing: ".09em", textTransform: "uppercase", margin: "8px 2px 4px" },
+  railEmpty: { color: "#8A7A90", fontSize: 13, lineHeight: 1.5, margin: "8px 2px" },
+  railItem: { display: "flex", alignItems: "center", gap: 10, width: "100%", background: "transparent", color: "#F4EAF0", border: "1px solid transparent", borderRadius: 10, padding: 8, cursor: "pointer", textAlign: "left" },
+  railItemActive: { background: "#2A2033", borderColor: "#4A3A50" },
+  railCopy: { minWidth: 0, display: "flex", flexDirection: "column", gap: 2 },
+  railName: { fontSize: 14, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
+  railPreview: { color: "#9B8D9F", fontSize: 12, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
   history: { borderBottom: "1px solid #3A2E44", maxHeight: 220, overflowY: "auto", display: "flex", flexDirection: "column" },
   histEmpty: { color: "#8A7A90", fontSize: 14, padding: "14px 18px" },
   histItem: { display: "flex", justifyContent: "space-between", background: "transparent", color: "#F4EAF0", border: 0, borderBottom: "1px solid #241a2b", padding: "12px 18px", cursor: "pointer", fontSize: 14, textAlign: "left" },

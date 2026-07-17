@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { characters, stories, threads } from "@/db/schema";
+import { characters, messages, stories, threads } from "@/db/schema";
 import { getCurrentUserId } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -21,6 +21,13 @@ export async function GET() {
       storyContext: threads.storyContext,
       storyContextChapter: threads.storyContextChapter,
       storyTitle: stories.title,
+      preview: sql<string | null>`(
+        select ${messages.content}
+        from ${messages}
+        where ${messages.threadId} = ${threads.id}
+        order by ${messages.createdAt} desc
+        limit 1
+      )`,
     })
     .from(threads)
     .innerJoin(characters, eq(threads.characterId, characters.id))

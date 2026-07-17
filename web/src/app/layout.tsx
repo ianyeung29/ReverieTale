@@ -169,6 +169,24 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
    lift it clear of the bottom nav - an inline style would always win. */
 .rv-chatdock-panel { bottom: 20px; }
 
+/* Desktop chat: a return-to-conversation rail at left and a veiled portrait
+   stage at right. The message column stays deliberately narrow and opaque
+   enough to preserve comfortable reading. */
+.rv-chat-rail, .rv-chat-stage-art { display: none; }
+@media (min-width: 920px) {
+  .rv-chat-shell { display: grid !important; grid-template-columns: 286px minmax(0, 1fr); max-width: none !important; }
+  .rv-chat-rail { display: flex; min-height: 0; flex-direction: column; gap: 14px; padding: 18px 14px; background: #120D16; border-right: 1px solid #2A2033; }
+  .rv-chat-main { min-width: 0; }
+  .rv-chat-head > div:first-child > button + button, .rv-chat-history { display: none !important; }
+  .rv-chat-stage-art { display: block; position: absolute; right: 0; bottom: -42px; z-index: 0; width: min(42vw, 520px); opacity: .48; pointer-events: none; filter: saturate(.9) contrast(.94); }
+  .rv-chat-stage-art::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, #150F1A 0%, rgba(21,15,26,.78) 28%, rgba(21,15,26,.1) 72%, #150F1A 100%); }
+  .rv-chat-stage-art > div { border-radius: 0 !important; }
+  .rv-chat-head { position: relative; z-index: 1; background: rgba(21,15,26,.82); backdrop-filter: blur(12px); }
+  .rv-chat-feed { position: relative; z-index: 1; width: min(720px, 66%) !important; max-width: none !important; align-self: flex-start; margin-left: clamp(22px, 6vw, 104px); box-sizing: border-box; }
+  .rv-chat-bar-wrap { position: relative; z-index: 1; width: min(760px, 70%); margin-left: clamp(22px, 6vw, 104px); box-sizing: border-box; background: linear-gradient(90deg, rgba(21,15,26,.95), rgba(21,15,26,.72)); }
+  .rv-chat-rail-item:hover { background: #211827 !important; border-color: #4A3A50 !important; }
+}
+
 /* Story-moment tile grid: two columns on phones (the Emochi-style editorial
    look), more as the viewport grows. */
 .rv-tile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
