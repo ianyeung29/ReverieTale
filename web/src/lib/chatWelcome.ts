@@ -43,6 +43,23 @@ export function getConversationStarter(args: StarterArgs): ChatWelcome {
   };
 }
 
+/** A gentle, safe nudge after an established conversation goes quiet. */
+export function getConversationFollowUp(args: StarterArgs & { bucket: number }): string {
+  const tags = (args.tags ?? []).map((tag) => tag.toLowerCase());
+  if (args.storyContext?.trim() || args.storyTitle || args.storyChapter) {
+    return args.bucket % 2 === 0
+      ? "No rush. I keep replaying where we left things, and I am curious what you think happens next."
+      : "I have been thinking about that last scene. Whenever you are ready, I am here to keep it going with you.";
+  }
+  if (tags.some((tag) => /mystery|adventure|fantasy|sci-fi/.test(tag))) {
+    return "No rush, but I may have found a new clue while you were away. Want to hear it?";
+  }
+  if (tags.some((tag) => /music|creator|podcast|artist/.test(tag))) {
+    return "I saved the next idea for you. No pressure, but I would love your take when you are back.";
+  }
+  return "No rush at all. I was enjoying our conversation, so I will be right here when you feel like continuing.";
+}
+
 function tagPrompt(tags: string[]): string[] {
   if (tags.some((tag) => ["mystery", "thriller", "adventure"].includes(tag))) {
     return [

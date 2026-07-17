@@ -292,6 +292,20 @@ export const messages = pgTable(
   (t) => ({ byThread: index("messages_thread_idx").on(t.threadId, t.createdAt) }),
 );
 
+// Records a rate-limited, companion-initiated follow-up. Keeping this separate
+// from messages makes the "once per conversation interval" guarantee durable
+// across reloads and devices without adding product-only metadata to chat text.
+export const companionFollowUps = pgTable(
+  "companion_follow_ups",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    threadId: uuid("thread_id").notNull().references(() => threads.id),
+    messageBucket: integer("message_bucket").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({ threadBucketUniq: uniqueIndex("companion_follow_ups_thread_bucket_uniq").on(t.threadId, t.messageBucket) }),
+);
+
 // A reader's saved "shared moment" - a character reply (plus its visualized
 // image, if generated) captured into a private gallery. Independent of the
 // live thread so it survives even if the underlying conversation is deleted.
