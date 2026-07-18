@@ -149,7 +149,7 @@ export type Prep =
 export type ChatResult =
   | { status: "blocked"; reason?: string }
   | { status: "paywall"; balance: Balance }
-  | { status: "ok"; threadId: string; reply: string; messageId: string; balance: Balance; privatePhotoRequested: boolean; privatePhotoPrice?: number };
+  | { status: "ok"; threadId: string; reply: string; messageId: string; createdAt: Date; balance: Balance; privatePhotoRequested: boolean; privatePhotoPrice?: number };
 
 /** Everything up to (and including) charging + prompt assembly, before generation. */
 export async function prepareChat(params: Params): Promise<Prep> {
@@ -263,7 +263,7 @@ export async function finalizeChat(args: {
   charge: OkSpend;
   recalled?: number;
   privatePhotoRequested?: boolean;
-}): Promise<Balance & { messageId: string }> {
+}): Promise<Balance & { messageId: string; createdAt: Date }> {
   const { userId, char, threadId, userMessage, reply, usage, charge } = args;
 
   const [inserted] = await db
@@ -276,7 +276,7 @@ export async function finalizeChat(args: {
       imageLocked: Boolean(args.privatePhotoRequested),
       imagePrice: args.privatePhotoRequested ? privatePhotoPrice() : null,
     })
-    .returning({ id: messages.id });
+    .returning({ id: messages.id, createdAt: messages.createdAt });
 
   console.log("[generation_turn]", {
     threadId,
@@ -301,7 +301,7 @@ export async function finalizeChat(args: {
   await db.update(threads).set({ lastActiveAt: new Date() }).where(eq(threads.id, threadId));
 
   const balance = await userBalance(userId);
-  return { ...balance, messageId: inserted.id };
+  return { ...balance, messageId: inserted.id, createdAt: inserted.createdAt };
 }
 
 /** Non-streaming path (kept as the fallback). */
@@ -314,7 +314,7 @@ export async function handleChat(params: Params): Promise<ChatResult> {
   let reply = compactChatReply(res.text || "...");
   if (screen(reply).blocked) reply = "I can't go there - let's talk about something else.";
 
-  const { messageId, ...balance } = await finalizeChat({
+  const { messageId, createdAt, ...balance } = await finalizeChat({
     userId: params.userId,
     char: prep.char,
     threadId: prep.threadId,
@@ -330,6 +330,7 @@ export async function handleChat(params: Params): Promise<ChatResult> {
     threadId: prep.threadId,
     reply,
     messageId,
+    createdAt,
     balance,
     privatePhotoRequested: prep.privatePhotoRequested,
     ...(prep.privatePhotoRequested ? { privatePhotoPrice: privatePhotoPrice() } : {}),

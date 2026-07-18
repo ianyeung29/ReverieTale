@@ -11,7 +11,7 @@ import { pickExpression } from "@/lib/expression";
 import { pickStatusLine } from "@/lib/status";
 import { speakReply, stopSpeaking } from "@/lib/speech";
 
-type Msg = { role: "user" | "character" | "system"; content: string; id?: string; hasImage?: boolean; imageLocked?: boolean; imagePrice?: number | null; sequence?: boolean };
+type Msg = { role: "user" | "character" | "system"; content: string; id?: string; createdAt?: string; hasImage?: boolean; imageLocked?: boolean; imagePrice?: number | null; sequence?: boolean };
 const REPLY_TYPING_DELAY_MS = 2_000;
 const REPLY_QUIET_DELAY_MS = 2_500;
 const NEXT_MESSAGE_QUIET_MS = 2_000;
@@ -26,7 +26,14 @@ function waitBeforeTyping() {
   return new Promise<void>((resolve) => window.setTimeout(resolve, REPLY_QUIET_DELAY_MS));
 }
 
-function CharacterMessage({ content, sequence = false }: { content: string; sequence?: boolean }) {
+function formatMessageTime(value?: string) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
+function CharacterMessage({ content, createdAt, sequence = false }: { content: string; createdAt?: string; sequence?: boolean }) {
   const bubbles = splitChatBubbles(content);
   const [visibleBubbles, setVisibleBubbles] = useState(sequence ? 1 : bubbles.length);
   const [showTyping, setShowTyping] = useState(false);
@@ -68,6 +75,7 @@ function CharacterMessage({ content, sequence = false }: { content: string; sequ
           ) : null}
         </Fragment>
       ))}
+      {visibleBubbles === bubbles.length && formatMessageTime(createdAt) ? <time style={S.timestamp}>{formatMessageTime(createdAt)}</time> : null}
     </div>
   );
 }
@@ -115,7 +123,6 @@ export default function ChatPage() {
   const [resumedHistory, setResumedHistory] = useState(false);
   const [sharingSelfies, setSharingSelfies] = useState<Set<string>>(new Set());
   const [revealingPhotoId, setRevealingPhotoId] = useState<string | null>(null);
-  const [saved, setSaved] = useState<Set<string>>(new Set());
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [speaking, setSpeaking] = useState<string | null>(null);
   const [welcomeVisit, setWelcomeVisit] = useState(0);
@@ -223,16 +230,6 @@ export default function ChatPage() {
     } catch { setMessages([]); }
   }
 
-  async function saveMoment(id: string) {
-    if (saved.has(id)) return;
-    try {
-      const res = await fetch("/api/moments", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messageId: id }) });
-      if (res.ok) setSaved((s) => new Set(s).add(id));
-    } catch {
-      /* saving is best-effort */
-    }
-  }
-
   async function listen(id: string, content: string) {
     if (speaking === id) {
       stopSpeaking();
@@ -301,8 +298,8 @@ export default function ChatPage() {
     // visible transcript after the reader sends their first reply.
     setMessages((m) => [
       ...m,
-      ...(wasNew && m.length === 0 && welcome ? [{ role: "character" as const, content: welcome.text }] : []),
-      { role: "user" as const, content: text },
+      ...(wasNew && m.length === 0 && welcome ? [{ role: "character" as const, content: welcome.text, createdAt: new Date().toISOString() }] : []),
+      { role: "user" as const, content: text, createdAt: new Date().toISOString() },
     ]);
     setBusy(true);
     setShowInitialTyping(false);
@@ -343,7 +340,7 @@ export default function ChatPage() {
         for (const part of parts) {
           const line = part.replace(/^data:\s?/, "").trim();
           if (!line) continue;
-          let ev: { delta?: string; done?: boolean; threadId?: string; messageId?: string; balance?: { total: number }; replace?: string; error?: string; privatePhotoRequested?: boolean; privatePhotoPrice?: number };
+          let ev: { delta?: string; done?: boolean; threadId?: string; messageId?: string; createdAt?: string; balance?: { total: number }; replace?: string; error?: string; privatePhotoRequested?: boolean; privatePhotoPrice?: number };
           try { ev = JSON.parse(line); } catch { continue; }
           if (ev.delta) {
             acc += ev.delta;
@@ -352,6 +349,7 @@ export default function ChatPage() {
               role: "character",
               content: ev.replace || acc || "…",
               id: ev.messageId,
+              createdAt: ev.createdAt || new Date().toISOString(),
               imageLocked: Boolean(ev.privatePhotoRequested),
               imagePrice: ev.privatePhotoPrice,
               sequence: true,
@@ -478,7 +476,7 @@ export default function ChatPage() {
               <div style={{ ...S.row, justifyContent: "flex-start" }}>
                 <div>
                   <p style={S.welcomeLabel}>{active?.name} started the conversation - free</p>
-                  <CharacterMessage content={welcome.text} />
+                  <CharacterMessage content={welcome.text} createdAt={new Date().toISOString()} />
                 </div>
               </div>
             ) : (
@@ -497,9 +495,12 @@ export default function ChatPage() {
           ) : (
             <div key={i} style={{ ...S.row, flexDirection: "column", alignItems: m.role === "user" ? "flex-end" : "flex-start" }}>
               {m.role === "character" ? (
-                <CharacterMessage content={m.content} sequence={m.sequence} />
+                <CharacterMessage content={m.content} createdAt={m.createdAt} sequence={m.sequence} />
               ) : (
-                <div style={{ ...S.bubble, ...S.user }}>{m.content}</div>
+                <>
+                  <div style={{ ...S.bubble, ...S.user }}>{m.content}</div>
+                  {formatMessageTime(m.createdAt) ? <time style={{ ...S.timestamp, alignSelf: "flex-end" }}>{formatMessageTime(m.createdAt)}</time> : null}
+                </>
               )}
               {m.role === "character" && m.id ? (
                 <div style={S.actions}>
@@ -511,9 +512,6 @@ export default function ChatPage() {
                   ) : sharingSelfies.has(m.id) ? (
                     <span style={S.sharingSelfie}>sharing a selfie...</span>
                   ) : null}
-                  <button style={S.actionBtn} onClick={() => saveMoment(m.id!)} disabled={saved.has(m.id)}>
-                    {saved.has(m.id) ? "★ Saved" : "☆ Save"}
-                  </button>
                 </div>
               ) : null}
               {m.hasImage && m.id && m.imageLocked ? (
@@ -610,6 +608,7 @@ const S: Record<string, React.CSSProperties> = {
   characterMessage: { display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 7, maxWidth: "72%" },
   narrative: { maxWidth: "100%", margin: "0 2px", padding: "1px 0 1px 10px", borderLeft: "2px solid rgba(216,142,173,.62)", color: "#D88EAD", fontFamily: '"Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif', fontSize: 14, fontStyle: "italic", lineHeight: 1.48, letterSpacing: ".01em", whiteSpace: "pre-wrap" },
   characterSpeech: { maxWidth: "100%", fontFamily: 'ui-rounded, "Avenir Next Rounded", "Avenir Next", "Trebuchet MS", system-ui, sans-serif', fontSize: 15.5, lineHeight: 1.56, letterSpacing: ".005em" },
+  timestamp: { color: "#8A7A90", fontSize: 11, lineHeight: 1.2, margin: "-2px 2px 1px" },
   actions: { display: "flex", gap: 6, marginTop: 5 },
   actionBtn: { background: "transparent", border: "1px solid #3A2E44", color: "#AC9CB0", borderRadius: 8, padding: "3px 9px", fontSize: 12, cursor: "pointer" },
   sharingSelfie: { color: "#D88EAD", fontFamily: '"Palatino Linotype", Georgia, serif', fontSize: 12, fontStyle: "italic", padding: "4px 2px" },

@@ -48,6 +48,7 @@ export async function POST(req: Request) {
       threadId: result.threadId,
       reply: result.reply,
       messageId: result.messageId,
+      createdAt: result.createdAt,
       balance: result.balance,
       privatePhotoRequested: result.privatePhotoRequested,
       privatePhotoPrice: result.privatePhotoPrice,

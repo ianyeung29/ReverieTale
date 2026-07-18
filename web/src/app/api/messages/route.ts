@@ -23,6 +23,7 @@ export async function GET(req: Request) {
       id: messages.id,
       role: messages.role,
       content: messages.content,
+      createdAt: messages.createdAt,
       hasImage: sql<boolean>`(${messages.imageKey} is not null)`,
       imageLocked: messages.imageLocked,
       imagePrice: messages.imagePrice,

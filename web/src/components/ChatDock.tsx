@@ -9,7 +9,7 @@ import { pickExpression } from "@/lib/expression";
 import { pickStatusLine } from "@/lib/status";
 import { speakReply, stopSpeaking } from "@/lib/speech";
 
-type Msg = { role: "user" | "character" | "system"; content: string; id?: string; hasImage?: boolean; imageLocked?: boolean; imagePrice?: number | null; sequence?: boolean };
+type Msg = { role: "user" | "character" | "system"; content: string; id?: string; createdAt?: string; hasImage?: boolean; imageLocked?: boolean; imagePrice?: number | null; sequence?: boolean };
 const REPLY_TYPING_DELAY_MS = 2_000;
 const REPLY_QUIET_DELAY_MS = 2_500;
 const NEXT_MESSAGE_QUIET_MS = 2_000;
@@ -24,7 +24,14 @@ function waitBeforeTyping() {
   return new Promise<void>((resolve) => window.setTimeout(resolve, REPLY_QUIET_DELAY_MS));
 }
 
-function CharacterMessage({ content, sequence = false }: { content: string; sequence?: boolean }) {
+function formatMessageTime(value?: string) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
+function CharacterMessage({ content, createdAt, sequence = false }: { content: string; createdAt?: string; sequence?: boolean }) {
   const bubbles = splitChatBubbles(content);
   const [visibleBubbles, setVisibleBubbles] = useState(sequence ? 1 : bubbles.length);
   const [showTyping, setShowTyping] = useState(false);
@@ -66,6 +73,7 @@ function CharacterMessage({ content, sequence = false }: { content: string; sequ
           ) : null}
         </Fragment>
       ))}
+      {visibleBubbles === bubbles.length && formatMessageTime(createdAt) ? <time style={D.timestamp}>{formatMessageTime(createdAt)}</time> : null}
     </div>
   );
 }
@@ -113,7 +121,6 @@ export function ChatDock({
   const [resumedHistory, setResumedHistory] = useState(false);
   const [sharingSelfies, setSharingSelfies] = useState<Set<string>>(new Set());
   const [revealingPhotoId, setRevealingPhotoId] = useState<string | null>(null);
-  const [saved, setSaved] = useState<Set<string>>(new Set());
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [speaking, setSpeaking] = useState<string | null>(null);
   const [welcomeVisit, setWelcomeVisit] = useState(0);
@@ -176,8 +183,8 @@ export function ChatDock({
     // The server persists this same free opener when it creates the thread.
     setMessages((m) => [
       ...m,
-      ...(!threadId && m.length === 0 ? [{ role: "character" as const, content: welcome.text }] : []),
-      { role: "user" as const, content: text },
+      ...(!threadId && m.length === 0 ? [{ role: "character" as const, content: welcome.text, createdAt: new Date().toISOString() }] : []),
+      { role: "user" as const, content: text, createdAt: new Date().toISOString() },
     ]);
     setBusy(true); setBroke(false);
     setShowInitialTyping(false);
@@ -197,6 +204,7 @@ export function ChatDock({
           role: "character",
           content: data.reply,
           id: data.messageId,
+          createdAt: data.createdAt || new Date().toISOString(),
           imageLocked: Boolean(data.privatePhotoRequested),
           imagePrice: data.privatePhotoPrice,
           sequence: true,
@@ -216,16 +224,6 @@ export function ChatDock({
     } finally {
       setBusy(false);
       setShowInitialTyping(false);
-    }
-  }
-
-  async function saveMoment(id: string) {
-    if (saved.has(id)) return;
-    try {
-      const res = await fetch("/api/moments", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messageId: id }) });
-      if (res.ok) setSaved((s) => new Set(s).add(id));
-    } catch {
-      /* saving is best-effort */
     }
   }
 
@@ -318,9 +316,12 @@ export function ChatDock({
           ) : (
             <div key={i} style={{ ...D.row, flexDirection: "column", alignItems: m.role === "user" ? "flex-end" : "flex-start" }}>
               {m.role === "character" ? (
-                <CharacterMessage content={m.content} sequence={m.sequence} />
+                <CharacterMessage content={m.content} createdAt={m.createdAt} sequence={m.sequence} />
               ) : (
-                <div style={{ ...D.bubble, ...D.user }}>{m.content}</div>
+                <>
+                  <div style={{ ...D.bubble, ...D.user }}>{m.content}</div>
+                  {formatMessageTime(m.createdAt) ? <time style={{ ...D.timestamp, alignSelf: "flex-end" }}>{formatMessageTime(m.createdAt)}</time> : null}
+                </>
               )}
               {m.role === "character" && m.id ? (
                 <div style={D.actions}>
@@ -332,9 +333,6 @@ export function ChatDock({
                   ) : sharingSelfies.has(m.id) ? (
                     <span style={D.sharingSelfie}>sharing a selfie...</span>
                   ) : null}
-                  <button style={D.actionBtn} onClick={() => saveMoment(m.id!)} disabled={saved.has(m.id)}>
-                    {saved.has(m.id) ? "★ Saved" : "☆ Save"}
-                  </button>
                 </div>
               ) : null}
               {m.hasImage && m.id && m.imageLocked ? (
@@ -358,7 +356,7 @@ export function ChatDock({
         {authChecked && showWelcome && messages.length === 0 ? (
           <div style={{ ...D.row, flexDirection: "column", alignItems: "flex-start" }}>
             <p style={D.welcomeLabel}>{characterName} started the conversation - free</p>
-            <CharacterMessage content={welcome.text} />
+            <CharacterMessage content={welcome.text} createdAt={new Date().toISOString()} />
             {!needAuth ? (
               <div style={D.welcomeReplies}>
                 {welcome.suggestions.map((suggestion) => <button key={suggestion} style={D.welcomeReply} onClick={() => setInput(suggestion)}>{suggestion}</button>)}
@@ -404,6 +402,7 @@ const D: Record<string, React.CSSProperties> = {
   characterMessage: { display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6, maxWidth: "76%" },
   narrative: { maxWidth: "100%", margin: "0 1px", padding: "1px 0 1px 8px", borderLeft: "2px solid rgba(216,142,173,.62)", color: "#D88EAD", fontFamily: '"Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif', fontSize: 12.5, fontStyle: "italic", lineHeight: 1.42, whiteSpace: "pre-wrap" },
   characterSpeech: { maxWidth: "100%", fontFamily: 'ui-rounded, "Avenir Next Rounded", "Avenir Next", "Trebuchet MS", system-ui, sans-serif', fontSize: 14, lineHeight: 1.5, letterSpacing: ".005em" },
+  timestamp: { color: "#8A7A90", fontSize: 10.5, lineHeight: 1.2, margin: "-2px 2px 1px" },
   signin: { color: "#E9A06B", textAlign: "center", textDecoration: "none", fontSize: 14, marginTop: 10 },
   bar: { display: "flex", gap: 8, padding: 12, borderTop: "1px solid #3A2E44" },
   input: { flex: 1, background: "#1A121F", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 10, padding: "10px 12px", fontSize: 14 },

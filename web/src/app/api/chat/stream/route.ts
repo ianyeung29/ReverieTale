@@ -78,7 +78,7 @@ export async function POST(req: Request) {
           reply = "I can't go there - let's talk about something else.";
         }
 
-        const { messageId, ...balance } = await finalizeChat({
+        const { messageId, createdAt, ...balance } = await finalizeChat({
           userId,
           char: prep.char,
           threadId: prep.threadId,
@@ -93,6 +93,7 @@ export async function POST(req: Request) {
           done: true,
           threadId: prep.threadId,
           messageId,
+          createdAt,
           balance,
           replace: reply,
           privatePhotoRequested: prep.privatePhotoRequested,
