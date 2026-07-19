@@ -18,6 +18,10 @@ type Definition = {
 
 type MomentIdea = { scene: string; caption: string };
 
+export function companionPhotoRevealPrice(): number {
+  return Math.max(1, Number(process.env.COMPANION_PHOTO_REVEAL_PRICE || 5));
+}
+
 function normalizedTags(tags?: string[]): string[] {
   return (tags ?? []).map((tag) => tag.trim().toLowerCase()).filter(Boolean);
 }
@@ -76,6 +80,8 @@ export async function publishCompanionPost(characterId: string, automated = fals
     scene: idea.scene,
     imageKey,
     imageMime: image.mime,
+    isLocked: true,
+    revealPrice: companionPhotoRevealPrice(),
     automated,
   }).returning({ id: companionPosts.id, postedAt: companionPosts.postedAt });
   return post;

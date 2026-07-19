@@ -299,6 +299,50 @@ export const messages = pgTable(
   (t) => ({ byThread: index("messages_thread_idx").on(t.threadId, t.createdAt) }),
 );
 
+// Reusable, companion-scoped art for generic reader-requested moments and
+// companion-initiated return snapshots. The image object can be shared, but
+// messages still retain their owner-only access control. We never store a
+// reader's raw request here.
+export const requestedImagePool = pgTable(
+  "requested_image_pool",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    characterId: uuid("character_id").notNull().references(() => characters.id),
+    kind: text("kind").notNull().default("requested"), // requested | return_snapshot
+    requestKey: text("request_key").notNull(),
+    requestEmbedding: vector("request_embedding", { dimensions: EMBED_DIM }),
+    imageKey: text("image_key").notNull(),
+    imageMime: text("image_mime"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }).notNull().defaultNow(),
+    useCount: integer("use_count").notNull().default(1),
+  },
+  (t) => ({
+    characterRequest: uniqueIndex("requested_image_pool_character_request_uniq").on(t.characterId, t.requestKey),
+    byCharacterUsed: index("requested_image_pool_character_used_idx").on(t.characterId, t.lastUsedAt),
+    byCharacterKind: index("requested_image_pool_character_kind_idx").on(t.characterId, t.kind, t.lastUsedAt),
+    embIdx: index("requested_image_pool_embedding_idx").using("hnsw", t.requestEmbedding.op("vector_cosine_ops")),
+  }),
+);
+
+// A pooled return snapshot is reusable across readers, but a given reader must
+// never receive the same image twice. This table is deliberately separate from
+// message history so deleting a conversation cannot reset that guard.
+export const companionSnapshotDeliveries = pgTable(
+  "companion_snapshot_deliveries",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    poolImageId: uuid("pool_image_id").notNull().references(() => requestedImagePool.id),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    messageId: uuid("message_id").notNull().references(() => messages.id),
+    deliveredAt: timestamp("delivered_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    poolUserUniq: uniqueIndex("companion_snapshot_deliveries_pool_user_uniq").on(t.poolImageId, t.userId),
+    byUser: index("companion_snapshot_deliveries_user_idx").on(t.userId, t.deliveredAt),
+  }),
+);
+
 // Records a rate-limited, companion-initiated follow-up. Keeping this separate
 // from messages makes the "once per conversation interval" guarantee durable
 // across reloads and devices without adding product-only metadata to chat text.
@@ -345,10 +389,28 @@ export const companionPosts = pgTable(
     scene: text("scene").notNull(),
     imageKey: text("image_key").notNull(),
     imageMime: text("image_mime"),
+    // A companion moment can be teased publicly but revealed once per reader.
+    // The original asset is never sent to a locked reader's browser.
+    isLocked: boolean("is_locked").notNull().default(true),
+    revealPrice: integer("reveal_price").notNull().default(5),
     automated: boolean("automated").notNull().default(false),
     postedAt: timestamp("posted_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => ({ byCharacter: index("companion_posts_character_idx").on(t.characterId, t.postedAt) }),
+);
+
+export const companionPhotoReveals = pgTable(
+  "companion_photo_reveals",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    postId: uuid("post_id").notNull().references(() => companionPosts.id),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    revealedAt: timestamp("revealed_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    postUser: uniqueIndex("companion_photo_reveals_post_user_uniq").on(t.postId, t.userId),
+    byUser: index("companion_photo_reveals_user_idx").on(t.userId, t.revealedAt),
+  }),
 );
 
 export const memorySummaries = pgTable("memory_summaries", {

@@ -1054,12 +1054,14 @@ export async function generateCompanionSelfie(
 export function buildRequestedPrivatePhotoPrompt(
   def: { name?: string; gender?: string; look?: string; outfit?: string; style?: string },
   replyText: string,
+  requestedMoment?: string,
 ): string {
   const g = genderWord(def.gender);
   const who = def.name ? (g ? `${g} named ${def.name}` : def.name) : g || "person";
   const look = def.look ? `, ${def.look}` : "";
   const outfit = def.outfit ? ` Wearing ${def.outfit}.` : "";
-  const moment = replyText.replace(/\([^()\n]{1,320}\)/g, "").trim().replace(/\s+/g, " ").slice(0, 300);
+  const replyMoment = replyText.replace(/\([^()\n]{1,320}\)/g, "").trim().replace(/\s+/g, " ").slice(0, 300);
+  const moment = requestedMoment?.trim().replace(/\s+/g, " ").slice(0, 260) || replyMoment;
   const style = def.style ? normalizeStyle(def.style) : undefined;
   const framing = style === "anime"
     ? "vertical polished anime companion snapshot in the exact same illustrated treatment as the source portrait"
@@ -1081,9 +1083,10 @@ export async function generateRequestedPrivatePhoto(
   replyText: string,
   portraitBase64?: string | null,
   portraitUrl?: string | null,
+  requestedMoment?: string,
 ): Promise<{ base64: string; mime: string }> {
   return generateSceneWithIdentity(
-    buildRequestedPrivatePhotoPrompt(def, replyText),
+    buildRequestedPrivatePhotoPrompt(def, replyText, requestedMoment),
     portraitBase64,
     portraitUrl,
     def.style ? normalizeStyle(def.style) : undefined,

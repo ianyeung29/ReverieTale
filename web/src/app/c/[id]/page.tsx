@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { characters, companionPosts, stories, users } from "@/db/schema";
+import { characters, companionPhotoReveals, companionPosts, stories, users } from "@/db/schema";
 import { CharacterAvatar } from "@/components/CharacterAvatar";
 import { EpisodeShelf } from "@/components/EpisodeShelf";
 import { SceneStarter } from "@/components/SceneStarter";
@@ -14,6 +14,7 @@ import { ratingAggregates, userRating } from "@/lib/ratings";
 import { getCurrentUserId } from "@/lib/session";
 import { JsonLd } from "@/components/JsonLd";
 import { absoluteUrl } from "@/lib/site";
+import { CompanionPhotoGallery } from "@/components/CompanionPhotoGallery";
 
 export const dynamic = "force-dynamic";
 
@@ -63,7 +64,7 @@ type Profile = {
   rating: number; ratingCount: number; myRating: number | null; canRate: boolean;
   canModerate: boolean; isBlocked: boolean;
   hasScene: boolean;
-  posts: { id: string; caption: string; postedAt: Date }[];
+  posts: { id: string; caption: string; postedAt: Date; isLocked: boolean; revealPrice: number; isUnlocked: boolean }[];
   stories: { id: string; title: string; hook: string; chapters: number; readMin: number; reads: number; rating: number; ratingCount: number; hasCover: boolean }[];
 };
 
@@ -109,14 +110,22 @@ async function loadProfile(id: string): Promise<Profile | null> {
       /* scene_image column not migrated yet */
     }
 
-    let posts: { id: string; caption: string; postedAt: Date }[] = [];
+    let posts: { id: string; caption: string; postedAt: Date; isLocked: boolean; revealPrice: number; isUnlocked: boolean }[] = [];
     try {
-      posts = await db
-        .select({ id: companionPosts.id, caption: companionPosts.caption, postedAt: companionPosts.postedAt })
+      const postRows = await db
+        .select({ id: companionPosts.id, caption: companionPosts.caption, postedAt: companionPosts.postedAt, isLocked: companionPosts.isLocked, revealPrice: companionPosts.revealPrice })
         .from(companionPosts)
         .where(eq(companionPosts.characterId, id))
         .orderBy(desc(companionPosts.postedAt))
         .limit(8);
+      const unlocked = userId && postRows.length
+        ? await db
+            .select({ postId: companionPhotoReveals.postId })
+            .from(companionPhotoReveals)
+            .where(and(eq(companionPhotoReveals.userId, userId), inArray(companionPhotoReveals.postId, postRows.map((post) => post.id))))
+        : [];
+      const unlockedIds = new Set(unlocked.map((row) => row.postId));
+      posts = postRows.map((post) => ({ ...post, isLocked: post.isLocked, revealPrice: post.revealPrice ?? 5, isUnlocked: unlockedIds.has(post.id) }));
     } catch {
       // Keep profiles available while an older environment is awaiting migration 0021.
     }
@@ -262,24 +271,8 @@ export default async function CharacterProfile({ params }: { params: Promise<{ i
       {p.backstory ? (<><p style={S.section}>Backstory</p><p style={S.body}>{p.backstory}</p></>) : null}
 
       {p.posts.length ? <>
-        <p style={S.section}>Latest moments</p>
-        <section style={S.posts} aria-label={`Latest moments from ${p.name}`}>
-          {p.posts.map((post) => {
-            const reply = "I saw your new moment. What happened next?";
-            return (
-              <article key={post.id} style={S.post} className="rv-card">
-                <img src={`/api/companion-posts/${post.id}/image`} alt={`${p.name}'s latest moment`} style={S.postImage} loading="lazy" />
-                <div style={S.postBody}>
-                  <p style={S.postCaption}>{post.caption}</p>
-                  <div style={S.postFoot}>
-                    <span>{post.postedAt.toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
-                    <a href={`/chat?characterId=${p.id}&prefill=${encodeURIComponent(reply)}`} style={S.postReply}>Reply in chat -&gt;</a>
-                  </div>
-                </div>
-              </article>
-            );
-          })}
-        </section>
+        <p style={S.section}>Photo diary</p>
+        <CompanionPhotoGallery characterId={p.id} name={p.name} photos={p.posts.map((post) => ({ ...post, postedAt: post.postedAt.toISOString() }))} />
       </> : null}
 
       <p style={S.section}>Episodes with {p.name}{p.stories.length ? ` · ${p.stories.length}` : ""}</p>
