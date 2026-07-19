@@ -8,6 +8,7 @@ import { getChatWelcome } from "@/lib/chatWelcome";
 import { pickExpression } from "@/lib/expression";
 import { pickStatusLine } from "@/lib/status";
 import { speakReply, stopSpeaking } from "@/lib/speech";
+import { companionChatStyle } from "@/lib/companionChatStyle";
 
 type Msg = { role: "user" | "character" | "system"; content: string; id?: string; createdAt?: string; hasImage?: boolean; imageLocked?: boolean; imagePrice?: number | null; sequence?: boolean };
 const REPLY_TYPING_DELAY_MS = 2_000;
@@ -31,7 +32,7 @@ function formatMessageTime(value?: string) {
   return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
-function CharacterMessage({ content, createdAt, sequence = false }: { content: string; createdAt?: string; sequence?: boolean }) {
+function CharacterMessage({ content, createdAt, sequence = false, tags, persona }: { content: string; createdAt?: string; sequence?: boolean; tags?: string[]; persona?: string }) {
   const bubbles = splitChatBubbles(content);
   const [visibleBubbles, setVisibleBubbles] = useState(sequence ? 1 : bubbles.length);
   const [showTyping, setShowTyping] = useState(false);
@@ -65,7 +66,7 @@ function CharacterMessage({ content, createdAt, sequence = false }: { content: s
             part.kind === "narrative" ? (
               <p key={`${bubbleIndex}-${partIndex}-${part.content}`} style={D.narrative}>{part.content}</p>
             ) : (
-              <div key={`${bubbleIndex}-${partIndex}-${part.content}`} style={{ ...D.bubble, ...D.bot, ...D.characterSpeech }}>{part.content}</div>
+              <div key={`${bubbleIndex}-${partIndex}-${part.content}`} style={{ ...D.bubble, ...D.bot, ...D.characterSpeech, ...companionChatStyle(tags, persona) }}>{part.content}</div>
             ),
           )}
           {showTyping && bubbleIndex === visibleBubbles - 1 && visibleBubbles < bubbles.length ? (
@@ -316,7 +317,7 @@ export function ChatDock({
           ) : (
             <div key={i} style={{ ...D.row, flexDirection: "column", alignItems: m.role === "user" ? "flex-end" : "flex-start" }}>
               {m.role === "character" ? (
-                <CharacterMessage content={m.content} createdAt={m.createdAt} sequence={m.sequence} />
+                <CharacterMessage content={m.content} createdAt={m.createdAt} sequence={m.sequence} tags={characterTags} persona={characterPersona} />
               ) : (
                 <>
                   <div style={{ ...D.bubble, ...D.user }}>{m.content}</div>
@@ -356,7 +357,7 @@ export function ChatDock({
         {authChecked && showWelcome && messages.length === 0 ? (
           <div style={{ ...D.row, flexDirection: "column", alignItems: "flex-start" }}>
             <p style={D.welcomeLabel}>{characterName} started the conversation - free</p>
-            <CharacterMessage content={welcome.text} createdAt={new Date().toISOString()} />
+            <CharacterMessage content={welcome.text} createdAt={new Date().toISOString()} tags={characterTags} persona={characterPersona} />
             {!needAuth ? (
               <div style={D.welcomeReplies}>
                 {welcome.suggestions.map((suggestion) => <button key={suggestion} style={D.welcomeReply} onClick={() => setInput(suggestion)}>{suggestion}</button>)}

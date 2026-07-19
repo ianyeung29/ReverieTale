@@ -113,8 +113,8 @@ export function getConversationStarter(args: StarterArgs): ChatWelcome {
 export function getConversationFollowUp(args: StarterArgs & { bucket: number }): string {
   if (args.storyContext?.trim() || args.storyTitle || args.storyChapter) {
     return args.bucket % 2 === 0
-      ? "No rush. I keep replaying our last scene and wondering which detail you would follow first."
-      : "I saved our place. Whenever you are ready, I want to hear what you think happens next.";
+      ? "No rush. I keep replaying our last scene. Which detail has been following you around most?"
+      : "I saved our place for you. Whenever you are ready, what do you think should happen next?";
   }
   const hook = pickHook(args, args.bucket);
   return args.bucket % 2 === 0

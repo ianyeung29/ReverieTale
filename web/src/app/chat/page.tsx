@@ -10,6 +10,7 @@ import { getChatWelcome } from "@/lib/chatWelcome";
 import { pickExpression } from "@/lib/expression";
 import { pickStatusLine } from "@/lib/status";
 import { speakReply, stopSpeaking } from "@/lib/speech";
+import { companionChatStyle } from "@/lib/companionChatStyle";
 
 type Msg = { role: "user" | "character" | "system"; content: string; id?: string; createdAt?: string; hasImage?: boolean; imageLocked?: boolean; imagePrice?: number | null; sequence?: boolean };
 const REPLY_TYPING_DELAY_MS = 2_000;
@@ -33,7 +34,7 @@ function formatMessageTime(value?: string) {
   return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
-function CharacterMessage({ content, createdAt, sequence = false }: { content: string; createdAt?: string; sequence?: boolean }) {
+function CharacterMessage({ content, createdAt, sequence = false, tags, persona }: { content: string; createdAt?: string; sequence?: boolean; tags?: string[]; persona?: string }) {
   const bubbles = splitChatBubbles(content);
   const [visibleBubbles, setVisibleBubbles] = useState(sequence ? 1 : bubbles.length);
   const [showTyping, setShowTyping] = useState(false);
@@ -67,7 +68,7 @@ function CharacterMessage({ content, createdAt, sequence = false }: { content: s
             part.kind === "narrative" ? (
               <p key={`${bubbleIndex}-${partIndex}-${part.content}`} style={S.narrative}>{part.content}</p>
             ) : (
-              <div key={`${bubbleIndex}-${partIndex}-${part.content}`} style={{ ...S.bubble, ...S.bot, ...S.characterSpeech }}>{part.content}</div>
+              <div key={`${bubbleIndex}-${partIndex}-${part.content}`} style={{ ...S.bubble, ...S.bot, ...S.characterSpeech, ...companionChatStyle(tags, persona) }}>{part.content}</div>
             ),
           )}
           {showTyping && bubbleIndex === visibleBubbles - 1 && visibleBubbles < bubbles.length ? (
@@ -142,6 +143,25 @@ export default function ChatPage() {
     }
   }
 
+  async function checkForIdleFollowUp(id: string) {
+    try {
+      const response = await fetch(`/api/threads/${id}/follow-up`, { method: "POST" });
+      const data = await response.json().catch(() => ({}));
+      if (response.ok && data.ok && data.message) {
+        setMessages((current) => [...current, {
+          role: "character",
+          id: data.message.id,
+          content: data.message.content,
+          createdAt: data.message.createdAt,
+          hasImage: Boolean(data.message.hasImage),
+          sequence: true,
+        }]);
+      }
+    } catch {
+      // A return nudge is optional. The conversation remains usable without it.
+    }
+  }
+
   // Auth check on mount.
   useEffect(() => {
     fetch("/api/auth/me").then((r) => r.json()).then((d) => setAuthEmail(d.user?.email ?? null)).catch(() => setAuthEmail(null));
@@ -193,6 +213,7 @@ export default function ChatPage() {
           if (Array.isArray(rows)) {
             setMessages(rows); setThreadId(latest.id); setResumedHistory(rows.length > 0); setShowWelcome(rows.length === 0);
             setStoryMemory(memoryFromConvo(latest));
+            if (rows.length > 0) void checkForIdleFollowUp(latest.id);
           }
         }
       }
@@ -217,6 +238,7 @@ export default function ChatPage() {
     if (latest) {
       const rows: Msg[] = await fetch(`/api/messages?threadId=${latest.id}`).then((r) => r.json()).catch(() => []);
       setMessages(Array.isArray(rows) ? rows : []); setThreadId(latest.id); setStoryMemory(memoryFromConvo(latest)); setResumedHistory(Array.isArray(rows) && rows.length > 0); setShowWelcome(!(Array.isArray(rows) && rows.length > 0));
+      if (Array.isArray(rows) && rows.length > 0) void checkForIdleFollowUp(latest.id);
     } else {
       setMessages([]); setThreadId(undefined); setResumedHistory(false);
     }
@@ -227,6 +249,7 @@ export default function ChatPage() {
     try {
       const rows: Msg[] = await fetch(`/api/messages?threadId=${c.id}`).then((r) => r.json());
       setMessages(Array.isArray(rows) ? rows : []); setThreadId(c.id); setResumedHistory(Array.isArray(rows) && rows.length > 0); setShowWelcome(false);
+      if (Array.isArray(rows) && rows.length > 0) void checkForIdleFollowUp(c.id);
     } catch { setMessages([]); }
   }
 
@@ -476,7 +499,7 @@ export default function ChatPage() {
               <div style={{ ...S.row, justifyContent: "flex-start" }}>
                 <div>
                   <p style={S.welcomeLabel}>{active?.name} started the conversation - free</p>
-                  <CharacterMessage content={welcome.text} createdAt={new Date().toISOString()} />
+                  <CharacterMessage content={welcome.text} createdAt={new Date().toISOString()} tags={active?.tags} persona={active?.persona} />
                 </div>
               </div>
             ) : (
@@ -495,7 +518,7 @@ export default function ChatPage() {
           ) : (
             <div key={i} style={{ ...S.row, flexDirection: "column", alignItems: m.role === "user" ? "flex-end" : "flex-start" }}>
               {m.role === "character" ? (
-                <CharacterMessage content={m.content} createdAt={m.createdAt} sequence={m.sequence} />
+                <CharacterMessage content={m.content} createdAt={m.createdAt} sequence={m.sequence} tags={active?.tags} persona={active?.persona} />
               ) : (
                 <>
                   <div style={{ ...S.bubble, ...S.user }}>{m.content}</div>
