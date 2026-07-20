@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { flushAnalyticsEvents, trackAnalyticsEvent, trackAnalyticsEventOncePerSession, trackReturnVisit } from "@/lib/analytics";
 
 const CONSENT_KEY = "rv_analytics_consent";
 const PUBLIC_PATHS = ["/", "/browse", "/stories", "/story", "/guidelines", "/legal"];
@@ -10,20 +11,17 @@ function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.includes(pathname) || ["/c/", "/story/", "/tag/", "/creator/"].some((prefix) => pathname.startsWith(prefix));
 }
 
-declare global {
-  interface Window {
-    dataLayer?: unknown[];
-    gtag?: (...args: unknown[]) => void;
-  }
-}
-
 export function GoogleAnalytics({ measurementId }: { measurementId?: string }) {
   const pathname = usePathname();
   const [enabled, setEnabled] = useState(false);
   const [scriptReady, setScriptReady] = useState(false);
 
   useEffect(() => {
-    const sync = () => setEnabled(localStorage.getItem(CONSENT_KEY) === "granted");
+    const sync = () => {
+      const granted = localStorage.getItem(CONSENT_KEY) === "granted";
+      setEnabled(granted);
+      if (!granted) window.__rvAnalyticsReady = false;
+    };
     sync();
     window.addEventListener("rv-analytics-consent", sync);
     return () => window.removeEventListener("rv-analytics-consent", sync);
@@ -38,7 +36,11 @@ export function GoogleAnalytics({ measurementId }: { measurementId?: string }) {
     const selector = `script[data-rv-ga="${measurementId}"]`;
     let script = document.querySelector<HTMLScriptElement>(selector);
 
-    const markReady = () => setScriptReady(true);
+    const markReady = () => {
+      window.__rvAnalyticsReady = true;
+      setScriptReady(true);
+      flushAnalyticsEvents();
+    };
 
     if (script?.dataset.rvGaLoaded === "true") {
       markReady();
@@ -71,7 +73,21 @@ export function GoogleAnalytics({ measurementId }: { measurementId?: string }) {
   useEffect(() => {
     if (!measurementId || !enabled || !scriptReady || !isPublicPath(pathname)) return;
     window.gtag?.("event", "page_view", { page_path: pathname, page_location: `${window.location.origin}${pathname}` });
+    if (pathname === "/") {
+      trackAnalyticsEvent("landing_view");
+    }
+    trackReturnVisit();
   }, [enabled, measurementId, pathname, scriptReady]);
+
+  useEffect(() => {
+    if (!measurementId || !enabled || !scriptReady) return;
+    const query = new URLSearchParams(window.location.search);
+    if (query.get("signup") !== "complete") return;
+    trackAnalyticsEventOncePerSession("signup_completed");
+    query.delete("signup");
+    const suffix = query.toString();
+    window.history.replaceState({}, "", `${window.location.pathname}${suffix ? `?${suffix}` : ""}`);
+  }, [enabled, measurementId, scriptReady]);
 
   return null;
 }

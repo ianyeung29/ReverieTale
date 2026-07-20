@@ -5,6 +5,7 @@ import { CharacterAvatar } from "@/components/CharacterAvatar";
 import { EntryGate } from "@/components/EntryGate";
 import { MIN_AGE } from "@/lib/legal";
 import { buildSceneStarters } from "@/lib/scene-starters";
+import { trackAnalyticsEvent } from "@/lib/analytics";
 
 type Char = { id: string; name: string; tagline: string; persona: string; tags: string[] };
 
@@ -143,7 +144,11 @@ export default function StoryPage() {
         }),
       });
       const d = await res.json();
-      if (res.ok && d.storyId) { window.location.href = `/story/${d.storyId}`; return; }
+      if (res.ok && d.storyId) {
+        trackAnalyticsEvent("scene_started");
+        window.setTimeout(() => { window.location.href = `/story/${d.storyId}`; }, 120);
+        return;
+      }
       if (res.status === 401) { setAuthEmail(null); setBusy(false); return; }
       if (res.status === 402) { setError(`You need ${d.price ?? 10} credits to write a chapter — you have ${d.balance?.total ?? 0}. Free credits refresh daily.`); setPaywall(true); setBusy(false); return; }
       setError(d.error === "blocked" ? "That prompt isn't allowed." : d.error || "Something went wrong.");

@@ -15,6 +15,7 @@ import { getCurrentUserId } from "@/lib/session";
 import { JsonLd } from "@/components/JsonLd";
 import { absoluteUrl } from "@/lib/site";
 import { CompanionPhotoGallery } from "@/components/CompanionPhotoGallery";
+import { AnalyticsEvent } from "@/components/AnalyticsEvent";
 
 export const dynamic = "force-dynamic";
 
@@ -202,6 +203,7 @@ export default async function CharacterProfile({ params }: { params: Promise<{ i
 
   return (
     <>
+      <AnalyticsEvent name="character_view" />
       <JsonLd
         data={{
           "@context": "https://schema.org",

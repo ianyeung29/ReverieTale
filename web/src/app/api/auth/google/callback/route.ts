@@ -49,13 +49,17 @@ export async function GET(req: NextRequest) {
     const email = rawEmail.toLowerCase().trim();
 
     let [u] = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
+    let createdAccount = false;
     if (!u) {
       if (!expected.ageConfirmed) return fail(origin, returnTo);
       [u] = await db.insert(users).values({ email, ageVerified: true }).returning({ id: users.id });
       await grantDrip(u.id, WELCOME_CREDITS, `welcome:${u.id}`);
+      createdAccount = true;
     }
 
-    const res = NextResponse.redirect(`${origin}${returnTo}`);
+    const destination = new URL(returnTo, origin);
+    if (createdAccount) destination.searchParams.set("signup", "complete");
+    const res = NextResponse.redirect(destination);
     res.cookies.set(SESSION_COOKIE, signToken(u.id), {
       httpOnly: true,
       sameSite: "lax",
