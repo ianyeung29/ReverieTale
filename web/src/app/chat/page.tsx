@@ -7,6 +7,7 @@ import { EntryGate } from "@/components/EntryGate";
 import { PrivatePhotoCard } from "@/components/PrivatePhotoCard";
 import { StoryMemoryCard, type StoryMemory } from "@/components/StoryMemoryCard";
 import { getChatWelcome } from "@/lib/chatWelcome";
+import { trackAnalyticsEventOncePerSession } from "@/lib/analytics";
 import { pickExpression } from "@/lib/expression";
 import { pickStatusLine } from "@/lib/status";
 import { speakReply, stopSpeaking } from "@/lib/speech";
@@ -382,6 +383,10 @@ export default function ChatPage() {
               else void shareSelfie(ev.messageId);
             }
             if (ev.threadId) setThreadId(ev.threadId);
+            if (wasNew && ev.threadId) {
+              trackAnalyticsEventOncePerSession("chat_started");
+              trackAnalyticsEventOncePerSession("first_user_message");
+            }
             if (ev.balance) setCredits(ev.balance.total);
             void loadConvos().then((list) => {
               if (wasNew) {

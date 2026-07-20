@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { EntryGate } from "@/components/EntryGate";
 import { MIN_AGE } from "@/lib/legal";
+import { trackAnalyticsEvent, trackAnalyticsEventOncePerSession } from "@/lib/analytics";
 
 type Balance = { purchased: number; earned: number; total: number };
 type Item = { id: string; label: string; icon?: string; amount: number; at: string };
@@ -59,6 +60,7 @@ export default function CreditsPage() {
     const status = new URLSearchParams(window.location.search).get("checkout");
     if (status === "success" || status === "cancel") {
       setCheckout(status);
+      if (status === "success") trackAnalyticsEventOncePerSession("credit_purchase");
       window.history.replaceState({}, "", "/credits");
       // Credits are granted by the webhook, which may land a beat after the redirect.
       if (status === "success") { [1500, 4000, 8000].forEach((ms) => setTimeout(load, ms)); }
@@ -80,7 +82,11 @@ export default function CreditsPage() {
     try {
       const res = await fetch("/api/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ packId: id }) });
       const d = await res.json();
-      if (res.ok && d.url) { window.location.href = d.url; return; }
+      if (res.ok && d.url) {
+        trackAnalyticsEvent("checkout_started");
+        window.location.href = d.url;
+        return;
+      }
     } catch {} finally { setBuyingId(null); }
   }
 

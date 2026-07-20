@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { MIN_AGE } from "@/lib/legal";
+import { trackAnalyticsEventOncePerSession } from "@/lib/analytics";
 
 function VerifyEmailInner() {
   const params = useSearchParams();
@@ -18,6 +19,7 @@ function VerifyEmailInner() {
         const d = await res.json().catch(() => ({}));
         if (res.ok) {
           setWelcomeCredits(Number.isFinite(d.welcomeCredits) ? d.welcomeCredits : 0);
+          trackAnalyticsEventOncePerSession("signup_completed");
           setStatus("ok");
           setTimeout(() => { window.location.href = "/"; }, 3200);
         }

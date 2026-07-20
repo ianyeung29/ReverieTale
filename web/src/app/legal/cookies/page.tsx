@@ -19,15 +19,15 @@ export default function CookiesPage() {
       </Section>
       <Section title="2. Optional analytics cookies">
         <p style={S.p}>
-          With your permission, {OPERATOR_NAME} uses Google Analytics to measure aggregate visits to public discovery pages.
-          Google Analytics may set its <code>_ga</code> cookie to distinguish sessions. We do not load it until you choose
+          With your permission, {OPERATOR_NAME} uses Google Analytics to measure aggregate visits and feature-flow milestones,
+          such as starting a scene, first chat, signup, and checkout. Google Analytics may set its <code>_ga</code> cookie to distinguish sessions. We do not load it until you choose
           &ldquo;Accept analytics&rdquo; in the cookie prompt. Declining does not affect the core service.
         </p>
       </Section>
       <Section title="3. What we don't use">
         <p style={S.p}>
           We do not use advertising cookies, retargeting pixels, or Google advertising-personalization signals. We also do not
-          send chat content, account information, or payment data to Google Analytics.
+          send chat content, account information, payment data, character identifiers, or URL query strings to Google Analytics.
         </p>
       </Section>
       <Section title="4. Your browser controls">
