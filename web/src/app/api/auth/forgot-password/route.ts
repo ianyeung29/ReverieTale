@@ -43,7 +43,15 @@ export async function POST(req: Request) {
       subject: "Reset your ReverieTale password",
       html: `<p>Someone requested a password reset for this account. Choose a new password:</p><p><a href="${escapeHtml(link)}">${escapeHtml(link)}</a></p><p>This link expires in an hour. If you didn't request this, you can ignore it.</p>`,
     });
-    if (result.skipped) devResetUrl = link;
+    if (!result.ok) {
+      // Preserve the identical public response to prevent account enumeration,
+      // while leaving a useful diagnostic entry in Vercel's server logs.
+      console.error("Password reset email was not accepted", {
+        skipped: result.skipped ?? false,
+        error: result.error ?? "Resend is not configured",
+      });
+    }
+    if (result.skipped && process.env.NODE_ENV !== "production") devResetUrl = link;
   }
 
   return NextResponse.json({ ok: true, devResetUrl });

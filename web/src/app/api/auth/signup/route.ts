@@ -62,7 +62,22 @@ export async function POST(req: Request) {
     html: `<p>Welcome to ReverieTale - confirm your email to finish creating your account:</p><p><a href="${escapeHtml(link)}">${escapeHtml(link)}</a></p><p>This link expires in an hour. If you didn't request this, you can ignore it.</p>`,
   });
 
-  // Without RESEND_API_KEY configured (e.g. local dev), sending is a no-op - hand
-  // back the link directly so the flow is still fully testable.
-  return NextResponse.json({ ok: true, devVerifyUrl: result.skipped ? link : undefined });
+  // Keep the local flow testable without email, but never claim that a
+  // production confirmation email was sent unless Resend accepted it.
+  if (!result.ok && result.skipped && process.env.NODE_ENV !== "production") {
+    return NextResponse.json({ ok: true, devVerifyUrl: link });
+  }
+
+  if (!result.ok) {
+    console.error("Signup confirmation email was not accepted", {
+      skipped: result.skipped ?? false,
+      error: result.error ?? "Resend is not configured",
+    });
+    return NextResponse.json(
+      { error: "We couldn't send your confirmation email right now. Please try again in a moment." },
+      { status: 503 },
+    );
+  }
+
+  return NextResponse.json({ ok: true });
 }
