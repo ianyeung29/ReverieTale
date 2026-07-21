@@ -11,6 +11,7 @@ import { ratingAggregates } from "@/lib/ratings";
 import { getCurrentUserId } from "@/lib/session";
 import { mediaStorageConfigured, storeImage } from "@/lib/media";
 import { isTtsLanguage, isTtsStyle, isTtsVoice } from "@/lib/tts";
+import { normalizeCompanionGender } from "@/lib/gender";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120; // may auto-generate a default portrait on create
@@ -57,6 +58,7 @@ export async function GET() {
       persona: (def.persona as string) ?? "",
       tags: Array.isArray(def.tags) ? (def.tags as string[]) : [],
       greeting: (def.greeting as string) ?? "",
+      gender: normalizeCompanionGender(def.gender),
       reads: a?.reads ?? 0,
       stories: a?.stories ?? 0,
       rating: rating.average,

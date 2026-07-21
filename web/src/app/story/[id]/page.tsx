@@ -10,6 +10,7 @@ import { ReportLink } from "@/components/TrustControls";
 import { pickExpression } from "@/lib/expression";
 import { pickStatusLine } from "@/lib/status";
 import { intensityColor, intensityScore } from "@/lib/intensity";
+import { ReferralNudge } from "@/components/ReferralNudge";
 
 type Story = {
   id: string; title: string; content: string; characterId: string; characterName: string; characterTagline: string; characterPersona: string; characterTags: string[]; tone: string;
@@ -71,6 +72,8 @@ export default function StoryReadPage() {
   const [fontSize, setFontSize] = useState<FontSize>("sm"); // small by default; a saved preference overrides below
   const [theme, setTheme] = useState<ReaderTheme>("dark");
   const [showReaderMenu, setShowReaderMenu] = useState(false);
+  const [shareNotice, setShareNotice] = useState(false);
+  const [creditWall, setCreditWall] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saveBusy, setSaveBusy] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
@@ -103,6 +106,16 @@ export default function StoryReadPage() {
     } finally {
       setSaveBusy(false);
     }
+  }
+
+  async function shareStory() {
+    const url = window.location.href;
+    try {
+      if (navigator.share) await navigator.share({ title: story?.title ?? "ReverieTale story", text: "Read this interactive story on ReverieTale.", url });
+      else await navigator.clipboard.writeText(url);
+      setShareNotice(true);
+      window.setTimeout(() => setShareNotice(false), 1800);
+    } catch {}
   }
 
   useEffect(() => {
@@ -145,7 +158,7 @@ export default function StoryReadPage() {
 
   async function writeNext() {
     if (busy) return;
-    setBusy(true); setNotice(null);
+    setBusy(true); setNotice(null); setCreditWall(false);
     try {
       const res = await fetch(`/api/stories/${id}/continue`, {
         method: "POST",
@@ -153,7 +166,7 @@ export default function StoryReadPage() {
         body: JSON.stringify({ whatHappens: whatHappens.trim() || undefined, mood: mood || undefined, twist: twist || undefined, setting: setting.trim() || undefined }),
       });
       const d = await res.json();
-      if (res.status === 402) { setNotice(`You need ${d.price ?? 10} credits to write a chapter — you have ${d.balance?.total ?? 0}. Add credits to keep going.`); return; }
+      if (res.status === 402) { setCreditWall(true); setNotice(`You need ${d.price ?? 10} credits to write a chapter — you have ${d.balance?.total ?? 0}. Add credits to keep going.`); return; }
       if (res.ok && d.chapter) { setChapters((c) => [...c, d.chapter.trim()]); setIdx((i) => i + 1); resetForm(); }
     } catch {} finally { setBusy(false); }
   }
@@ -162,7 +175,7 @@ export default function StoryReadPage() {
     if (busy) return;
     const after = chapters.length - idx - 1;
     if (after > 0 && !confirm(`Rewriting this chapter will remove the ${after} chapter${after === 1 ? "" : "s"} after it, because they were written to follow the old version. Continue?`)) return;
-    setBusy(true); setNotice(null);
+    setBusy(true); setNotice(null); setCreditWall(false);
     try {
       const res = await fetch(`/api/stories/${id}/rewrite`, {
         method: "POST",
@@ -170,7 +183,7 @@ export default function StoryReadPage() {
         body: JSON.stringify({ chapterIndex: idx }),
       });
       const d = await res.json();
-      if (res.status === 402) { setNotice(`You need ${d.price ?? 10} credits to rewrite a chapter — you have ${d.balance?.total ?? 0}. Add credits to keep going.`); return; }
+      if (res.status === 402) { setCreditWall(true); setNotice(`You need ${d.price ?? 10} credits to rewrite a chapter — you have ${d.balance?.total ?? 0}. Add credits to keep going.`); return; }
       // Rewrite truncates downstream chapters (branch point) - mirror that locally.
       if (res.ok && d.chapter) {
         setChapters((c) => [...c.slice(0, idx), d.chapter.trim()]);
@@ -308,6 +321,7 @@ export default function StoryReadPage() {
               {saved ? "🔖 Saved" : "🔖 Save"}
             </button>
           ) : null}
+          <button style={S.iconToggle} onClick={shareStory} title="Share this story">{shareNotice ? "Link copied" : "Share"}</button>
           <div style={S.readerMenuWrap}>
             <button style={S.iconToggle} onClick={() => setShowReaderMenu((v) => !v)} title="Reading settings" aria-expanded={showReaderMenu}>Aa</button>
             {showReaderMenu ? (
@@ -489,7 +503,7 @@ export default function StoryReadPage() {
         )}
       </div>
 
-      {notice ? <p style={S.notice}>{notice} <a href="/credits" style={S.noticeLink}>Get credits →</a></p> : null}
+      {notice ? <><p style={S.notice}>{notice} <a href="/credits" style={S.noticeLink}>Get credits →</a></p>{creditWall ? <ReferralNudge compact /> : null}</> : null}
 
       {last && showForm ? (
         <div id="next-chapter" style={S.form}>

@@ -4,6 +4,7 @@ import { characters, stories } from "@/db/schema";
 import { ratingAggregates } from "@/lib/ratings";
 import { blockedCharacterIds } from "@/lib/blocks";
 import { logUnlessMissingRelation } from "@/lib/db-errors";
+import { normalizeCompanionGender, type CompanionGender } from "@/lib/gender";
 
 export type DiscoverChar = {
   id: string;
@@ -19,13 +20,14 @@ export type DiscoverChar = {
   hasImage: boolean;
   createdAt: string;
   creatorId: string | null;
+  gender: CompanionGender | null;
 };
 
 /**
  * Published characters enriched with per-character engagement (total reads + public
  * story count), for the browse/discovery surfaces. Optional creator/tag narrowing.
  */
-export async function listCharacters(opts?: { creatorId?: string; tag?: string; viewerId?: string }): Promise<DiscoverChar[]> {
+export async function listCharacters(opts?: { creatorId?: string; tag?: string; viewerId?: string; genders?: CompanionGender[] }): Promise<DiscoverChar[]> {
   const rows = await db
     .select({ id: characters.id, definition: characters.definition, createdAt: characters.createdAt, creatorId: characters.creatorId })
     .from(characters)
@@ -78,6 +80,7 @@ export async function listCharacters(opts?: { creatorId?: string; tag?: string; 
       hasImage: imageByChar.get(r.id) ?? false,
       createdAt: r.createdAt instanceof Date ? r.createdAt.toISOString() : String(r.createdAt),
       creatorId: r.creatorId ?? null,
+      gender: normalizeCompanionGender(def.gender),
     };
   });
 
@@ -85,6 +88,10 @@ export async function listCharacters(opts?: { creatorId?: string; tag?: string; 
   if (opts?.tag) {
     const t = opts.tag.toLowerCase();
     list = list.filter((c) => c.tags.some((x) => x.toLowerCase() === t));
+  }
+  if (opts?.genders?.length) {
+    const requested = new Set(opts.genders);
+    list = list.filter((c) => c.gender && requested.has(c.gender));
   }
 
   // Personal blocks are optional (migration 0012); never let a missing table

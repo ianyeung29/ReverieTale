@@ -6,6 +6,7 @@ import { emailVerifications, users } from "@/db/schema";
 import { hashVerificationToken } from "@/lib/verification";
 import { grantDrip } from "@/lib/ledger";
 import { SESSION_COOKIE, signToken } from "@/lib/session";
+import { applyReferralVerification } from "@/lib/referrals";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +48,12 @@ export async function POST(req: Request) {
     const err = e as { code?: string; message?: string; cause?: { code?: string } };
     const code = err?.cause?.code ?? err?.code;
     if (!(code === "23505" || /duplicate|unique/i.test(String(err?.message)))) throw e;
+  }
+
+  try {
+    await applyReferralVerification(row.userId);
+  } catch (e) {
+    console.error("[referrals] verification reward failed:", e instanceof Error ? e.message : e);
   }
 
   const [u] = await db.select({ email: users.email }).from(users).where(eq(users.id, row.userId)).limit(1);

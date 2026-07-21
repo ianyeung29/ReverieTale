@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { MIN_AGE } from "@/lib/legal";
+import { COMPANION_GENDER_OPTIONS, type CompanionGender } from "@/lib/gender";
 
 /**
  * Email + minimum-age gate used wherever an account is required. Google is
@@ -20,6 +21,7 @@ export function EntryGate({ onDone, subtitle = `Sign in or create an account. ${
   const [welcomeCredits, setWelcomeCredits] = useState<number | null>(null);
   const [checkEmail, setCheckEmail] = useState<string | null>(null);
   const [devUrl, setDevUrl] = useState<string | null>(null);
+  const [companionGenders, setCompanionGenders] = useState<CompanionGender[]>([]);
 
   useEffect(() => {
     fetch("/api/config").then((r) => r.json()).then((d) => {
@@ -42,7 +44,8 @@ export function EntryGate({ onDone, subtitle = `Sign in or create an account. ${
     setBusy(true); setErr("");
     try {
       const url = mode === "signup" ? "/api/auth/signup" : "/api/auth/login";
-      const body = mode === "signup" ? { email, password, ageConfirmed } : { email, password };
+      const referralCode = localStorage.getItem("rv_referral_code") || undefined;
+      const body = mode === "signup" ? { email, password, ageConfirmed, referralCode, companionGenderPreferences: companionGenders.length ? companionGenders : undefined } : { email, password };
       const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const d = await res.json();
       if (!res.ok) return setErr(d.error || "Something went wrong.");
@@ -58,7 +61,10 @@ export function EntryGate({ onDone, subtitle = `Sign in or create an account. ${
     }
     const returnTo = window.location.pathname + window.location.search;
     const signup = mode === "signup" ? "&signup=1&ageConfirmed=1" : "";
-    window.location.href = `/api/auth/google?returnTo=${encodeURIComponent(returnTo)}${signup}`;
+    const referralCode = mode === "signup" ? localStorage.getItem("rv_referral_code") : null;
+    const referral = referralCode ? `&referralCode=${encodeURIComponent(referralCode)}` : "";
+    const preferences = mode === "signup" && companionGenders.length ? `&companionGenderPreferences=${encodeURIComponent(companionGenders.join(","))}` : "";
+    window.location.href = `/api/auth/google?returnTo=${encodeURIComponent(returnTo)}${signup}${referral}${preferences}`;
   }
 
   if (checkEmail) {
@@ -118,7 +124,19 @@ export function EntryGate({ onDone, subtitle = `Sign in or create an account. ${
           onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
         />
         {mode === "signup" ? (
-          <label style={G.chk}><input type="checkbox" checked={ageConfirmed} onChange={(e) => setAgeConfirmed(e.target.checked)} /> I am {MIN_AGE} or older</label>
+          <>
+            <div style={G.preference}>
+              <span style={G.preferenceLabel}>Who would you like to meet?</span>
+              <div style={G.preferenceChoices}>
+                {COMPANION_GENDER_OPTIONS.map((option) => {
+                  const selected = companionGenders.includes(option.value);
+                  return <button key={option.value} type="button" className="rv-chip" style={{ ...G.preferenceChoice, ...(selected ? G.preferenceChoiceOn : {}) }} onClick={() => setCompanionGenders((current) => selected ? current.filter((value) => value !== option.value) : [...current, option.value])}>{option.label}</button>;
+                })}
+              </div>
+              <button type="button" style={G.everyone} onClick={() => setCompanionGenders(COMPANION_GENDER_OPTIONS.map((option) => option.value))}>Show me everyone</button>
+            </div>
+            <label style={G.chk}><input type="checkbox" checked={ageConfirmed} onChange={(e) => setAgeConfirmed(e.target.checked)} /> I am {MIN_AGE} or older</label>
+          </>
         ) : (
           <a href="/forgot-password" style={G.forgot}>Forgot password?</a>
         )}
@@ -153,6 +171,12 @@ const G: Record<string, React.CSSProperties> = {
   bonusValue: { color: "#F4EAF0", fontSize: 18, lineHeight: 1.2 },
   bonusNote: { color: "#8A7A90", fontSize: 12.5 },
   chk: { display: "flex", alignItems: "center", gap: 8, color: "#AC9CB0", fontSize: 14, justifyContent: "center" },
+  preference: { textAlign: "left", display: "grid", gap: 8, padding: "11px 12px", border: "1px solid #3A2E44", borderRadius: 10, background: "#1A121F" },
+  preferenceLabel: { color: "#CBBBD0", fontSize: 12.5, fontWeight: 650 },
+  preferenceChoices: { display: "flex", flexWrap: "wrap", gap: 6 },
+  preferenceChoice: { background: "#231A2B", color: "#CBBBD0", border: "1px solid #4A3A50", borderRadius: 999, padding: "6px 9px", fontSize: 12, cursor: "pointer" },
+  preferenceChoiceOn: { background: "linear-gradient(100deg,#E9A06B,#D46A8B)", color: "#1A1220", borderColor: "transparent", fontWeight: 700 },
+  everyone: { justifySelf: "start", background: "transparent", border: 0, padding: 0, color: "#E9A06B", fontSize: 12, cursor: "pointer" },
   err: { color: "#E88", fontSize: 13, margin: 0 },
   input: { background: "#1A121F", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 12, padding: "13px 15px", fontSize: 15 },
   btn: { border: 0, cursor: "pointer", color: "#1A1220", background: "linear-gradient(100deg,#E9A06B,#D46A8B)", borderRadius: 12, padding: "13px", fontWeight: 650, fontSize: 15 },

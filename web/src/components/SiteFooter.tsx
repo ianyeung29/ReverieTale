@@ -4,6 +4,7 @@ const FOOTER_LINKS = [
   { href: "/create", label: "Create" },
   { href: "/credits", label: "Credits" },
   { href: "/feedback", label: "Feedback" },
+  { href: "/blog", label: "Journal" },
   { href: "/guidelines", label: "Guidelines" },
   { href: "/legal", label: "Legal" },
 ];

@@ -25,6 +25,13 @@ export const users = pgTable("users", {
   // Public creator handle (optional). Shown as attribution on character profiles;
   // never the email, which stays private.
   displayName: text("display_name"),
+  // Private discovery choices. Kept separate from a creator's public character
+  // data so readers can tailor their feed without exposing personal details.
+  profileGender: text("profile_gender"),
+  companionGenderPreferences: jsonb("companion_gender_preferences").$type<string[]>(),
+  // A compact invite code, safe to put in a public URL. Referral rewards are
+  // only granted after the invited account verifies its email.
+  referralCode: text("referral_code"),
   // Lifetime count of portrait generations; the first FREE_PORTRAITS are free,
   // then each costs PORTRAIT_PRICE credits.
   portraitGens: integer("portrait_gens").notNull().default(0),
@@ -37,6 +44,23 @@ export const users = pgTable("users", {
   emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const referrals = pgTable(
+  "referrals",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    referrerId: uuid("referrer_id").notNull().references(() => users.id),
+    referredId: uuid("referred_id").notNull().references(() => users.id),
+    status: text("status").notNull().default("pending"),
+    newUserRewardedAt: timestamp("new_user_rewarded_at", { withTimezone: true }),
+    referrerRewardedAt: timestamp("referrer_rewarded_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    referredUniq: uniqueIndex("referrals_referred_uniq").on(t.referredId),
+    byReferrer: index("referrals_referrer_idx").on(t.referrerId, t.referrerRewardedAt),
+  }),
+);
 
 // One-time tokens proving email ownership - both new-account signup and
 // password resets go through here before users.passwordHash is ever set or

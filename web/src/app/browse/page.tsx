@@ -18,6 +18,7 @@ type Char = {
   ratingCount: number;
   createdAt: string;
   hasImage?: boolean;
+  gender?: "female" | "male" | "non-binary" | null;
 };
 type Sort = "trend" | "newest" | "read" | "rated";
 
@@ -31,6 +32,7 @@ export default function BrowsePage() {
   const [q, setQ] = useState("");
   const [activeTags, setActiveTags] = useState<string[]>([]);
   const [sort, setSort] = useState<Sort>("trend");
+  const [gender, setGender] = useState<Char["gender"] | "all">("all");
 
   useEffect(() => {
     fetch("/api/characters")
@@ -39,6 +41,8 @@ export default function BrowsePage() {
       .catch(() => {});
     const initial = new URLSearchParams(window.location.search).get("q");
     if (initial) setQ(initial);
+    const initialGender = new URLSearchParams(window.location.search).get("gender");
+    if (initialGender === "female" || initialGender === "male" || initialGender === "non-binary") setGender(initialGender);
   }, []);
 
   const allTags = useMemo(() => {
@@ -51,7 +55,7 @@ export default function BrowsePage() {
     const needle = q.trim().toLowerCase();
     const list = chars.filter((c) => {
       const matchesText = !needle || c.name.toLowerCase().includes(needle) || c.persona.toLowerCase().includes(needle) || c.tags.some((t) => t.toLowerCase().includes(needle));
-      return matchesText && activeTags.every((t) => c.tags.includes(t));
+      return matchesText && (gender === "all" || c.gender === gender) && activeTags.every((t) => c.tags.includes(t));
     });
     return list.slice().sort((a, b) => {
       if (sort === "read") return b.reads - a.reads || b.stories - a.stories;
@@ -59,7 +63,7 @@ export default function BrowsePage() {
       if (sort === "trend") return trending(b.reads, b.createdAt) - trending(a.reads, a.createdAt);
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
-  }, [chars, q, activeTags, sort]);
+  }, [chars, q, activeTags, sort, gender]);
 
   function toggleTag(tag: string) {
     setActiveTags((current) => current.includes(tag) ? current.filter((value) => value !== tag) : [...current, tag]);
@@ -87,6 +91,11 @@ export default function BrowsePage() {
           <button className="rv-chip" style={{ ...S.sortBtn, ...(sort === "rated" ? S.sortOn : {}) }} onClick={() => setSort("rated")}>Top rated</button>
         </div>
       </div>
+      <div style={S.genderRow} aria-label="Filter companion gender">
+        {([ ["all", "Everyone"], ["female", "Women"], ["male", "Men"], ["non-binary", "Non-binary"] ] as const).map(([value, label]) => (
+          <button key={value} className="rv-chip" style={{ ...S.genderChip, ...(gender === value ? S.genderChipOn : {}) }} onClick={() => setGender(value)}>{label}</button>
+        ))}
+      </div>
 
       {allTags.length ? (
         <div style={S.tagRow} className="rv-explore-tags">
@@ -100,7 +109,7 @@ export default function BrowsePage() {
       {chars.length === 0 ? (
         <p style={S.empty}>No companions have been published yet. <a href="/create" style={S.reset}>Create the first &rarr;</a></p>
       ) : shown.length === 0 ? (
-        <p style={S.empty}>No companions match. <button style={S.reset} onClick={() => { setQ(""); setActiveTags([]); }}>Reset filters</button></p>
+        <p style={S.empty}>No companions match. <button style={S.reset} onClick={() => { setQ(""); setActiveTags([]); setGender("all"); }}>Reset filters</button></p>
       ) : (
         <>
           {featured ? (
@@ -147,6 +156,9 @@ const S: Record<string, React.CSSProperties> = {
   sub: { color: "#AC9CB0", margin: "0 0 28px", maxWidth: 610, fontSize: 16 },
   crossLink: { color: "#E9A06B", textDecoration: "none", fontWeight: 650, whiteSpace: "nowrap" },
   controls: { display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center", marginBottom: 14 },
+  genderRow: { display: "flex", flexWrap: "wrap", gap: 7, margin: "0 0 14px" },
+  genderChip: { background: "#211827", color: "#CBBBD0", border: "1px solid #3A2E44", borderRadius: 999, padding: "6px 11px", fontSize: 12.5, cursor: "pointer" },
+  genderChipOn: { background: "linear-gradient(100deg,#E9A06B,#D46A8B)", color: "#1A1220", borderColor: "transparent", fontWeight: 700 },
   search: { flex: "1 1 280px", background: "#1A121F", color: "#F4EAF0", border: "1px solid #3A2E44", borderRadius: 10, padding: "12px 15px", fontSize: 15 },
   sortWrap: { display: "flex", gap: 4, background: "#1A121F", border: "1px solid #3A2E44", borderRadius: 10, padding: 4 },
   sortBtn: { background: "transparent", color: "#AC9CB0", border: 0, borderRadius: 7, padding: "8px 12px", cursor: "pointer", fontSize: 13, fontWeight: 650, whiteSpace: "nowrap" },

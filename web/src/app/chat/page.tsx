@@ -12,6 +12,7 @@ import { pickExpression } from "@/lib/expression";
 import { pickStatusLine } from "@/lib/status";
 import { speakReply, stopSpeaking } from "@/lib/speech";
 import { companionChatStyle } from "@/lib/companionChatStyle";
+import { ReferralNudge } from "@/components/ReferralNudge";
 
 type Msg = { role: "user" | "character" | "system"; content: string; id?: string; createdAt?: string; hasImage?: boolean; imageLocked?: boolean; imagePrice?: number | null; sequence?: boolean };
 const REPLY_TYPING_DELAY_MS = 2_000;
@@ -568,7 +569,7 @@ export default function ChatPage() {
       ) : null}
 
       <div className="rv-chat-bar-wrap" style={S.barWrap}>
-        {broke ? <a href="/credits" style={S.topup}>Out of credits — get more →</a> : null}
+        {broke ? <><a href="/credits" style={S.topup}>Out of credits — get more →</a><ReferralNudge compact /></> : null}
         <div style={S.bar}>
           <input style={S.input} value={input} onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
