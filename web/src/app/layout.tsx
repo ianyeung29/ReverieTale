@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Nav } from "@/components/Nav";
 import { MobileNav } from "@/components/MobileNav";
+import { SiteFooter } from "@/components/SiteFooter";
 import { JsonLd } from "@/components/JsonLd";
 import { CookieConsent } from "@/components/CookieConsent";
 import { GoogleAnalytics } from "@/components/GoogleAnalytics";
@@ -307,6 +308,17 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   background: linear-gradient(135deg,#E9A06B,#D46A8B); color: #1A1220;
   font-size: 20px; box-shadow: 0 8px 20px rgba(212,106,139,.45);
 }
+
+/* Supporting navigation is shared across the app, not only the home feed. */
+.rv-site-footer {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;
+  max-width: 1100px; margin: 0 auto; padding: 22px 24px 28px;
+  box-sizing: border-box; border-top: 1px solid #241A2B;
+  color: #6f6276; font-size: 13px;
+}
+.rv-site-footer-links { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 16px; }
+.rv-site-footer-links a { color: #8A7A90; text-decoration: none; }
+.rv-site-footer-links a:hover { color: #E9A06B; }
 @media (max-width: 760px) {
   .rv-mobilenav {
     display: flex; align-items: flex-end; justify-content: space-around;
@@ -319,6 +331,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   .rv-chatdock-fab { bottom: 58px; }
   .rv-chatdock-panel { bottom: 66px; }
   .rv-cookie-consent { bottom: 68px !important; }
+  .rv-site-footer { margin: 0 16px; padding: 20px 0 26px; align-items: flex-start; flex-direction: column; }
+  .rv-site-footer-links { justify-content: flex-start; gap: 10px 14px; }
 }
 `;
 
@@ -349,6 +363,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       >
         <Nav />
         {children}
+        <SiteFooter />
         <MobileNav />
         {GA_MEASUREMENT_ID ? <><CookieConsent /><GoogleAnalytics measurementId={GA_MEASUREMENT_ID} /></> : null}
       </body>
