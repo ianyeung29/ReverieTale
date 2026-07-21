@@ -5,6 +5,8 @@ import { users } from "@/db/schema";
 import { grantDrip } from "@/lib/ledger";
 import { exchangeGoogleCode } from "@/lib/google";
 import { SESSION_COOKIE, signToken } from "@/lib/session";
+import { applyReferralVerification, createReferral } from "@/lib/referrals";
+import type { CompanionGender } from "@/lib/gender";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +31,7 @@ export async function GET(req: NextRequest) {
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
 
-  let expected: { state: string; returnTo: string; ageConfirmed?: boolean } | null = null;
+  let expected: { state: string; returnTo: string; ageConfirmed?: boolean; referralCode?: string; companionGenderPreferences?: CompanionGender[] } | null = null;
   try {
     const raw = req.cookies.get(STATE_COOKIE)?.value;
     expected = raw ? JSON.parse(raw) : null;
@@ -52,8 +54,10 @@ export async function GET(req: NextRequest) {
     let createdAccount = false;
     if (!u) {
       if (!expected.ageConfirmed) return fail(origin, returnTo);
-      [u] = await db.insert(users).values({ email, ageVerified: true }).returning({ id: users.id });
+      [u] = await db.insert(users).values({ email, ageVerified: true, companionGenderPreferences: expected.companionGenderPreferences }).returning({ id: users.id });
       await grantDrip(u.id, WELCOME_CREDITS, `welcome:${u.id}`);
+      if (expected.referralCode) await createReferral(u.id, expected.referralCode);
+      await applyReferralVerification(u.id);
       createdAccount = true;
     }
 

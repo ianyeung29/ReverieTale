@@ -9,6 +9,7 @@ import { pickExpression } from "@/lib/expression";
 import { pickStatusLine } from "@/lib/status";
 import { speakReply, stopSpeaking } from "@/lib/speech";
 import { companionChatStyle } from "@/lib/companionChatStyle";
+import { ReferralNudge } from "./ReferralNudge";
 
 type Msg = { role: "user" | "character" | "system"; content: string; id?: string; createdAt?: string; hasImage?: boolean; imageLocked?: boolean; imagePrice?: number | null; sequence?: boolean };
 const REPLY_TYPING_DELAY_MS = 2_000;
@@ -353,7 +354,7 @@ export function ChatDock({
         ) : null}
         {busy && showInitialTyping ? <div style={{ ...D.row, justifyContent: "flex-start" }}><div className="rv-typing-indicator" style={{ ...D.bubble, ...D.bot, ...D.typing }}>typing...</div></div> : null}
         {authChecked && needAuth ? <a href={`/chat?characterId=${characterId}${storyId ? `&fromStory=${storyId}` : ""}`} style={D.signin}>Sign in to talk to {characterName} →</a> : null}
-        {broke ? <a href="/credits" style={D.signin}>Get more credits →</a> : null}
+        {broke ? <><a href="/credits" style={D.signin}>Get more credits →</a><ReferralNudge compact /></> : null}
         {authChecked && showWelcome && messages.length === 0 ? (
           <div style={{ ...D.row, flexDirection: "column", alignItems: "flex-start" }}>
             <p style={D.welcomeLabel}>{characterName} started the conversation - free</p>

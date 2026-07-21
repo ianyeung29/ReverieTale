@@ -5,6 +5,7 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { JsonLd } from "@/components/JsonLd";
 import { CookieConsent } from "@/components/CookieConsent";
 import { GoogleAnalytics } from "@/components/GoogleAnalytics";
+import { ReferralCapture } from "@/components/ReferralCapture";
 import { SITE_URL } from "@/lib/site";
 
 const SITE_DESC =
@@ -363,6 +364,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       >
         <Nav />
         {children}
+        <ReferralCapture />
         <SiteFooter />
         <MobileNav />
         {GA_MEASUREMENT_ID ? <><CookieConsent /><GoogleAnalytics measurementId={GA_MEASUREMENT_ID} /></> : null}

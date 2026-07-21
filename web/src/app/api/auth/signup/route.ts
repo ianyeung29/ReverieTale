@@ -7,10 +7,16 @@ import { hashPassword } from "@/lib/password";
 import { newVerificationToken } from "@/lib/verification";
 import { rateLimit } from "@/lib/ratelimit";
 import { escapeHtml, sendEmail } from "@/lib/email";
+import { createReferral } from "@/lib/referrals";
+import { COMPANION_GENDER_OPTIONS, type CompanionGender } from "@/lib/gender";
 
 export const dynamic = "force-dynamic";
 
-const Body = z.object({ email: z.string().email(), password: z.string().min(8).max(200), ageConfirmed: z.boolean() });
+const Body = z.object({
+  email: z.string().email(), password: z.string().min(8).max(200), ageConfirmed: z.boolean(),
+  referralCode: z.string().trim().toLowerCase().regex(/^[a-z0-9]{16}$/).optional(),
+  companionGenderPreferences: z.array(z.enum(COMPANION_GENDER_OPTIONS.map((option) => option.value) as [string, ...string[]])).min(1).max(COMPANION_GENDER_OPTIONS.length).optional(),
+});
 
 // POST /api/auth/signup { email, password } -> starts account creation. Nothing
 // is granted and no session is issued yet: the password is held (hashed) against
@@ -40,10 +46,13 @@ export async function POST(req: Request) {
   }
 
   let userId = existing?.id;
+  let createdAccount = false;
   if (!userId) {
-    const [u] = await db.insert(users).values({ email, ageVerified: body.ageConfirmed }).returning({ id: users.id });
+    const [u] = await db.insert(users).values({ email, ageVerified: body.ageConfirmed, companionGenderPreferences: body.companionGenderPreferences as CompanionGender[] | undefined }).returning({ id: users.id });
     userId = u.id;
+    createdAccount = true;
   }
+  if (createdAccount && body.referralCode) await createReferral(userId, body.referralCode);
 
   const { raw, hash } = newVerificationToken();
   await db.insert(emailVerifications).values({

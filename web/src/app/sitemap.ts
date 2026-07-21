@@ -13,6 +13,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/`, changeFrequency: "daily", priority: 1 },
     { url: `${SITE_URL}/browse`, changeFrequency: "daily", priority: 0.8 },
     { url: `${SITE_URL}/stories`, changeFrequency: "daily", priority: 0.7 },
+    { url: `${SITE_URL}/companions/female`, changeFrequency: "daily", priority: 0.8 },
+    { url: `${SITE_URL}/companions/male`, changeFrequency: "daily", priority: 0.8 },
+    { url: `${SITE_URL}/companions/non-binary`, changeFrequency: "daily", priority: 0.7 },
+    { url: `${SITE_URL}/blog`, changeFrequency: "weekly", priority: 0.6 },
+    { url: `${SITE_URL}/blog/start-an-interactive-story`, changeFrequency: "monthly", priority: 0.5 },
+    { url: `${SITE_URL}/blog/creative-photo-moments`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${SITE_URL}/guidelines`, changeFrequency: "yearly", priority: 0.3 },
     { url: `${SITE_URL}/legal`, changeFrequency: "yearly", priority: 0.2 },
   ];

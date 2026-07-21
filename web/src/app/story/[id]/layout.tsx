@@ -26,8 +26,8 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
       description,
       alternates: { canonical: `/story/${id}` },
       robots: row.isPublic && row.characterStatus === "published" ? undefined : { index: false, follow: false },
-      openGraph: { title, description, type: "article", url: `/story/${id}`, images: [`/api/characters/${row.characterId}/image`] },
-      twitter: { card: "summary_large_image", title, description, images: [`/api/characters/${row.characterId}/image`] },
+      openGraph: { title, description, type: "article", url: `/story/${id}`, images: [absoluteUrl(`/api/stories/${id}/og`)] },
+      twitter: { card: "summary_large_image", title, description, images: [absoluteUrl(`/api/stories/${id}/og`)] },
     };
   } catch {
     return { title: "Story" };
@@ -56,7 +56,7 @@ export default async function StoryLayout({ children, params }: { children: Reac
             description,
             datePublished: row.createdAt.toISOString(),
             url: absoluteUrl(`/story/${id}`),
-            image: [absoluteUrl(`/api/characters/${row.characterId}/image`)],
+            image: [absoluteUrl(`/api/stories/${id}/og`)],
             author: { "@type": "Organization", name: "ReverieTale" },
             about: name ? { "@type": "Person", name } : undefined,
           }}

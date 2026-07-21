@@ -8,6 +8,9 @@ import { StarRating } from "@/components/StarRating";
 import { listCharacters, trendingScore } from "@/lib/discovery";
 import { ratingAggregates } from "@/lib/ratings";
 import { getCurrentUserId } from "@/lib/session";
+import { users } from "@/db/schema";
+import { HomePersonalization } from "@/components/HomePersonalization";
+import type { CompanionGender } from "@/lib/gender";
 
 export const dynamic = "force-dynamic";
 
@@ -100,11 +103,12 @@ function dailyPick<T>(list: T[], seed: string): T | null {
 
 export default async function Home() {
   const viewerId = await getCurrentUserId();
-  const [feed, allChars, continueWith] = await Promise.all([
+  const [feed, preferences, continueWith] = await Promise.all([
     recentStories(),
-    listCharacters({ viewerId: viewerId ?? undefined }).catch(() => []),
+    viewerId ? db.select({ companionGenderPreferences: users.companionGenderPreferences }).from(users).where(eq(users.id, viewerId)).limit(1).then(([row]) => Array.isArray(row?.companionGenderPreferences) ? row.companionGenderPreferences as CompanionGender[] : null).catch(() => null) : Promise.resolve(null),
     viewerId ? recentThreads(viewerId) : Promise.resolve([]),
   ]);
+  const allChars = await listCharacters({ viewerId: viewerId ?? undefined, genders: preferences ?? undefined }).catch(() => []);
   const trending = [...allChars].sort((a, b) => trendingScore(b.reads, b.createdAt) - trendingScore(a.reads, a.createdAt)).slice(0, 6);
   const empty = trending.length === 0 && feed.length === 0;
 
@@ -173,6 +177,7 @@ export default async function Home() {
           <a href="/browse" style={S.heroTextLink}>Browse companions →</a>
         </div>
       </section>
+      {viewerId ? <HomePersonalization /> : null}
 
       {continueWith.length > 0 ? (
         <section className="rv-reveal rv-d1">
@@ -194,6 +199,8 @@ export default async function Home() {
           <div style={{ ...S.sectionRow, margin: "30px 0 10px" }}><p style={{ ...S.section, margin: 0 }}>Pick a vibe</p></div>
           <div style={S.tabStrip}>
           <a href="/browse" className="rv-chip" style={{ ...S.tab, ...S.tabLead }}>All companions</a>
+          <a href="/companions/female" className="rv-chip" style={S.tab}>Women</a>
+          <a href="/companions/male" className="rv-chip" style={S.tab}>Men</a>
           {moods.map((t) => (
             <a key={t} href={`/tag/${encodeURIComponent(t)}`} className="rv-chip" style={S.tab}>{t}</a>
           ))}

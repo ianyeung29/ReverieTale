@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { EntryGate } from "@/components/EntryGate";
 import { MIN_AGE } from "@/lib/legal";
 import { trackAnalyticsEvent, trackAnalyticsEventOncePerSession } from "@/lib/analytics";
+import { ReferralNudge } from "@/components/ReferralNudge";
 
 type Balance = { purchased: number; earned: number; total: number };
 type Item = { id: string; label: string; icon?: string; amount: number; at: string };
@@ -114,6 +115,7 @@ export default function CreditsPage() {
           <span><b style={S.bd}>{b?.earned ?? 0}</b> free &amp; earned</span>
         </div>
       </div>
+      <ReferralNudge />
 
       <div className="rv-card" style={S.earnCard}>
         <div style={S.earnIcon}>★</div>
