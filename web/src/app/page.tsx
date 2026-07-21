@@ -252,18 +252,6 @@ export default async function Home() {
         </div>
       ) : null}
 
-      <footer style={S.footer}>
-        <span>ReverieTale · interactive fiction</span>
-        <span style={S.footLinks}>
-          <a href="/browse" style={S.footLink}>Companions</a>
-          <a href="/stories" style={S.footLink}>Stories</a>
-          <a href="/create" style={S.footLink}>Create</a>
-          <a href="/credits" style={S.footLink}>Credits</a>
-          <a href="/feedback" style={S.footLink}>Feedback</a>
-          <a href="/guidelines" style={S.footLink}>Guidelines</a>
-          <a href="/legal" style={S.footLink}>Legal</a>
-        </span>
-      </footer>
     </main>
   );
 }
@@ -319,7 +307,4 @@ const S: Record<string, React.CSSProperties> = {
   emptyPanel: { textAlign: "center", background: "linear-gradient(180deg,#1C1524,#171120)", border: "1px solid #2f2438", borderRadius: 20, padding: "48px 24px", margin: "44px 0 0", position: "relative", zIndex: 1 },
   emptyTitle: { fontFamily: "Georgia, serif", fontSize: 26, margin: "0 0 8px", color: "#F4EAF0" },
   emptyBody: { color: "#AC9CB0", fontSize: 15, margin: "0 auto 4px", maxWidth: 460 },
-  footer: { display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "space-between", alignItems: "center", color: "#6f6276", fontSize: 13, marginTop: 64, paddingTop: 22, borderTop: "1px solid #241a2b" },
-  footLinks: { display: "flex", gap: 16 },
-  footLink: { color: "#8A7A90", textDecoration: "none" },
 };
