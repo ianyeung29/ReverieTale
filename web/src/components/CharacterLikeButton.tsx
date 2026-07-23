@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { formatCount } from "@/lib/format";
 
 export function CharacterLikeButton({ characterId, initialLiked, initialLikes }: { characterId: string; initialLiked: boolean; initialLikes: number }) {
   const [liked, setLiked] = useState(initialLiked);
@@ -46,12 +47,6 @@ export function CharacterLikeButton({ characterId, initialLiked, initialLikes }:
       <span>{formatCount(likes)}</span>
     </button>
   );
-}
-
-export function formatCount(value: number): string {
-  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(value >= 10_000_000 ? 0 : 1)}M`;
-  if (value >= 1_000) return `${(value / 1_000).toFixed(value >= 10_000 ? 0 : 1)}K`;
-  return String(value);
 }
 
 const S: Record<string, React.CSSProperties> = {

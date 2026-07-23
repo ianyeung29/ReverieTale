@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 import { CharacterAvatar } from "./CharacterAvatar";
 import { StarRating } from "./StarRating";
-import { CharacterLikeButton, formatCount } from "./CharacterLikeButton";
+import { CharacterLikeButton } from "./CharacterLikeButton";
+import { formatCount } from "@/lib/format";
 
 export type CharacterCardData = {
   id: string;
