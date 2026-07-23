@@ -19,6 +19,10 @@ type Char = {
   createdAt: string;
   hasImage?: boolean;
   gender?: "female" | "male" | "non-binary" | null;
+  age?: number | null;
+  likes?: number;
+  messages?: number;
+  likedByViewer?: boolean;
 };
 type Sort = "trend" | "newest" | "read" | "rated";
 

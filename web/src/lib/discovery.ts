@@ -5,6 +5,7 @@ import { ratingAggregates } from "@/lib/ratings";
 import { blockedCharacterIds } from "@/lib/blocks";
 import { logUnlessMissingRelation } from "@/lib/db-errors";
 import { normalizeCompanionGender, type CompanionGender } from "@/lib/gender";
+import { companionEngagement } from "@/lib/companionEngagement";
 
 export type DiscoverChar = {
   id: string;
@@ -17,6 +18,10 @@ export type DiscoverChar = {
   stories: number;
   rating: number;
   ratingCount: number;
+  likes: number;
+  messages: number;
+  likedByViewer: boolean;
+  age: number | null;
   hasImage: boolean;
   createdAt: string;
   creatorId: string | null;
@@ -62,6 +67,8 @@ export async function listCharacters(opts?: { creatorId?: string; tag?: string; 
     logUnlessMissingRelation("discovery image column", e);
   }
 
+  const engagement = await companionEngagement(rows.map((row) => row.id), opts?.viewerId);
+
   let list: DiscoverChar[] = rows.map((r) => {
     const def = (r.definition ?? {}) as Record<string, unknown>;
     const a = byChar.get(r.id);
@@ -77,6 +84,10 @@ export async function listCharacters(opts?: { creatorId?: string; tag?: string; 
       stories: a?.stories ?? 0,
       rating: rt.average,
       ratingCount: rt.count,
+      likes: engagement.likes.get(r.id) ?? 0,
+      messages: engagement.messages.get(r.id) ?? 0,
+      likedByViewer: engagement.likedByViewer.has(r.id),
+      age: typeof def.age === "number" ? def.age : null,
       hasImage: imageByChar.get(r.id) ?? false,
       createdAt: r.createdAt instanceof Date ? r.createdAt.toISOString() : String(r.createdAt),
       creatorId: r.creatorId ?? null,

@@ -1,71 +1,21 @@
 import { NextResponse, after } from "next/server";
 import { z } from "zod";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { characters, stories } from "@/db/schema";
-import { blockedCharacterIds } from "@/lib/blocks";
-import { logUnlessMissingRelation } from "@/lib/db-errors";
+import { characters } from "@/db/schema";
 import { buildPortraitPrompt, generateImage, imageConfigured } from "@/lib/image";
 import { moderateContent, screenImagePrompt } from "@/lib/moderation";
-import { ratingAggregates } from "@/lib/ratings";
 import { getCurrentUserId } from "@/lib/session";
 import { mediaStorageConfigured, storeImage } from "@/lib/media";
 import { isTtsLanguage, isTtsStyle, isTtsVoice } from "@/lib/tts";
-import { normalizeCompanionGender } from "@/lib/gender";
+import { listCharacters } from "@/lib/discovery";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120; // may auto-generate a default portrait on create
 
 export async function GET() {
-  const rows = await db
-    .select({ id: characters.id, definition: characters.definition, createdAt: characters.createdAt })
-    .from(characters)
-    .where(eq(characters.status, "published"));
-
-  // Per-character engagement from public stories: total reads + story count.
-  const agg = await db
-    .select({
-      cid: stories.characterId,
-      reads: sql<number>`coalesce(sum(${stories.reads}), 0)::int`,
-      stories: sql<number>`count(*)::int`,
-    })
-    .from(stories)
-    .where(eq(stories.isPublic, true))
-    .groupBy(stories.characterId);
-  const byChar = new Map(agg.map((a) => [a.cid, a]));
-  const ratingByChar = await ratingAggregates("character", rows.map((r) => r.id));
-
-  // Personal blocks are optional (migration 0012) and only apply when signed in;
-  // never let a missing table or anonymous browsing break this list.
-  let blocked = new Set<string>();
   const viewerId = await getCurrentUserId();
-  if (viewerId) {
-    try {
-      blocked = new Set(await blockedCharacterIds(viewerId));
-    } catch (e) {
-      logUnlessMissingRelation("characters GET (browse)", e);
-    }
-  }
-
-  const list = rows.filter((r) => !blocked.has(r.id)).map((r) => {
-    const def = (r.definition ?? {}) as Record<string, unknown>;
-    const a = byChar.get(r.id);
-    const rating = ratingByChar.get(r.id) ?? { average: 0, count: 0 };
-    return {
-      id: r.id,
-      name: (def.name as string) ?? "Unknown",
-      tagline: (def.backstory as string) ?? "",
-      persona: (def.persona as string) ?? "",
-      tags: Array.isArray(def.tags) ? (def.tags as string[]) : [],
-      greeting: (def.greeting as string) ?? "",
-      gender: normalizeCompanionGender(def.gender),
-      reads: a?.reads ?? 0,
-      stories: a?.stories ?? 0,
-      rating: rating.average,
-      ratingCount: rating.count,
-      createdAt: r.createdAt,
-    };
-  });
+  const list = await listCharacters({ viewerId: viewerId ?? undefined });
   return NextResponse.json(list);
 }
 
