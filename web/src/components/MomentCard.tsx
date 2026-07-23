@@ -1,5 +1,6 @@
 import { CharacterAvatar } from "./CharacterAvatar";
-import { CharacterLikeButton, formatCount } from "./CharacterLikeButton";
+import { CharacterLikeButton } from "./CharacterLikeButton";
+import { formatCount } from "@/lib/format";
 
 export type MomentCardData = {
   id: string;
