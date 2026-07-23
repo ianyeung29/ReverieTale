@@ -12,10 +12,13 @@ import { isCharacterBlocked } from "@/lib/blocks";
 import { logUnlessMissingRelation } from "@/lib/db-errors";
 import { ratingAggregates, userRating } from "@/lib/ratings";
 import { getCurrentUserId } from "@/lib/session";
+import { isAdmin } from "@/lib/admin";
 import { JsonLd } from "@/components/JsonLd";
 import { absoluteUrl } from "@/lib/site";
 import { CompanionPhotoGallery } from "@/components/CompanionPhotoGallery";
 import { AnalyticsEvent } from "@/components/AnalyticsEvent";
+import { LivingPortrait } from "@/components/LivingPortrait";
+import { getActiveLivingPortrait } from "@/lib/livingPortraits";
 
 export const dynamic = "force-dynamic";
 
@@ -65,6 +68,8 @@ type Profile = {
   rating: number; ratingCount: number; myRating: number | null; canRate: boolean;
   canModerate: boolean; isBlocked: boolean;
   hasScene: boolean;
+  livePortraitId: string | null;
+  canRenderLivePortrait: boolean;
   posts: { id: string; caption: string; postedAt: Date; isLocked: boolean; revealPrice: number; isUnlocked: boolean }[];
   stories: { id: string; title: string; hook: string; chapters: number; readMin: number; reads: number; rating: number; ratingCount: number; hasCover: boolean }[];
 };
@@ -80,8 +85,9 @@ async function loadProfile(id: string): Promise<Profile | null> {
 
     const userId = await getCurrentUserId();
     const isOwner = Boolean(char.creatorId && userId && char.creatorId === userId);
-    // Unpublished companions are only visible to their creator.
-    if (char.status !== "published" && !isOwner) return null;
+    const canManage = isOwner || await isAdmin(userId);
+    // Unpublished companions are only visible to their creator or an admin.
+    if (char.status !== "published" && !canManage) return null;
 
     const def = (char.definition ?? {}) as Record<string, unknown>;
 
@@ -109,6 +115,13 @@ async function loadProfile(id: string): Promise<Profile | null> {
       hasScene = Boolean(sc?.h);
     } catch {
       /* scene_image column not migrated yet */
+    }
+
+    let livePortraitId: string | null = null;
+    try {
+      livePortraitId = (await getActiveLivingPortrait(char.id))?.id ?? null;
+    } catch {
+      // Profiles stay up while an environment awaits the living-portrait migration.
     }
 
     let posts: { id: string; caption: string; postedAt: Date; isLocked: boolean; revealPrice: number; isUnlocked: boolean }[] = [];
@@ -156,16 +169,18 @@ async function loadProfile(id: string): Promise<Profile | null> {
       backstory: (def.backstory as string) ?? "",
       greeting: (def.greeting as string) ?? "",
       tags: Array.isArray(def.tags) ? (def.tags as string[]) : [],
-      isOwner,
+      isOwner: canManage,
       creator,
       creatorId: char.creatorId ?? null,
       rating: charRating.average,
       ratingCount: charRating.count,
       myRating,
-      canRate: Boolean(userId) && !isOwner,
-      canModerate: Boolean(userId) && !isOwner,
+      canRate: Boolean(userId) && !canManage,
+      canModerate: Boolean(userId) && !canManage,
       isBlocked: blocked,
       hasScene,
+      livePortraitId,
+      canRenderLivePortrait: Boolean(userId),
       posts,
       stories: rows.map((r) => {
         const sr = storyRatings.get(r.id) ?? { average: 0, count: 0 };
@@ -228,7 +243,7 @@ export default async function CharacterProfile({ params }: { params: Promise<{ i
         </div>
         <div style={S.heroInner} className="rv-profile-head">
           <div style={S.heroPortrait} className="rv-profile-portrait">
-            <CharacterAvatar characterId={p.id} name={p.name} shape="rect" enlargeable />
+            <LivingPortrait characterId={p.id} name={p.name} activeVideoId={p.livePortraitId} canRender={p.canRenderLivePortrait} />
           </div>
           <div style={S.heroText}>
             <h1 style={S.name}>{p.name}</h1>
@@ -238,7 +253,7 @@ export default async function CharacterProfile({ params }: { params: Promise<{ i
             <div style={S.heroCta}>
               <a href={`/story?characterId=${p.id}`} className="rv-btn rv-btn-primary" style={S.primary}>Enter the story →</a>
               <a href={`/chat?characterId=${p.id}`} className="rv-btn" style={S.secondary}>Talk to {p.name}</a>
-              {p.isOwner ? <a href={`/create?id=${p.id}`} className="rv-btn" style={S.secondary}>Edit</a> : null}
+              {p.isOwner ? <a href={`/c/${p.id}/edit`} className="rv-btn" style={S.secondary}>Edit</a> : null}
             </div>
           </div>
         </div>

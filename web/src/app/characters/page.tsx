@@ -96,7 +96,7 @@ export default function MyCharactersPage() {
                 {inReview ? <p style={S.reviewHint}>Awaiting a safety check before it goes public.</p> : null}
                 {c.tags.length ? <div style={S.tags}>{c.tags.map((t) => <span key={t} style={S.tag}>{t}</span>)}</div> : null}
                 <div style={S.actions}>
-                  <a href={`/create?id=${c.id}`} style={S.action}>Edit</a>
+                  <a href={`/c/${c.id}/edit`} style={S.action}>Edit</a>
                   {live ? <a href={`/story?characterId=${c.id}`} style={S.action}>Write a story</a> : null}
                   {live ? (
                     <button style={{ ...S.action, ...S.toggle, opacity: busyId === c.id ? 0.5 : 1 }} onClick={() => patchStatus(c, "disabled")} disabled={busyId === c.id}>Unpublish</button>

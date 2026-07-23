@@ -1,7 +1,7 @@
 import { and, desc, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { characters, chapterScenes, companionPosts, stories } from "@/db/schema";
+import { characterLivingPortraits, characters, chapterScenes, companionPosts, stories } from "@/db/schema";
 import { isAdmin } from "@/lib/admin";
 import {
   buildChapterScenePrompt,
@@ -17,6 +17,7 @@ import { mediaStorageConfigured, readImageBase64, storeImage } from "@/lib/media
 import { screenImagePrompt } from "@/lib/moderation";
 import { getCurrentUserId } from "@/lib/session";
 import { publishCompanionPost } from "@/lib/companionPosts";
+import { activateLivingPortrait, queueLivingPortrait } from "@/lib/livingPortraits";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -50,16 +51,29 @@ export async function GET() {
   ]);
 
   let postCounts = new Map<string, number>();
+  let livingByCharacter = new Map<string, { id: string; status: string; isActive: boolean; createdAt: Date; videoKey: string | null }[]>();
   try {
     const posts = await db.select({ characterId: companionPosts.characterId }).from(companionPosts);
     postCounts = posts.reduce((counts, post) => counts.set(post.characterId, (counts.get(post.characterId) ?? 0) + 1), new Map<string, number>());
   } catch {
     // The media studio remains usable while an older environment awaits migration 0021.
   }
+  try {
+    const renders = await db.select({ id: characterLivingPortraits.id, characterId: characterLivingPortraits.characterId, status: characterLivingPortraits.status, isActive: characterLivingPortraits.isActive, createdAt: characterLivingPortraits.createdAt, videoKey: characterLivingPortraits.videoKey })
+      .from(characterLivingPortraits).orderBy(desc(characterLivingPortraits.createdAt));
+    livingByCharacter = renders.reduce((map, render) => {
+      const list = map.get(render.characterId) ?? [];
+      list.push(render);
+      map.set(render.characterId, list);
+      return map;
+    }, new Map<string, typeof renders>());
+  } catch {
+    // The media studio remains usable while an environment awaits migration 0031.
+  }
 
   return NextResponse.json({
     characters: characterRows
-      .map((row) => ({ id: row.id, name: asDefinition(row.definition).name || "Untitled companion", hasScene: Boolean(row.hasScene), hasChatPose: Boolean(row.hasChatPose), postCount: postCounts.get(row.id) ?? 0 }))
+      .map((row) => ({ id: row.id, name: asDefinition(row.definition).name || "Untitled companion", hasScene: Boolean(row.hasScene), hasChatPose: Boolean(row.hasChatPose), postCount: postCounts.get(row.id) ?? 0, livingPortraits: livingByCharacter.get(row.id) ?? [] }))
       .sort((a, b) => a.name.localeCompare(b.name)),
     stories: storyRows.map((row) => ({
       id: row.id,
@@ -78,10 +92,25 @@ export async function POST(req: Request) {
   if (!(await isAdmin(userId))) return NextResponse.json({ error: "forbidden" }, { status: 403 });
   if (!mediaStorageConfigured()) return NextResponse.json({ error: "Cloudflare R2 storage is not configured" }, { status: 503 });
 
-  const body = (await req.json().catch(() => ({}))) as { action?: unknown; characterId?: unknown; storyId?: unknown; chapter?: unknown };
+  const body = (await req.json().catch(() => ({}))) as { action?: unknown; characterId?: unknown; renderId?: unknown; storyId?: unknown; chapter?: unknown };
   const action = typeof body.action === "string" ? body.action : "";
 
   try {
+    if (action === "living_portrait") {
+      const characterId = typeof body.characterId === "string" ? body.characterId : "";
+      if (!characterId) return NextResponse.json({ error: "characterId required" }, { status: 400 });
+      const render = await queueLivingPortrait(characterId, userId);
+      return NextResponse.json({ ok: true, renderId: render.id, status: render.status });
+    }
+
+    if (action === "select_living_portrait") {
+      const characterId = typeof body.characterId === "string" ? body.characterId : "";
+      const renderId = typeof body.renderId === "string" ? body.renderId : "";
+      if (!characterId || !renderId) return NextResponse.json({ error: "characterId and renderId required" }, { status: 400 });
+      const render = await activateLivingPortrait(characterId, renderId);
+      return NextResponse.json({ ok: true, renderId: render.id, status: render.status });
+    }
+
     if (action === "companion_post") {
       const characterId = typeof body.characterId === "string" ? body.characterId : "";
       if (!characterId) return NextResponse.json({ error: "characterId required" }, { status: 400 });

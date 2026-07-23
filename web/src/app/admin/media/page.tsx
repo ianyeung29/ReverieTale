@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-type Companion = { id: string; name: string; hasScene: boolean; hasChatPose: boolean; postCount: number };
+type LivingPortrait = { id: string; status: string; isActive: boolean; createdAt: string; videoKey: string | null };
+type Companion = { id: string; name: string; hasScene: boolean; hasChatPose: boolean; postCount: number; livingPortraits: LivingPortrait[] };
 type Story = { id: string; title: string; characterName: string; chapters: number; hasBackground: boolean };
 type Catalogue = { characters: Companion[]; stories: Story[] };
-type Job = "companion_post" | "character_scene" | "chat_pose" | "chapter_scene" | "story_background";
+type Job = "companion_post" | "character_scene" | "chat_pose" | "living_portrait" | "select_living_portrait" | "chapter_scene" | "story_background";
 
 export default function AdminMediaPage() {
   const [catalogue, setCatalogue] = useState<Catalogue | null>(null);
@@ -34,8 +35,9 @@ export default function AdminMediaPage() {
   useEffect(() => { load(); }, []);
 
   const selectedStory = useMemo(() => catalogue?.stories.find((story) => story.id === storyId) ?? null, [catalogue, storyId]);
+  const selectedCharacter = useMemo(() => catalogue?.characters.find((character) => character.id === characterId) ?? null, [catalogue, characterId]);
 
-  async function run(action: Job) {
+  async function run(action: Job, renderId?: string) {
     if (busy) return;
     setBusy(action);
     setNotice(null);
@@ -44,11 +46,11 @@ export default function AdminMediaPage() {
       const response = await fetch("/api/admin/media", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, characterId, storyId, chapter }),
+        body: JSON.stringify({ action, characterId, renderId, storyId, chapter }),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "Generation failed");
-      setNotice("Image generated and saved to R2. Reload the linked page to see it.");
+      setNotice(action === "living_portrait" ? "Portrait motion started. It will appear here after Runware finishes it; refresh in a minute." : action === "select_living_portrait" ? "The selected version is now this companion's live portrait." : "Image generated and saved to R2. Reload the linked page to see it.");
       load();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Generation failed");
@@ -89,6 +91,24 @@ export default function AdminMediaPage() {
           <button onClick={() => run("chat_pose")} disabled={!characterId || Boolean(busy)} style={{ ...S.primary, opacity: busy ? 0.55 : 1 }}>
             {busy === "chat_pose" ? "Removing background..." : "Create transparent chat portrait"}
           </button>
+
+          <h2 style={{ ...S.h2, marginTop: 12 }}>Living portrait</h2>
+          <p style={S.cardSub}>Make a silent five-second motion version of the canonical portrait. The first reader-created version becomes live automatically; here you can generate alternatives and choose what appears on the profile.</p>
+          <button onClick={() => run("living_portrait")} disabled={!characterId || Boolean(busy)} style={{ ...S.primary, opacity: busy ? 0.55 : 1 }}>
+            {busy === "living_portrait" ? "Starting portrait motion..." : "Generate living portrait"}
+          </button>
+          {selectedCharacter?.livingPortraits.length ? <div style={S.livingList}>
+            {selectedCharacter.livingPortraits.map((render) => <div key={render.id} style={S.livingItem}>
+              <div>
+                <strong style={S.livingStatus}>{render.isActive ? "Live now" : render.status}</strong>
+                <span style={S.livingDate}> {new Date(render.createdAt).toLocaleString()}</span>
+              </div>
+              <div style={S.livingActions}>
+                {render.videoKey ? <a href={`/api/living-portraits/${render.id}/video`} target="_blank" style={S.link}>Preview</a> : null}
+                {render.status === "ready" && !render.isActive ? <button onClick={() => run("select_living_portrait", render.id)} disabled={Boolean(busy)} style={S.smallBtn}>Use as live</button> : null}
+              </div>
+            </div>)}
+          </div> : null}
         </section>
 
         <section className="rv-card" style={S.card}>
@@ -138,4 +158,10 @@ const S: Record<string, React.CSSProperties> = {
   link: { color: "#E9A06B", fontSize: 13.5, fontWeight: 650, textDecoration: "none", marginTop: 3 },
   notice: { color: "#9CE2B7", background: "rgba(70,150,110,.14)", border: "1px solid #2f6b4c", borderRadius: 10, padding: "10px 13px", fontSize: 14 },
   error: { color: "#F0A9B0", background: "#2A1A1E", border: "1px solid #6b3a44", borderRadius: 10, padding: "10px 13px", fontSize: 14 },
+  livingList: { display: "flex", flexDirection: "column", gap: 7, marginTop: 3 },
+  livingItem: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, border: "1px solid #3A2E44", borderRadius: 8, padding: "8px 10px", fontSize: 12.5 },
+  livingStatus: { color: "#F4EAF0", textTransform: "capitalize" },
+  livingDate: { color: "#8A7A90" },
+  livingActions: { display: "flex", alignItems: "center", gap: 9 },
+  smallBtn: { border: "1px solid #4A3A50", background: "#1A121F", color: "#E9A06B", borderRadius: 7, padding: "5px 8px", fontSize: 12, cursor: "pointer" },
 };

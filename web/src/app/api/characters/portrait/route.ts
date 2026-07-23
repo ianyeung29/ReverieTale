@@ -7,6 +7,7 @@ import { buildPortraitPrompt, generateImage, imageConfigured } from "@/lib/image
 import { screenImagePrompt } from "@/lib/moderation";
 import { spend, userBalance } from "@/lib/ledger";
 import { getCurrentUserId } from "@/lib/session";
+import { isAdmin } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120; // ModelsLab async generation can take a while
@@ -55,12 +56,14 @@ export async function POST(req: Request) {
   // free, then PORTRAIT_PRICE each. Creating a NEW character (no id): drawn from a
   // small per-user free pool so pre-save previews can't be spammed for free.
   let isFree: boolean;
+  let adminGeneration = false;
   let userUsed = 0;
   if (body.characterId) {
     const [c] = await db.select({ creatorId: characters.creatorId, gens: characters.portraitGens }).from(characters).where(eq(characters.id, body.characterId)).limit(1);
     if (!c) return NextResponse.json({ error: "not found" }, { status: 404 });
-    if (c.creatorId !== userId) return NextResponse.json({ error: "forbidden" }, { status: 403 });
-    isFree = (c.gens ?? 0) < 1;
+    adminGeneration = await isAdmin(userId);
+    if (c.creatorId !== userId && !adminGeneration) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    isFree = adminGeneration || (c.gens ?? 0) < 1;
   } else {
     const [u] = await db.select({ gens: users.portraitGens }).from(users).where(eq(users.id, userId)).limit(1);
     userUsed = u?.gens ?? 0;
@@ -91,9 +94,9 @@ export async function POST(req: Request) {
     balance = charge.balance;
   }
 
-  if (body.characterId) {
+  if (body.characterId && !adminGeneration) {
     await db.update(characters).set({ portraitGens: sql`${characters.portraitGens} + 1` }).where(eq(characters.id, body.characterId));
-  } else {
+  } else if (!body.characterId) {
     await db.update(users).set({ portraitGens: sql`${users.portraitGens} + 1` }).where(eq(users.id, userId));
   }
 

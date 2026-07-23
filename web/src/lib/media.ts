@@ -1,7 +1,7 @@
 import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { randomUUID } from "crypto";
 
-type MediaScope = "characters" | "stories" | "chapters" | "messages" | "moments" | "companion-posts" | "requested-pool";
+type MediaScope = "characters" | "stories" | "chapters" | "messages" | "moments" | "companion-posts" | "requested-pool" | "living-portraits";
 
 const R2_REQUIRED = ["R2_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_BUCKET"] as const;
 
@@ -29,28 +29,35 @@ function bucket(): string {
 }
 
 function extension(mime: string): string {
+  if (mime === "video/mp4") return "mp4";
+  if (mime === "video/webm") return "webm";
+  if (mime === "video/quicktime") return "mov";
   if (mime === "image/webp") return "webp";
   if (mime === "image/png") return "png";
   if (mime === "image/gif") return "gif";
   return "jpg";
 }
 
-export async function storeImage(input: { scope: MediaScope; ownerId: string; base64: string; mime: string }): Promise<string> {
+export async function storeMedia(input: { scope: MediaScope; ownerId: string; bytes: Uint8Array; mime: string }): Promise<string> {
   if (!mediaStorageConfigured()) throw new Error("Cloudflare R2 media storage is not configured");
-  const bytes = Buffer.from(input.base64, "base64");
-  if (bytes.length < 100) throw new Error("Refusing to store an empty image");
+  if (input.bytes.length < 100) throw new Error("Refusing to store an empty media file");
 
   const key = `${input.scope}/${input.ownerId}/${randomUUID()}.${extension(input.mime)}`;
   await r2().send(
     new PutObjectCommand({
       Bucket: bucket(),
       Key: key,
-      Body: bytes,
+      Body: input.bytes,
       ContentType: input.mime,
       CacheControl: "public, max-age=31536000, immutable",
     }),
   );
   return key;
+}
+
+export async function storeImage(input: { scope: MediaScope; ownerId: string; base64: string; mime: string }): Promise<string> {
+  const bytes = Buffer.from(input.base64, "base64");
+  return storeMedia({ ...input, bytes });
 }
 
 export async function readImage(key: string): Promise<Uint8Array> {

@@ -8,11 +8,11 @@ import { logUnlessMissingRelation } from "@/lib/db-errors";
 import { getCurrentUserId } from "@/lib/session";
 import { storeImage } from "@/lib/media";
 import { isTtsLanguage, isTtsStyle, isTtsVoice } from "@/lib/tts";
+import { isAdmin } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
 
-// Gender is intentionally NOT here: it's set at creation and immutable thereafter.
-const FIELDS = ["name", "outfit", "look", "persona", "backstory", "voice", "ttsVoice", "ttsLanguage", "ttsStyle", "greeting", "tags"] as const;
+const FIELDS = ["name", "gender", "outfit", "look", "persona", "backstory", "voice", "ttsVoice", "ttsLanguage", "ttsStyle", "greeting", "tags"] as const;
 
 // GET /api/characters/:id -> owner-only detail for editing.
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -26,7 +26,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     .where(eq(characters.id, id))
     .limit(1);
   if (!row) return NextResponse.json({ error: "not found" }, { status: 404 });
-  if (row.creatorId !== userId) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  const admin = await isAdmin(userId);
+  if (row.creatorId !== userId && !admin) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
   // Image keys are optional while a new portrait is still generating.
   let hasImage = false;
@@ -63,7 +64,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 // (published <-> disabled). creatorId is never editable.
 const Patch = z.object({
   name: z.string().trim().min(1).max(60).optional(),
-  // gender is immutable after creation; any value sent here is ignored (stripped).
+  gender: z.enum(["female", "male", "non-binary"]).optional(),
   age: z.number().int().min(18).max(120).optional(),
   outfit: z.string().trim().max(200).optional(),
   look: z.string().trim().max(400).optional(),
@@ -102,7 +103,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     .where(eq(characters.id, id))
     .limit(1);
   if (!row) return NextResponse.json({ error: "not found" }, { status: 404 });
-  if (row.creatorId !== userId) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  const admin = await isAdmin(userId);
+  if (row.creatorId !== userId && !admin) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
   const editsDefinition = FIELDS.some((k) => body[k] !== undefined) || body.age !== undefined;
   const image = body.image !== undefined
