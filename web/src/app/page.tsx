@@ -12,11 +12,11 @@ import { HomePersonalization } from "@/components/HomePersonalization";
 import type { CompanionGender } from "@/lib/gender";
 
 /**
- * THESIS: The home page starts with a person and a moment, not a generic promise.
- * OWN-WORLD: An after-hours character index mixes a focused feature entry with a compact, image-led catalogue.
- * STORY: Meet one companion, enter one scene, then choose the next thread that catches your attention.
- * FIRST VIEWPORT: A real portrait, a specific hook, and two clear routes - read or chat.
- * FORM: Editorial two-column lead on wide screens; portrait-first vertical entry on small screens.
+ * THESIS: The home page opens on an actual story cover, not a generic landing-page hero.
+ * OWN-WORLD: An after-hours character index uses a dark full-scene cover, quiet metadata, and compact portrait-led story rails.
+ * STORY: Recognize the character and moment at a glance, read the opening, then choose a different story moment if it is not yours.
+ * FIRST VIEWPORT: The opening title and action sit left over one large character scene, with the portrait filling the entire stage behind them.
+ * FORM: A cinematic story cover is followed immediately by a five-tile Story moments rail; small screens keep the cover portrait-first with copy anchored at the bottom.
  */
 
 export const dynamic = "force-dynamic";
@@ -88,15 +88,15 @@ async function recentThreads(userId: string) {
   }
 }
 
-async function topStoryFor(characterId: string): Promise<string | null> {
+async function topStoryFor(characterId: string): Promise<{ id: string; title: string } | null> {
   try {
     const [row] = await db
-      .select({ id: stories.id })
+      .select({ id: stories.id, title: stories.title })
       .from(stories)
       .where(and(eq(stories.characterId, characterId), eq(stories.isPublic, true)))
       .orderBy(desc(stories.reads))
       .limit(1);
-    return row?.id ?? null;
+    return row ?? null;
   } catch {
     return null;
   }
@@ -143,7 +143,7 @@ export default async function Home() {
   const spotlightCandidates = withImage.length ? withImage : allCharacters;
   const undiscovered = spotlightCandidates.filter((character) => !knownIds.has(character.id));
   const spotlight = dailyPick(undiscovered.length ? undiscovered : spotlightCandidates, viewerId ?? "anon");
-  const spotlightStoryId = spotlight ? await topStoryFor(spotlight.id) : null;
+  const spotlightStory = spotlight ? await topStoryFor(spotlight.id) : null;
   const worldPool = (withImage.length >= 4 ? withImage : allCharacters).filter((character) => character.id !== spotlight?.id);
   const worlds = worldPool.slice(0, 8);
   const moodCounts = new Map<string, number>();
@@ -160,14 +160,14 @@ export default async function Home() {
       {spotlight ? (
         <section className="rv-home-entry rv-reveal" aria-labelledby="home-entry-title">
           <div className="rv-home-entry-copy">
-            <div className="rv-home-entry-kicker"><span>Tonight&apos;s entry</span><span>01 / discover</span></div>
-            <p className="rv-home-entry-type">Interactive fiction with a character who remembers where the scene left off.</p>
-            <h1 id="home-entry-title">{spotlight.name}</h1>
+            <div className="rv-home-entry-kicker"><span>Tonight&apos;s entry</span></div>
+            <p className="rv-home-entry-story-meta">{spotlight.tags[0] ?? "Interactive fiction"} <span>·</span> with {spotlight.name}</p>
+            <h1 id="home-entry-title">{spotlightStory?.title ?? spotlight.name}</h1>
             {spotlight.tagline ? <p className="rv-home-entry-hook">{spotlight.tagline}</p> : null}
             {spotlight.greeting ? <p className="rv-home-entry-quote">&ldquo;{spotlight.greeting}&rdquo;</p> : null}
             {spotlight.tags.length ? <div className="rv-home-entry-tags">{spotlight.tags.slice(0, 4).map((tag) => <span key={tag}>{tag}</span>)}</div> : null}
             <div className="rv-home-entry-actions">
-              <a href={spotlightStoryId ? `/story/${spotlightStoryId}` : `/story?characterId=${spotlight.id}`} className="rv-btn rv-btn-primary rv-home-entry-primary">Read the opening</a>
+              <a href={spotlightStory ? `/story/${spotlightStory.id}` : `/story?characterId=${spotlight.id}`} className="rv-btn rv-btn-primary rv-home-entry-primary">Read the opening</a>
               <a href={`/chat?characterId=${spotlight.id}`} className="rv-btn rv-home-entry-secondary">Chat with {spotlight.name}</a>
             </div>
             <a className="rv-home-entry-browse" href="/browse">Or browse every companion</a>
@@ -183,22 +183,16 @@ export default async function Home() {
         </section>
       )}
 
-      {viewerId ? <HomePersonalization /> : null}
-
-      {continueWith.length > 0 ? (
-        <section className="rv-home-continue rv-reveal rv-d1">
-          <div className="rv-home-section-head"><div><p>Continue your thread</p><span>Pick up the last thing you shared.</span></div></div>
-          <div className="rv-home-continue-row">
-            {continueWith.map((thread) => (
-              <a key={thread.characterId} href={`/chat?characterId=${thread.characterId}`} className="rv-home-continue-item">
-                <div className="rv-home-continue-ring"><CharacterAvatar characterId={thread.characterId} name={thread.name} size={58} /></div>
-                <span>{thread.name}</span>
-                <small>{new Date(thread.lastActiveAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</small>
-              </a>
-            ))}
+      {worlds.length > 0 ? (
+        <section className="rv-home-shelf rv-home-moments rv-reveal rv-d1">
+          <div className="rv-home-section-head"><div><p>Story moments</p><span>Five places to begin.</span></div><a href="/stories">See all stories</a></div>
+          <div className="rv-home-story-grid">
+            {worlds.slice(0, 5).map((character) => <StoryTile key={character.id} t={{ id: character.id, name: character.name, hook: character.tagline, tags: character.tags, hasImage: character.hasImage }} />)}
           </div>
         </section>
       ) : null}
+
+      {viewerId ? <HomePersonalization /> : null}
 
       {moods.length ? (
         <section className="rv-home-filters rv-reveal rv-d1">
@@ -212,11 +206,17 @@ export default async function Home() {
         </section>
       ) : null}
 
-      {worlds.length > 0 ? (
-        <section className="rv-home-shelf rv-reveal rv-d2">
-          <div className="rv-home-section-head"><div><p>Choose a thread</p><span>Opening moments that can become a conversation.</span></div><a href="/story">Start your own</a></div>
-          <div className="rv-home-story-grid">
-            {worlds.map((character) => <StoryTile key={character.id} t={{ id: character.id, name: character.name, hook: character.tagline, tags: character.tags, hasImage: character.hasImage }} />)}
+      {continueWith.length > 0 ? (
+        <section className="rv-home-continue rv-reveal rv-d1">
+          <div className="rv-home-section-head"><div><p>Continue your thread</p><span>Pick up the last thing you shared.</span></div></div>
+          <div className="rv-home-continue-row">
+            {continueWith.map((thread) => (
+              <a key={thread.characterId} href={`/chat?characterId=${thread.characterId}`} className="rv-home-continue-item">
+                <div className="rv-home-continue-ring"><CharacterAvatar characterId={thread.characterId} name={thread.name} size={58} /></div>
+                <span>{thread.name}</span>
+                <small>{new Date(thread.lastActiveAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</small>
+              </a>
+            ))}
           </div>
         </section>
       ) : null}

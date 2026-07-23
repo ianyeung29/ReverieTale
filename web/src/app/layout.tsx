@@ -59,28 +59,29 @@ const GLOBAL_CSS = `
 
 /* Home: the after-hours character index. The lead is the product itself - one
    companion, one scene, and two next steps - rather than a generic billboard. */
-.rv-home.rv-home-index { max-width: 1120px; margin: 0 auto; padding: 34px 24px 54px; color: #F4EAF0; font-family: Onest, system-ui, sans-serif; }
+.rv-home.rv-home-index { max-width: 1360px; margin: 0 auto; padding: 24px 28px 68px; color: #F4EAF0; font-family: Onest, system-ui, sans-serif; }
 .rv-home-index a { text-decoration: none; }
-.rv-home-entry { display: grid; grid-template-columns: minmax(0, 1.06fr) minmax(300px, .94fr); gap: 48px; align-items: stretch; min-height: 450px; padding: 28px 0 34px; border-bottom: 1px solid #3A2E44; }
-.rv-home-entry-copy { display: flex; min-width: 0; flex-direction: column; align-items: flex-start; justify-content: center; }
-.rv-home-entry-kicker { width: 100%; display: flex; justify-content: space-between; gap: 16px; color: #E9A06B; font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
-.rv-home-entry-kicker span:last-child { color: #9A8AA0; }
-.rv-home-entry-type { margin: 30px 0 0; max-width: 37ch; color: #B9A9BF; font-size: 13px; line-height: 1.45; }
-.rv-home-entry h1, .rv-home-fallback h1 { margin: 10px 0 0; font-family: Gloock, Georgia, serif; font-size: 44px; font-weight: 400; line-height: 1.04; letter-spacing: 0; color: #F4EAF0; }
-.rv-home-entry-hook { max-width: 33ch; margin: 16px 0 0; color: #F4EAF0; font-family: Gloock, Georgia, serif; font-size: 23px; line-height: 1.23; }
-.rv-home-entry-quote { max-width: 42ch; margin: 16px 0 0; padding-left: 13px; border-left: 2px solid #D87974; color: #CBBBD0; font-size: 14px; font-style: italic; line-height: 1.5; }
+.rv-home-entry { position: relative; isolation: isolate; min-height: 550px; overflow: hidden; padding: 0; background: #1B1320; border: 1px solid #3A2E44; border-radius: 16px; }
+.rv-home-entry-copy { position: relative; z-index: 2; display: flex; width: min(48%, 560px); min-height: 550px; box-sizing: border-box; flex-direction: column; align-items: flex-start; justify-content: center; padding: 58px 34px 58px clamp(28px, 5vw, 76px); }
+.rv-home-entry-kicker { width: 100%; display: flex; gap: 16px; color: #E9A06B; font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
+.rv-home-entry-story-meta { margin: 24px 0 0; color: #E9A06B; font-size: 13px; font-weight: 600; line-height: 1.4; text-transform: capitalize; }
+.rv-home-entry-story-meta span { color: #8A7A90; padding: 0 4px; }
+.rv-home-entry h1, .rv-home-fallback h1 { max-width: 11ch; margin: 8px 0 0; font-family: Gloock, Georgia, serif; font-size: clamp(34px, 4vw, 44px); font-weight: 400; line-height: 1.02; letter-spacing: 0; color: #F4EAF0; }
+.rv-home-entry-hook { max-width: 35ch; margin: 18px 0 0; color: #F4EAF0; font-family: Gloock, Georgia, serif; font-size: 23px; line-height: 1.25; }
+.rv-home-entry-quote { max-width: 43ch; margin: 18px 0 0; padding-left: 12px; border-left: 1px solid #D87974; color: #CBBBD0; font-size: 14px; font-style: italic; line-height: 1.5; }
 .rv-home-entry-tags { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 18px; }
 .rv-home-entry-tags span { border: 1px solid #4A3A50; border-radius: 999px; padding: 4px 9px; color: #CBBBD0; font-size: 11px; line-height: 1; text-transform: capitalize; }
 .rv-home-entry-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 24px; }
 .rv-home-entry-primary { background: #D87974 !important; color: #150F1A !important; border: 1px solid #D87974 !important; border-radius: 8px !important; padding: 11px 16px !important; font-weight: 700 !important; }
 .rv-home-entry-secondary { background: transparent !important; color: #F4EAF0 !important; border: 1px solid #4A3A50 !important; border-radius: 8px !important; padding: 10px 14px !important; font-weight: 600 !important; }
 .rv-home-entry-browse { margin-top: 17px; color: #E9A06B; font-size: 12px; font-weight: 700; }
-.rv-home-entry-art { position: relative; display: grid; min-height: 390px; overflow: hidden; background: #211827; border: 1px solid #3A2E44; border-radius: 16px; }
-.rv-home-entry-art::after { content: ""; position: absolute; inset: 42% 0 0; background: linear-gradient(180deg, transparent, rgba(21,15,26,.82)); pointer-events: none; }
+.rv-home-entry-art { position: absolute; z-index: 0; inset: 0; display: grid; overflow: hidden; background: #211827; }
+.rv-home-entry-art::before { content: ""; position: absolute; z-index: 1; inset: 0; background: linear-gradient(90deg, #1B1320 0%, rgba(27,19,32,.98) 25%, rgba(27,19,32,.82) 42%, rgba(27,19,32,.26) 64%, rgba(27,19,32,.06) 100%); pointer-events: none; }
+.rv-home-entry-art::after { content: ""; position: absolute; z-index: 1; inset: 52% 0 0; background: linear-gradient(180deg, transparent, rgba(21,15,26,.72)); pointer-events: none; }
 .rv-home-entry-art-frame, .rv-home-entry-art-frame > div { width: 100%; height: 100%; min-height: inherit; }
 .rv-home-entry-art-frame > div { aspect-ratio: auto !important; border-radius: 0 !important; }
-.rv-home-entry-art-frame img { border-radius: 0 !important; object-position: center 22% !important; }
-.rv-home-entry-caption { position: absolute; z-index: 1; right: 18px; bottom: 16px; left: 18px; display: flex; flex-direction: column; gap: 3px; color: #B9A9BF; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
+.rv-home-entry-art-frame img { border-radius: 0 !important; object-position: center 20% !important; }
+.rv-home-entry-caption { position: absolute; z-index: 2; right: 28px; bottom: 24px; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; color: #B9A9BF; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
 .rv-home-entry-caption strong { color: #F4EAF0; font-family: Gloock, Georgia, serif; font-size: 18px; font-weight: 400; letter-spacing: 0; text-transform: none; }
 .rv-home-fallback { padding: 50px 0; border-bottom: 1px solid #3A2E44; }
 .rv-home-fallback p { color: #E9A06B; font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
@@ -89,7 +90,7 @@ const GLOBAL_CSS = `
 .rv-home-section-head p { margin: 0; color: #F4EAF0; font-family: Gloock, Georgia, serif; font-size: 23px; line-height: 1.1; }
 .rv-home-section-head span { display: block; max-width: 43ch; margin-top: 5px; color: #9A8AA0; font-size: 12px; line-height: 1.45; }
 .rv-home-section-head > a { flex: 0 0 auto; color: #E9A06B; font-size: 12px; font-weight: 700; }
-.rv-home-continue, .rv-home-filters, .rv-home-shelf { margin-top: 36px; }
+.rv-home-continue, .rv-home-filters, .rv-home-shelf { margin-top: 42px; }
 .rv-home-continue-row { display: flex; gap: 18px; overflow-x: auto; padding: 2px 2px 8px; }
 .rv-home-continue-item { display: flex; width: 72px; flex: 0 0 auto; flex-direction: column; align-items: center; gap: 5px; color: #F4EAF0; font-size: 12px; font-weight: 700; text-align: center; }
 .rv-home-continue-ring { padding: 2px; border: 1px solid #D87974; border-radius: 999px; line-height: 0; }
@@ -97,7 +98,10 @@ const GLOBAL_CSS = `
 .rv-home-filter-strip { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 8px; }
 .rv-home-filter { flex: 0 0 auto; border: 1px solid #3A2E44; background: #211827; border-radius: 999px; padding: 7px 11px; color: #CBBBD0; font-size: 12px; text-transform: capitalize; }
 .rv-home-filter-current { flex: 0 0 auto; border: 1px solid #E9A06B; background: rgba(233,160,107,.1); border-radius: 999px; padding: 7px 11px; color: #E9A06B; font-size: 12px; font-weight: 700; }
-.rv-home-story-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.rv-home-moments { margin-top: 20px; padding-top: 24px; border-top: 1px solid #3A2E44; }
+.rv-home-moments .rv-home-section-head { margin-bottom: 14px; }
+.rv-home-moments .rv-home-section-head p { font-size: 23px; }
+.rv-home-story-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
 .rv-home-story-grid .rv-card { border-radius: 12px !important; }
 .rv-home-community-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .rv-home-community-card { display: flex; min-height: 176px; flex-direction: column; gap: 12px; padding: 15px; border: 1px solid #3A2E44; border-radius: 12px; background: #211827; color: #F4EAF0; transition: border-color .16s ease, transform .16s ease; }
@@ -113,15 +117,20 @@ const GLOBAL_CSS = `
 .rv-home-empty > span { max-width: 50ch; color: #B9A9BF; font-size: 14px; }
 .rv-home-empty > div { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 8px; }
 @media (max-width: 760px) {
-  .rv-home.rv-home-index { padding: 24px 18px 40px !important; }
-  .rv-home-entry { grid-template-columns: 1fr; gap: 18px; min-height: 0; padding: 14px 0 26px; }
-  .rv-home-entry-copy { order: 2; }
-  .rv-home-entry-art { order: 1; min-height: min(112vw, 440px); }
-  .rv-home-entry-type { margin-top: 18px; }
+  .rv-home.rv-home-index { padding: 18px 16px 40px !important; }
+  .rv-home-entry { min-height: min(620px, 148vw); border-radius: 12px; }
+  .rv-home-entry-copy { width: 100%; min-height: min(620px, 148vw); justify-content: flex-end; padding: 210px 22px 24px; }
+  .rv-home-entry-art { position: absolute; inset: 0; min-height: 0; }
+  .rv-home-entry-art::before { background: linear-gradient(180deg, rgba(27,19,32,.08) 0%, rgba(27,19,32,.18) 32%, rgba(27,19,32,.88) 59%, #1B1320 100%); }
+  .rv-home-entry-art::after { inset: 68% 0 0; background: linear-gradient(180deg, transparent, rgba(21,15,26,.72)); }
+  .rv-home-entry-caption { right: 16px; top: 16px; bottom: auto; }
+  .rv-home-entry-art-frame img { object-position: center 15% !important; }
+  .rv-home-entry-story-meta { margin-top: 16px; }
   .rv-home-entry h1, .rv-home-fallback h1 { font-size: 34px; }
-  .rv-home-entry-hook { font-size: 20px; }
+  .rv-home-entry-hook { margin-top: 10px; font-size: 18px; }
   .rv-home-entry-quote { font-size: 13px; }
-  .rv-home-entry-actions { margin-top: 20px; }
+  .rv-home-entry-tags { margin-top: 12px; }
+  .rv-home-entry-actions { margin-top: 18px; }
   .rv-home-section-head { align-items: flex-start; }
   .rv-home-section-head p { font-size: 20px; }
   .rv-home-story-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
@@ -129,8 +138,8 @@ const GLOBAL_CSS = `
 }
 @media (max-width: 480px) {
   .rv-home.rv-home-index { padding: 18px 14px 32px !important; }
-  .rv-home-entry { padding-top: 6px; }
-  .rv-home-entry-art { min-height: min(112vw, 390px); border-radius: 12px; }
+  .rv-home-entry { min-height: 565px; }
+  .rv-home-entry-copy { min-height: 565px; padding: 195px 18px 20px; }
   .rv-home-entry h1, .rv-home-fallback h1 { font-size: 30px; }
   .rv-home-entry-hook { font-size: 18px; }
   .rv-home-entry-actions { width: 100%; }

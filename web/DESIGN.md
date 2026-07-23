@@ -90,7 +90,7 @@ Display type gives character names and story titles a literary presence. Interfa
 
 ## Layout
 
-Desktop content is constrained to 1120px and uses a two-column editorial lead. The opening entry receives a clear invitation, then discovery becomes dense image tiles and compact companion cards. On narrow screens the image leads, then the story invitation and actions follow in a simple vertical rhythm.
+Desktop content is constrained to 1360px. The opening entry is one full-scene cover: story title and actions are overlaid at left while the companion portrait fills the stage. A five-tile Story moments rail follows immediately, then filters, returning-reader threads, and compact companion discovery. On narrow screens the portrait stays dominant and the copy settles into a legible dark lower field.
 
 ## Elevation & Depth
 
