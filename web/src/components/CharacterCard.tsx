@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { CharacterAvatar } from "./CharacterAvatar";
 import { StarRating } from "./StarRating";
+import { CharacterLikeButton, formatCount } from "./CharacterLikeButton";
 
 export type CharacterCardData = {
   id: string;
@@ -13,6 +14,10 @@ export type CharacterCardData = {
   stories?: number;
   rating?: number;
   ratingCount?: number;
+  age?: number | null;
+  likes?: number;
+  messages?: number;
+  likedByViewer?: boolean;
 };
 
 /**
@@ -23,7 +28,7 @@ export type CharacterCardData = {
  * doorway into a story instead of a spec sheet with an initials icon.
  */
 export function CharacterCard({ c, actions }: { c: CharacterCardData; actions?: ReactNode }) {
-  const hasStats = Boolean(c.reads || c.stories || c.ratingCount);
+  const hasStats = Boolean(c.reads || c.stories || c.ratingCount || c.messages || c.likes);
   return (
     <div className="rv-card rv-character-card" style={S.card}>
       <a href={`/c/${c.id}`} className="rv-character-card-media-link" style={S.mediaLink}>
@@ -31,7 +36,7 @@ export function CharacterCard({ c, actions }: { c: CharacterCardData; actions?: 
           <CharacterAvatar characterId={c.id} name={c.name} shape="rect" />
           <div style={S.scrim} />
           <div className="rv-character-card-media-text" style={S.mediaText}>
-            <div style={S.name}>{c.name}</div>
+            <div style={S.name}>{c.name}{c.age ? `, ${c.age}` : ""}</div>
             {c.tags.length ? (
               <div style={S.tags}>
                 {c.tags.slice(0, 3).map((t) => (
@@ -63,6 +68,10 @@ export function CharacterCard({ c, actions }: { c: CharacterCardData; actions?: 
             ) : null}
           </div>
         ) : null}
+        <div style={S.engagement}>
+          <span title="Messages exchanged">▢ {formatCount(c.messages ?? 0)} messages</span>
+          <CharacterLikeButton characterId={c.id} initialLiked={Boolean(c.likedByViewer)} initialLikes={c.likes ?? 0} />
+        </div>
         {actions ? <div style={S.actions}>{actions}</div> : null}
       </div>
     </div>
@@ -83,5 +92,6 @@ const S: Record<string, React.CSSProperties> = {
   greeting: { color: "#EadFe6", fontSize: 13.5, fontStyle: "italic", margin: 0, lineHeight: 1.5, borderLeft: "2px solid #E9A06B", paddingLeft: 10 },
   persona: { color: "#CBBBD0", fontSize: 13.5, margin: 0, lineHeight: 1.5, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" },
   meta: { color: "#8A7A90", fontSize: 12, fontVariantNumeric: "tabular-nums", display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" },
+  engagement: { color: "#A996AD", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, fontVariantNumeric: "tabular-nums" },
   actions: { display: "flex", gap: 10, marginTop: 2 },
 };

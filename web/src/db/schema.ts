@@ -278,6 +278,22 @@ export const ratings = pgTable(
   }),
 );
 
+// A lightweight, public appreciation signal for discovery cards. Likes are
+// unique per reader and companion; no conversation content is ever exposed.
+export const characterLikes = pgTable(
+  "character_likes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    characterId: uuid("character_id").notNull().references(() => characters.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    userCharacter: uniqueIndex("character_likes_user_character_uniq").on(t.userId, t.characterId),
+    byCharacter: index("character_likes_character_idx").on(t.characterId, t.createdAt),
+  }),
+);
+
 // ---------------------------------------------------------------------------
 // Per-(character x reader) memory (exec-3 sec 6). Raw chat is transient (sec 8.1),
 // distilled memory is durable.
@@ -321,6 +337,29 @@ export const messages = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => ({ byThread: index("messages_thread_idx").on(t.threadId, t.createdAt) }),
+);
+
+// A compact, companion-specific relationship state. This captures the tone a
+// character has earned with one reader without exposing a gamified score in
+// the interface or treating a reader's attention as something owed.
+export const companionRelationships = pgTable(
+  "companion_relationships",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    characterId: uuid("character_id").notNull().references(() => characters.id),
+    trust: integer("trust").notNull().default(10),
+    familiarity: integer("familiarity").notNull().default(0),
+    lastEmotion: text("last_emotion"),
+    lastTopic: text("last_topic"),
+    lastJealousyAt: timestamp("last_jealousy_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    userCharacter: uniqueIndex("companion_relationships_user_character_uniq").on(t.userId, t.characterId),
+    byUser: index("companion_relationships_user_idx").on(t.userId, t.updatedAt),
+  }),
 );
 
 // Reusable, companion-scoped art for generic reader-requested moments and

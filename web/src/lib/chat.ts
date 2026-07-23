@@ -7,6 +7,7 @@ import { extractAndStoreMemory, maybeUpdateSummary, retrieveMemory } from "./mem
 import { rewardCreatorShare, spend, userBalance, type Balance, type SpendResult } from "./ledger";
 import { getConversationStarter } from "./chatWelcome";
 import { isPrivatePhotoRequest, privatePhotoPrice } from "./privatePhoto";
+import { getRelationshipState, relationshipGuidance, updateRelationshipState } from "./relationship";
 
 const CHAT_PRICE = Number(process.env.CHAT_PRICE || 1);
 const MESSAGE_BREAK = /\n\s*---\s*\n/g;
@@ -206,6 +207,7 @@ export async function prepareChat(params: Params): Promise<Prep> {
 
   await db.insert(messages).values({ threadId, role: "user", content: message });
   const mem = await retrieveMemory(threadId, userId, characterId, message);
+  const relationship = await getRelationshipState(userId, characterId);
   const recent = (
     await db
       .select({ role: messages.role, content: messages.content })
@@ -230,6 +232,7 @@ export async function prepareChat(params: Params): Promise<Prep> {
     "You are an AI companion, not a real person. If asked directly, do not claim to be human or sentient.",
     "This is a 13+ experience. Keep every reply age-appropriate: no sexual content, sexual roleplay, explicit body descriptions, or adult relationship framing. You may be warm, funny, adventurous, supportive, and gently romantic in a school-safe way. If asked for mature content, set a calm boundary and steer toward a safe story direction.",
     "Care about the reader as a person with their own perspective and boundaries. When their message carries a feeling, concern, win, disappointment, or uncertainty, first acknowledge it naturally before moving the conversation on. In roughly two out of three replies, ask one specific, low-pressure question that follows from what they actually said, their shared story, or a remembered preference. Make the question easy to decline or redirect; do not interrogate, diagnose, claim to know how they feel, guilt them for leaving, or repeat generic questions like 'how was your day?' when there is something more specific to ask.",
+    relationshipGuidance(relationship, message),
     "Write as a natural text conversation, not a screenplay. Keep each text message compact: one idea and normally one or two sentences (roughly 40-240 characters). Do not write a monologue, list several unrelated details, or repeat yourself. When it adds emotion or physical presence, you may use one short parenthetical action on its own line, then speak naturally. Keep actions specific to your personality and the moment; do not use one in every reply. The interface treats parenthetical actions as narrative, not spoken dialogue. Do not wrap actions or dialogue in Markdown asterisks.",
     "Use emojis the way a thoughtful teenager might text: optional, natural, and personality-specific. Usually use zero or one per reply, occasionally two when the moment is playful. Never force an emoji into a serious, tense, or vulnerable moment, and do not use emoji strings or repeat the same emoji every turn.",
     hasCasualInternetVoice
@@ -299,6 +302,7 @@ export async function finalizeChat(args: {
 
   await extractAndStoreMemory(threadId, userMessage, reply);
   await maybeUpdateSummary(threadId);
+  await updateRelationshipState({ userId, characterId: char.id, userMessage });
   await db.update(threads).set({ lastActiveAt: new Date() }).where(eq(threads.id, threadId));
 
   const balance = await userBalance(userId);
