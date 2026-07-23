@@ -48,13 +48,99 @@ export const metadata: Metadata = {
 // that light up on interaction, buttons get a visible press/hover response -
 // so the eye doesn't have to work to tell them apart.
 const GLOBAL_CSS = `
+@import url('https://fonts.googleapis.com/css2?family=Gloock&family=Onest:wght@400;500;600;700&display=swap');
 @keyframes rvShimmer { to { background-position: 200% center; } }
 @keyframes rvUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 @keyframes rvTypingBlink { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
 .rv-typing-indicator { animation: rvTypingBlink 1s ease-in-out infinite; }
-.rv-title { background: linear-gradient(100deg,#F4EAF0 8%,#E9A06B 38%,#D46A8B 58%,#F4EAF0 88%); background-size: 200% auto; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent; animation: rvShimmer 7s linear infinite; }
+.rv-title { color: #E9A06B; }
 .rv-reveal { animation: rvUp .6s cubic-bezier(.2,.7,.2,1) both; }
 .rv-d1 { animation-delay: .06s; } .rv-d2 { animation-delay: .14s; } .rv-d3 { animation-delay: .22s; }
+
+/* Home: the after-hours character index. The lead is the product itself - one
+   companion, one scene, and two next steps - rather than a generic billboard. */
+.rv-home.rv-home-index { max-width: 1120px; margin: 0 auto; padding: 34px 24px 54px; color: #F4EAF0; font-family: Onest, system-ui, sans-serif; }
+.rv-home-index a { text-decoration: none; }
+.rv-home-entry { display: grid; grid-template-columns: minmax(0, 1.06fr) minmax(300px, .94fr); gap: 48px; align-items: stretch; min-height: 450px; padding: 28px 0 34px; border-bottom: 1px solid #3A2E44; }
+.rv-home-entry-copy { display: flex; min-width: 0; flex-direction: column; align-items: flex-start; justify-content: center; }
+.rv-home-entry-kicker { width: 100%; display: flex; justify-content: space-between; gap: 16px; color: #E9A06B; font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
+.rv-home-entry-kicker span:last-child { color: #9A8AA0; }
+.rv-home-entry-type { margin: 30px 0 0; max-width: 37ch; color: #B9A9BF; font-size: 13px; line-height: 1.45; }
+.rv-home-entry h1, .rv-home-fallback h1 { margin: 10px 0 0; font-family: Gloock, Georgia, serif; font-size: 44px; font-weight: 400; line-height: 1.04; letter-spacing: 0; color: #F4EAF0; }
+.rv-home-entry-hook { max-width: 33ch; margin: 16px 0 0; color: #F4EAF0; font-family: Gloock, Georgia, serif; font-size: 23px; line-height: 1.23; }
+.rv-home-entry-quote { max-width: 42ch; margin: 16px 0 0; padding-left: 13px; border-left: 2px solid #D87974; color: #CBBBD0; font-size: 14px; font-style: italic; line-height: 1.5; }
+.rv-home-entry-tags { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 18px; }
+.rv-home-entry-tags span { border: 1px solid #4A3A50; border-radius: 999px; padding: 4px 9px; color: #CBBBD0; font-size: 11px; line-height: 1; text-transform: capitalize; }
+.rv-home-entry-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 24px; }
+.rv-home-entry-primary { background: #D87974 !important; color: #150F1A !important; border: 1px solid #D87974 !important; border-radius: 8px !important; padding: 11px 16px !important; font-weight: 700 !important; }
+.rv-home-entry-secondary { background: transparent !important; color: #F4EAF0 !important; border: 1px solid #4A3A50 !important; border-radius: 8px !important; padding: 10px 14px !important; font-weight: 600 !important; }
+.rv-home-entry-browse { margin-top: 17px; color: #E9A06B; font-size: 12px; font-weight: 700; }
+.rv-home-entry-art { position: relative; display: grid; min-height: 390px; overflow: hidden; background: #211827; border: 1px solid #3A2E44; border-radius: 16px; }
+.rv-home-entry-art::after { content: ""; position: absolute; inset: 42% 0 0; background: linear-gradient(180deg, transparent, rgba(21,15,26,.82)); pointer-events: none; }
+.rv-home-entry-art-frame, .rv-home-entry-art-frame > div { width: 100%; height: 100%; min-height: inherit; }
+.rv-home-entry-art-frame > div { aspect-ratio: auto !important; border-radius: 0 !important; }
+.rv-home-entry-art-frame img { border-radius: 0 !important; object-position: center 22% !important; }
+.rv-home-entry-caption { position: absolute; z-index: 1; right: 18px; bottom: 16px; left: 18px; display: flex; flex-direction: column; gap: 3px; color: #B9A9BF; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
+.rv-home-entry-caption strong { color: #F4EAF0; font-family: Gloock, Georgia, serif; font-size: 18px; font-weight: 400; letter-spacing: 0; text-transform: none; }
+.rv-home-fallback { padding: 50px 0; border-bottom: 1px solid #3A2E44; }
+.rv-home-fallback p { color: #E9A06B; font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
+.rv-home-fallback .rv-btn { display: inline-block; margin-top: 22px; }
+.rv-home-section-head { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.rv-home-section-head p { margin: 0; color: #F4EAF0; font-family: Gloock, Georgia, serif; font-size: 23px; line-height: 1.1; }
+.rv-home-section-head span { display: block; max-width: 43ch; margin-top: 5px; color: #9A8AA0; font-size: 12px; line-height: 1.45; }
+.rv-home-section-head > a { flex: 0 0 auto; color: #E9A06B; font-size: 12px; font-weight: 700; }
+.rv-home-continue, .rv-home-filters, .rv-home-shelf { margin-top: 36px; }
+.rv-home-continue-row { display: flex; gap: 18px; overflow-x: auto; padding: 2px 2px 8px; }
+.rv-home-continue-item { display: flex; width: 72px; flex: 0 0 auto; flex-direction: column; align-items: center; gap: 5px; color: #F4EAF0; font-size: 12px; font-weight: 700; text-align: center; }
+.rv-home-continue-ring { padding: 2px; border: 1px solid #D87974; border-radius: 999px; line-height: 0; }
+.rv-home-continue-item small { color: #8A7A90; font-size: 10px; font-weight: 400; }
+.rv-home-filter-strip { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 8px; }
+.rv-home-filter { flex: 0 0 auto; border: 1px solid #3A2E44; background: #211827; border-radius: 999px; padding: 7px 11px; color: #CBBBD0; font-size: 12px; text-transform: capitalize; }
+.rv-home-filter-current { flex: 0 0 auto; border: 1px solid #E9A06B; background: rgba(233,160,107,.1); border-radius: 999px; padding: 7px 11px; color: #E9A06B; font-size: 12px; font-weight: 700; }
+.rv-home-story-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.rv-home-story-grid .rv-card { border-radius: 12px !important; }
+.rv-home-community-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.rv-home-community-card { display: flex; min-height: 176px; flex-direction: column; gap: 12px; padding: 15px; border: 1px solid #3A2E44; border-radius: 12px; background: #211827; color: #F4EAF0; transition: border-color .16s ease, transform .16s ease; }
+.rv-home-community-card:hover { transform: translateY(-2px); border-color: #6A5570; }
+.rv-home-community-top { display: flex; align-items: center; gap: 9px; }
+.rv-home-community-top > div { min-width: 0; }
+.rv-home-community-top strong { display: block; overflow: hidden; color: #F4EAF0; font-family: Gloock, Georgia, serif; font-size: 17px; font-weight: 400; line-height: 1.15; text-overflow: ellipsis; white-space: nowrap; }
+.rv-home-community-top span { display: block; margin-top: 2px; color: #E9A06B; font-size: 11px; }
+.rv-home-community-card > p { display: -webkit-box; margin: 0; overflow: hidden; color: #B9A9BF; font-size: 12px; line-height: 1.5; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
+.rv-home-community-meta { display: flex; align-items: center; gap: 4px; margin-top: auto; color: #8A7A90; font-size: 11px; }
+.rv-home-empty { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-top: 42px; padding: 24px 0; border-top: 1px solid #3A2E44; }
+.rv-home-empty p { margin: 0; color: #F4EAF0; font-family: Gloock, Georgia, serif; font-size: 25px; }
+.rv-home-empty > span { max-width: 50ch; color: #B9A9BF; font-size: 14px; }
+.rv-home-empty > div { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 8px; }
+@media (max-width: 760px) {
+  .rv-home.rv-home-index { padding: 24px 18px 40px !important; }
+  .rv-home-entry { grid-template-columns: 1fr; gap: 18px; min-height: 0; padding: 14px 0 26px; }
+  .rv-home-entry-copy { order: 2; }
+  .rv-home-entry-art { order: 1; min-height: min(112vw, 440px); }
+  .rv-home-entry-type { margin-top: 18px; }
+  .rv-home-entry h1, .rv-home-fallback h1 { font-size: 34px; }
+  .rv-home-entry-hook { font-size: 20px; }
+  .rv-home-entry-quote { font-size: 13px; }
+  .rv-home-entry-actions { margin-top: 20px; }
+  .rv-home-section-head { align-items: flex-start; }
+  .rv-home-section-head p { font-size: 20px; }
+  .rv-home-story-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .rv-home-community-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+}
+@media (max-width: 480px) {
+  .rv-home.rv-home-index { padding: 18px 14px 32px !important; }
+  .rv-home-entry { padding-top: 6px; }
+  .rv-home-entry-art { min-height: min(112vw, 390px); border-radius: 12px; }
+  .rv-home-entry h1, .rv-home-fallback h1 { font-size: 30px; }
+  .rv-home-entry-hook { font-size: 18px; }
+  .rv-home-entry-actions { width: 100%; }
+  .rv-home-entry-actions .rv-btn { flex: 1 1 auto; text-align: center; }
+  .rv-home-section-head { gap: 10px; }
+  .rv-home-section-head span { font-size: 11px; }
+  .rv-home-section-head > a { font-size: 11px; }
+  .rv-home-continue, .rv-home-filters, .rv-home-shelf { margin-top: 30px; }
+  .rv-home-community-grid { grid-template-columns: 1fr; }
+}
 
 /* Scrollbars are part of the interface on desktop: keep their contrast useful
    while carrying the same dark-plum and warm-accent palette as the app. */
