@@ -12,6 +12,7 @@ import {
   index,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 // Embedding dimension must match EMBEDDINGS_DIM in the env (default: OpenAI text-embedding-3-small = 1536).
 const EMBED_DIM = 1536;
@@ -129,6 +130,32 @@ export const characters = pgTable("characters", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// Short, silent motion studies made from a companion's canonical portrait.
+// The video bytes live in R2; Postgres keeps only the durable record and which
+// rendition is currently shown as the companion's live portrait.
+export const characterLivingPortraits = pgTable(
+  "character_living_portraits",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    characterId: uuid("character_id").notNull().references(() => characters.id),
+    videoKey: text("video_key"),
+    videoMime: text("video_mime"),
+    sourceImageKey: text("source_image_key"),
+    provider: text("provider").notNull().default("runware"),
+    providerTaskUuid: uuid("provider_task_uuid").notNull().unique(),
+    status: text("status").notNull().default("processing"), // processing | ready | failed
+    error: text("error"),
+    isActive: boolean("is_active").notNull().default(false),
+    createdByUserId: uuid("created_by_user_id").references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+  },
+  (t) => ({
+    byCharacter: index("character_living_portraits_character_idx").on(t.characterId, t.createdAt),
+    oneActive: uniqueIndex("character_living_portraits_one_active_uniq").on(t.characterId).where(sql`${t.isActive} = true`),
+  }),
+);
 
 // ---------------------------------------------------------------------------
 // Stories - the free front-door (acquisition). A guided first chapter starring
